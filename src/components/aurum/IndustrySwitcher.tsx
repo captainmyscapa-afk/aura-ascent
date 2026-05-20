@@ -25,7 +25,7 @@ export function IndustrySwitcher({ compact = false }: { compact?: boolean }) {
         className="inline-flex items-center gap-2 glass rounded-full pl-2.5 pr-3 py-1.5 text-xs text-foreground hover:ring-gold transition-all"
       >
         <span className="h-6 w-6 rounded-full bg-[var(--gradient-gold)] flex items-center justify-center">
-          <ActiveIcon className="h-3.5 w-3.5 text-primary-foreground" />
+          <ActiveIcon className="lucide lucide-sailboat h-3.5 w-3.5 text-primary-foreground text-[#9c885e]" />
         </span>
         {!compact && (
           <>
