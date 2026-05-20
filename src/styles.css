@@ -119,6 +119,32 @@
   --shadow-soft: 0 8px 30px -8px oklch(0 0 0 / 50%);
 
   --transition-smooth: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Ambient (industry-mode driven) — defaults to Yacht ocean navy */
+  --ambient-1: oklch(0.22 0.04 255 / 60%);
+  --ambient-2: oklch(0.13 0.005 240);
+  --ambient-accent: oklch(0.55 0.08 240);
+}
+
+[data-industry="yachts"] {
+  --ambient-1: oklch(0.22 0.06 240 / 65%);
+  --ambient-2: oklch(0.12 0.01 240);
+  --ambient-accent: oklch(0.60 0.09 235);
+}
+[data-industry="villas"] {
+  --ambient-1: oklch(0.28 0.05 60 / 55%);
+  --ambient-2: oklch(0.14 0.012 50);
+  --ambient-accent: oklch(0.65 0.10 55);
+}
+[data-industry="jets"] {
+  --ambient-1: oklch(0.25 0.04 220 / 60%);
+  --ambient-2: oklch(0.12 0.008 230);
+  --ambient-accent: oklch(0.72 0.08 215);
+}
+[data-industry="cars"] {
+  --ambient-1: oklch(0.26 0.08 25 / 55%);
+  --ambient-2: oklch(0.11 0.012 25);
+  --ambient-accent: oklch(0.62 0.18 25);
 }
 
 .dark {
