@@ -120,7 +120,13 @@ function Dashboard() {
         </div>
       </header>
 
+      {/* ───────────── GLOBAL TIME HUB ───────────── */}
+      <div className="mb-10 lg:mb-12 animate-fade-up">
+        <GlobalTimeHub />
+      </div>
+
       {/* ───────────── MAIN GRID ───────────── */}
+
       <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
         {/* LEFT — primary column */}
         <section className="lg:col-span-2 space-y-6 lg:space-y-8">
