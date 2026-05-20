@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/aurum/AppShell";
+import { GlobalTimeHub } from "@/components/aurum/GlobalTimeHub";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
 
