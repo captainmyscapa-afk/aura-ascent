@@ -9,7 +9,7 @@ export function Logo({ className = "" }: { className?: string }) {
       <div className="leading-tight">
         <div className="font-serif text-[15px] tracking-tight text-foreground">Aurum</div>
         <div className="text-[9px] uppercase tracking-[0.22em] text-muted-foreground -mt-0.5">
-          Brokerage OS
+          OS
         </div>
       </div>
     </div>
