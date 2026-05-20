@@ -8,7 +8,7 @@ export const Route = createFileRoute("/")({
 });
 
 const ecosystems = [
-  { icon: Car, name: "Brokerage, charter & UHNW clients", note: "Prime real estate & private estates" },
+  { icon: Sailboat, name: "Brokerage, charter & UHNW clients", note: "Prime real estate & private estates" },
   { icon: Building2, name: "Villas", note: "Ultra-prime real estate" },
   { icon: Plane, name: "Jets", note: "Private aviation" },
   { icon: Compass, name: "Cars", note: "Exotic & collector" },
