@@ -1,57 +1,32 @@
 import { useEffect, useState } from "react";
-import { Anchor, Home, Plane, Car, Globe2 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Globe2 } from "lucide-react";
+import { useIndustry } from "@/lib/industry/IndustryProvider";
+import type { IndustryId } from "@/lib/industry/types";
 
-type City = { city: string; country: string; flag: string; tz: string };
-type Mode = {
-  id: "yachts" | "villas" | "jets" | "cars";
-  label: string;
-  icon: LucideIcon;
-  cities: City[];
+type City = { city: string; flag: string; tz: string };
+
+const CITIES_BY_INDUSTRY: Record<IndustryId, City[]> = {
+  yachts: [
+    { city: "Monaco", flag: "🇲🇨", tz: "Europe/Monaco" },
+    { city: "Miami", flag: "🇺🇸", tz: "America/New_York" },
+    { city: "Hong Kong", flag: "🇭🇰", tz: "Asia/Hong_Kong" },
+  ],
+  villas: [
+    { city: "Cannes", flag: "🇫🇷", tz: "Europe/Paris" },
+    { city: "Los Angeles", flag: "🇺🇸", tz: "America/Los_Angeles" },
+    { city: "Dubai", flag: "🇦🇪", tz: "Asia/Dubai" },
+  ],
+  jets: [
+    { city: "New York", flag: "🇺🇸", tz: "America/New_York" },
+    { city: "London", flag: "🇬🇧", tz: "Europe/London" },
+    { city: "Tokyo", flag: "🇯🇵", tz: "Asia/Tokyo" },
+  ],
+  cars: [
+    { city: "Abu Dhabi", flag: "🇦🇪", tz: "Asia/Dubai" },
+    { city: "Monaco", flag: "🇲🇨", tz: "Europe/Monaco" },
+    { city: "Dubai", flag: "🇦🇪", tz: "Asia/Dubai" },
+  ],
 };
-
-const MODES: Mode[] = [
-  {
-    id: "yachts",
-    label: "Yacht",
-    icon: Anchor,
-    cities: [
-      { city: "Monaco", country: "MC", flag: "🇲🇨", tz: "Europe/Monaco" },
-      { city: "Miami", country: "US", flag: "🇺🇸", tz: "America/New_York" },
-      { city: "Hong Kong", country: "HK", flag: "🇭🇰", tz: "Asia/Hong_Kong" },
-    ],
-  },
-  {
-    id: "villas",
-    label: "Villa",
-    icon: Home,
-    cities: [
-      { city: "Cannes", country: "FR", flag: "🇫🇷", tz: "Europe/Paris" },
-      { city: "Los Angeles", country: "US", flag: "🇺🇸", tz: "America/Los_Angeles" },
-      { city: "Dubai", country: "AE", flag: "🇦🇪", tz: "Asia/Dubai" },
-    ],
-  },
-  {
-    id: "jets",
-    label: "Jet",
-    icon: Plane,
-    cities: [
-      { city: "New York", country: "US", flag: "🇺🇸", tz: "America/New_York" },
-      { city: "London", country: "GB", flag: "🇬🇧", tz: "Europe/London" },
-      { city: "Tokyo", country: "JP", flag: "🇯🇵", tz: "Asia/Tokyo" },
-    ],
-  },
-  {
-    id: "cars",
-    label: "Car",
-    icon: Car,
-    cities: [
-      { city: "Abu Dhabi", country: "AE", flag: "🇦🇪", tz: "Asia/Dubai" },
-      { city: "Monaco", country: "MC", flag: "🇲🇨", tz: "Europe/Monaco" },
-      { city: "Dubai", country: "AE", flag: "🇦🇪", tz: "Asia/Dubai" },
-    ],
-  },
-];
 
 function useTick(ms = 1000) {
   const [, setT] = useState(0);
@@ -120,13 +95,16 @@ function dayDelta(tz: string, d: Date) {
 
 export function GlobalTimeHub({ compact = false }: { compact?: boolean } = {}) {
   useTick(1000);
-  const [activeId, setActiveId] = useState<Mode["id"]>("yachts");
+  const { industry, industryId } = useIndustry();
+  const cities = CITIES_BY_INDUSTRY[industryId];
   const now = new Date();
-  const active = MODES.find((m) => m.id === activeId)!;
 
   if (compact) {
     return (
-      <section className="relative rounded-xl overflow-hidden border border-border/60 glass-strong w-full">
+      <section
+        key={industryId}
+        className="relative rounded-xl overflow-hidden border border-border/60 glass-strong w-full animate-fade-in"
+      >
         <div
           aria-hidden
           className="pointer-events-none absolute -top-20 -right-20 w-[220px] h-[220px] rounded-full opacity-25 blur-3xl"
@@ -136,7 +114,7 @@ export function GlobalTimeHub({ compact = false }: { compact?: boolean } = {}) {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5 text-[9px] tracking-[0.35em] text-primary/80 uppercase">
               <Globe2 className="h-2.5 w-2.5" />
-              Global · Live
+              {industry.modeLabel} · Live
             </div>
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-70" />
@@ -144,36 +122,15 @@ export function GlobalTimeHub({ compact = false }: { compact?: boolean } = {}) {
             </span>
           </div>
 
-          <div className="flex gap-1 mb-3">
-            {MODES.map((m) => {
-              const Icon = m.icon;
-              const isActive = m.id === activeId;
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => setActiveId(m.id)}
-                  title={m.label}
-                  className={`flex-1 inline-flex items-center justify-center rounded-md py-1.5 transition-all border ${
-                    isActive
-                      ? "border-primary/60 text-foreground bg-primary/10"
-                      : "border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                </button>
-              );
-            })}
-          </div>
-
           <div className="space-y-1">
-            {active.cities.map((c, idx) => {
+            {cities.map((c, idx) => {
               const time = formatTime(c.tz, now);
               const hour = Number(time.split(":")[0]);
               const isNight = hour >= 20 || hour < 6;
               const day = dayDelta(c.tz, now);
               return (
                 <div
-                  key={`${active.id}-${idx}`}
+                  key={`${industryId}-${idx}`}
                   className="flex items-center justify-between rounded-lg px-2.5 py-1.5 hover:bg-secondary/30 transition-colors"
                 >
                   <div className="flex items-center gap-2 min-w-0">
@@ -204,11 +161,11 @@ export function GlobalTimeHub({ compact = false }: { compact?: boolean } = {}) {
     );
   }
 
-
-
   return (
-    <section className="relative rounded-2xl overflow-hidden border border-border/60 glass-strong">
-      {/* ambient gold glow */}
+    <section
+      key={industryId}
+      className="relative rounded-2xl overflow-hidden border border-border/60 glass-strong animate-fade-in"
+    >
       <div
         aria-hidden
         className="pointer-events-none absolute -top-32 -right-32 w-[420px] h-[420px] rounded-full opacity-30 blur-3xl"
@@ -221,12 +178,11 @@ export function GlobalTimeHub({ compact = false }: { compact?: boolean } = {}) {
       />
 
       <div className="relative p-5 sm:p-7">
-        {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-5 sm:mb-6">
           <div>
             <div className="flex items-center gap-2 text-[10px] tracking-[0.4em] text-primary/80 uppercase mb-2">
               <Globe2 className="h-3 w-3" />
-              Global Lifestyle · Live
+              {industry.modeLabel} · Live
             </div>
             <h3 className="font-serif text-xl sm:text-2xl leading-tight">
               The rhythm of the <span className="italic text-gold-gradient">world</span>
@@ -241,31 +197,8 @@ export function GlobalTimeHub({ compact = false }: { compact?: boolean } = {}) {
           </div>
         </div>
 
-        {/* Mode tabs */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {MODES.map((m) => {
-            const Icon = m.icon;
-            const isActive = m.id === activeId;
-            return (
-              <button
-                key={m.id}
-                onClick={() => setActiveId(m.id)}
-                className={`group inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs tracking-[0.2em] uppercase transition-all border ${
-                  isActive
-                    ? "border-primary/60 text-foreground bg-primary/10 shadow-[var(--shadow-gold)]"
-                    : "border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {m.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* City cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          {active.cities.map((c, idx) => {
+          {cities.map((c, idx) => {
             const time = formatTime(c.tz, now);
             const secs = formatSeconds(c.tz, now);
             const off = tzOffsetLabel(c.tz, now);
@@ -274,7 +207,7 @@ export function GlobalTimeHub({ compact = false }: { compact?: boolean } = {}) {
             const isNight = hour >= 20 || hour < 6;
             return (
               <div
-                key={`${active.id}-${idx}`}
+                key={`${industryId}-${idx}`}
                 className="group relative rounded-xl border border-border/60 bg-card/40 hover:bg-card/70 hover:border-primary/40 p-4 sm:p-5 transition-all overflow-hidden"
               >
                 <div
@@ -316,7 +249,6 @@ export function GlobalTimeHub({ compact = false }: { compact?: boolean } = {}) {
                   <span>{isNight ? "Evening" : hour < 12 ? "Morning" : "Daylight"}</span>
                 </div>
 
-                {/* gold underline */}
                 <div className="relative mt-4 h-px w-full overflow-hidden bg-border/40">
                   <div
                     className="absolute inset-y-0 left-0 w-full origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-700"
