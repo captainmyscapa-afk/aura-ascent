@@ -1,20 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  TrendingUp,
   ArrowUpRight,
-  Flame,
-  Trophy,
-  Radio,
   Sparkles,
-  ChevronRight,
-  Calendar,
-  MessageCircle,
   Check,
-  Plus,
+  Calendar,
+  Compass,
+  Radio,
+  ChevronRight,
+  Hotel,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/aurum/AppShell";
-import { SectionHeading } from "@/components/aurum/SectionHeading";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
 
@@ -22,296 +18,408 @@ export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 
+const WELCOMES = [
+  "Today is a quiet step toward an extraordinary life.",
+  "The world rewards those who show up with intention. Begin.",
+  "Elite operators do today what others postpone. Move first.",
+  "A single conversation today can reshape your next decade.",
+  "Refinement is built in silence, before the world notices.",
+  "Your network is watching. Give them something worth remembering.",
+  "Discipline is the architecture of luxury. Build deliberately.",
+  "Make today undeniable — in craft, in presence, in execution.",
+];
+
+function useNow() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  return now;
+}
+
 function Dashboard() {
   const { industry, industryId, setIndustry } = useIndustry();
+  const now = useNow();
   const [done, setDone] = useState<Record<number, boolean>>({ 0: true, 1: true });
-
   const toggle = (i: number) => setDone((d) => ({ ...d, [i]: !d[i] }));
-  const completed = industry.dailyObjectives.filter((_, i) => done[i]).length;
 
-  const otherModes = INDUSTRY_LIST.filter((m) => m.id !== industryId);
+  const completed = industry.dailyObjectives.filter((_, i) => done[i]).length;
+  const total = industry.dailyObjectives.length;
+
+  const welcome = useMemo(() => {
+    const dayOfYear = Math.floor(
+      (now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86_400_000,
+    );
+    return WELCOMES[dayOfYear % WELCOMES.length];
+  }, [now]);
+
+  const dayName = now.toLocaleDateString("en-US", { weekday: "long" });
+  const dateLong = now.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  const timeStr = now.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  const hubs = INDUSTRY_LIST.map((m) => ({
+    ...m,
+    active: m.id === industryId,
+    signals: m.intelFeed.length,
+    nextEvent: m.upcoming[0],
+  }));
+
+  // Add a 5th "Elite Hospitality" hub (coming soon) for the luxury hub grid
+  const hospitality = {
+    id: "hospitality" as const,
+    label: "Hospitality",
+    modeLabel: "Hospitality Mode",
+    icon: Hotel,
+    ambientImage: INDUSTRY_LIST[1].ambientImage,
+  };
+
+  const topIntel = industry.intelFeed.slice(0, 3);
 
   return (
     <AppShell>
-      {/* Hero greeting */}
-      <section className="mb-10 animate-fade-up">
-        <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">
-          TUESDAY · 19 MAY · {industry.modeLabel.toUpperCase()}
-        </div>
-        <div className="flex items-end justify-between flex-wrap gap-6">
-          <h1 className="font-serif text-3xl sm:text-[42px] leading-tight">
-            Good morning, Alexander.
-            <br />
-            <span className="text-muted-foreground">{industry.greetingSubtitle}</span>
-          </h1>
-          <div className="flex items-center gap-3">
-            <Link
-              to="/mentor"
-              className="inline-flex items-center gap-2 bg-[var(--gradient-gold)] text-primary-foreground rounded-full px-5 py-2.5 text-sm shadow-[var(--shadow-gold)]"
-            >
-              <Sparkles className="h-4 w-4" />
-              Speak with AURUM
-            </Link>
+      {/* ───────────── HEADER ───────────── */}
+      <header className="mb-12 sm:mb-16 animate-fade-up">
+        <div className="flex items-baseline justify-between flex-wrap gap-3 mb-8">
+          <div className="text-[10px] tracking-[0.4em] text-primary/70 uppercase">
+            {dayName} · {dateLong}
+          </div>
+          <div className="font-mono text-xs tracking-[0.3em] text-muted-foreground">
+            {timeStr}
           </div>
         </div>
 
-        {/* Market trend chips */}
-        <div className="mt-5 flex flex-wrap gap-2">
-          {industry.marketTrends.map((t) => (
-            <span
-              key={t}
-              className="text-[11px] tracking-wide text-foreground/80 glass rounded-full px-3 py-1.5 border border-border/60"
-            >
-              {t}
-            </span>
-          ))}
+        <h1 className="font-serif text-[34px] sm:text-[52px] leading-[1.05] tracking-tight">
+          Good {now.getHours() < 12 ? "morning" : now.getHours() < 18 ? "afternoon" : "evening"},
+          <br />
+          <span className="text-gold-gradient italic">Alexander.</span>
+        </h1>
+
+        <p className="mt-5 max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed">
+          {welcome}
+        </p>
+
+        <div className="mt-7 flex flex-wrap gap-3">
+          <Link
+            to="/mentor"
+            className="inline-flex items-center gap-2 bg-[var(--gradient-gold)] text-primary-foreground rounded-full px-5 py-2.5 text-sm shadow-[var(--shadow-gold)]"
+          >
+            <Sparkles className="h-4 w-4" /> Speak with AURUM
+          </Link>
+          <Link
+            to="/intelligence"
+            className="inline-flex items-center gap-2 glass rounded-full px-5 py-2.5 text-sm border border-border/60 hover:border-primary/50 transition-colors"
+          >
+            <Radio className="h-4 w-4 text-primary" /> Open Intelligence
+          </Link>
         </div>
-      </section>
+      </header>
 
-      {/* Metric strip */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
-        <Metric label="MOMENTUM" value="87" delta="+6" hint="of 100 · top 8%" highlight />
-        <Metric label="AUTHORITY" value="42" delta="+3" hint="LinkedIn + IG composite" />
-        <Metric label="STREAK" value="12d" hint="Consecutive execution" />
-        <Metric label="RELATIONSHIPS" value="184" delta="+9" hint="Tier-1: 23" />
-      </section>
-
-      {/* Main grid */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* LEFT */}
-        <section className="lg:col-span-2 space-y-6">
-          <div className="glass rounded-xl p-6 sm:p-7 relative overflow-hidden">
-            <SectionHeading
-              eyebrow={`DAILY OS · ${industry.modeLabel.toUpperCase()}`}
-              title="Today's execution"
-              action={
-                <span className="text-xs text-muted-foreground font-mono">
-                  {completed} / {industry.dailyObjectives.length} complete
-                </span>
-              }
+      {/* ───────────── MAIN GRID ───────────── */}
+      <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+        {/* LEFT — primary column */}
+        <section className="lg:col-span-2 space-y-6 lg:space-y-8">
+          {/* Daily objectives */}
+          <Card>
+            <CardHeader
+              eyebrow={`TODAY · ${industry.modeLabel.toUpperCase()}`}
+              title="Daily ritual"
+              meta={`${completed} of ${total}`}
             />
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {industry.dailyObjectives.map((t, i) => {
                 const isDone = !!done[i];
                 return (
                   <button
                     key={i}
                     onClick={() => toggle(i)}
-                    className={`group w-full text-left flex items-center gap-4 p-4 rounded-lg border transition-all ${
+                    className={`group w-full text-left flex items-center gap-4 px-4 py-3.5 rounded-lg transition-all ${
                       isDone
-                        ? "border-border/40 bg-secondary/20"
-                        : "border-border hover:border-primary/40 bg-secondary/40"
+                        ? "bg-secondary/20"
+                        : "hover:bg-secondary/40"
                     }`}
                   >
                     <div
-                      className={`h-5 w-5 rounded-full flex items-center justify-center border ${
+                      className={`h-5 w-5 rounded-full flex items-center justify-center border transition-colors ${
                         isDone
                           ? "bg-primary border-primary"
-                          : "border-border group-hover:border-primary"
+                          : "border-border/70 group-hover:border-primary/60"
                       }`}
                     >
                       {isDone && <Check className="h-3 w-3 text-primary-foreground" />}
                     </div>
                     <div
-                      className={`flex-1 text-sm ${
-                        isDone ? "text-muted-foreground line-through" : "text-foreground"
+                      className={`flex-1 text-[15px] leading-snug ${
+                        isDone ? "text-muted-foreground/70 line-through" : "text-foreground"
                       }`}
                     >
                       {t}
                     </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
                 );
               })}
             </div>
-            <button className="mt-4 flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
-              <Plus className="h-3.5 w-3.5" /> Add custom ritual
-            </button>
-          </div>
-
-          {/* Intelligence preview */}
-          <div className="glass rounded-xl p-6 sm:p-7">
-            <SectionHeading
-              eyebrow="LIVE INTELLIGENCE"
-              title={
-                <>
-                  {industry.shortLabel} <span className="italic text-gold-gradient">terminal</span>
-                </>
-              }
-              action={
-                <Link
-                  to="/intelligence"
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-                >
-                  All signals <ArrowUpRight className="h-3 w-3" />
-                </Link>
-              }
-            />
-            <div className="space-y-1">
-              {industry.intelFeed.slice(0, 4).map((item, i) => (
-                <div
-                  key={i}
-                  className="group p-4 -mx-2 rounded-lg hover:bg-secondary/30 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-3 mb-1.5">
-                    <span className="text-[9px] tracking-[0.3em] text-primary/80 px-2 py-0.5 border border-primary/30 rounded">
-                      {item.tag}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground font-mono">{item.time}</span>
-                  </div>
-                  <div className="text-[15px] text-foreground leading-snug group-hover:text-primary transition-colors">
-                    {item.title}
-                  </div>
-                  <div className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">
-                    <Sparkles className="h-3 w-3 mt-0.5 text-primary/70 shrink-0" />
-                    <span>{item.note}</span>
-                  </div>
-                </div>
-              ))}
+            {/* Progress line */}
+            <div className="mt-5 h-px w-full bg-border/40 relative overflow-hidden">
+              <div
+                className="absolute inset-y-0 left-0 bg-[var(--gradient-gold)] transition-all duration-500"
+                style={{ width: `${(completed / total) * 100}%`, height: "1px" }}
+              />
             </div>
-          </div>
-        </section>
-
-        {/* RIGHT */}
-        <aside className="space-y-6">
-          {/* Active ecosystem */}
-          <div className="glass rounded-xl overflow-hidden relative group">
-            <img
-              src={industry.ambientImage}
-              alt={`${industry.modeLabel} ecosystem`}
-              className="h-44 w-full object-cover opacity-70 group-hover:opacity-90 transition-opacity"
-              loading="lazy"
-              width={1920}
-              height={1080}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
-            <div className="absolute inset-0 p-5 flex flex-col justify-end">
-              <div className="text-[10px] tracking-[0.34em] text-primary/90">YOUR ECOSYSTEM</div>
-              <div className="font-serif text-2xl mt-1">{industry.modeLabel}</div>
-              <div className="text-xs text-muted-foreground mt-1">{industry.phaseLabel}</div>
+            <div className="mt-3 text-[11px] tracking-[0.3em] text-muted-foreground uppercase">
+              Momentum · {Math.round((completed / total) * 100)}%
             </div>
-          </div>
+          </Card>
 
-          {/* Switch ecosystem */}
-          <div className="glass rounded-xl p-5">
-            <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-4">
-              SWITCH ECOSYSTEM
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {otherModes.map((m) => {
+          {/* Luxury Hubs */}
+          <div>
+            <SubHeading eyebrow="LUXURY HUBS" title="Your ecosystems" />
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              {hubs.map((m) => {
                 const Icon = m.icon;
                 return (
                   <button
                     key={m.id}
                     onClick={() => setIndustry(m.id)}
-                    className="group relative aspect-square rounded-md overflow-hidden border border-border hover:border-primary/60 transition-all"
-                    title={`Enter ${m.modeLabel}`}
+                    className={`group relative aspect-[4/5] rounded-xl overflow-hidden border transition-all text-left ${
+                      m.active
+                        ? "border-primary/60 ring-1 ring-primary/30"
+                        : "border-border/60 hover:border-primary/40"
+                    }`}
                   >
                     <img
                       src={m.ambientImage}
                       alt={m.label}
-                      className="h-full w-full object-cover opacity-60 group-hover:opacity-90 transition-opacity"
+                      className="absolute inset-0 h-full w-full object-cover opacity-50 group-hover:opacity-70 group-hover:scale-105 transition-all duration-700"
                       loading="lazy"
-                      width={400}
-                      height={400}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-card/90 to-transparent" />
-                    <Icon className="absolute top-2 right-2 h-3.5 w-3.5 text-primary/90" />
-                    <div className="absolute bottom-1.5 left-2 text-[11px] tracking-wide text-foreground">
-                      {m.label}
+                    <div className="absolute inset-0 bg-gradient-to-t from-card via-card/40 to-transparent" />
+                    <div className="relative h-full p-4 flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <Icon className="h-4 w-4 text-primary/90" />
+                        {m.active && (
+                          <span className="text-[8px] tracking-[0.3em] text-primary/90">LIVE</span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-serif text-lg leading-tight">{m.label}</div>
+                        <div className="mt-1 text-[10px] tracking-wider text-muted-foreground uppercase">
+                          {m.signals} signals
+                        </div>
+                      </div>
                     </div>
                   </button>
                 );
               })}
+              {/* Hospitality — coming */}
+              <div className="relative aspect-[4/5] rounded-xl overflow-hidden border border-border/40 opacity-60">
+                <img
+                  src={hospitality.ambientImage}
+                  alt={hospitality.label}
+                  className="absolute inset-0 h-full w-full object-cover opacity-40"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/40 to-transparent" />
+                <div className="relative h-full p-4 flex flex-col justify-between">
+                  <Hotel className="h-4 w-4 text-primary/70" />
+                  <div>
+                    <div className="font-serif text-lg leading-tight">Hospitality</div>
+                    <div className="mt-1 text-[10px] tracking-wider text-muted-foreground uppercase">
+                      Arriving soon
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* AI suggestions */}
-          <div className="glass rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <div className="text-[10px] tracking-[0.34em] text-foreground">AI RECOMMENDATION</div>
-            </div>
-            <div className="font-serif text-lg leading-snug">"{industry.aiRecommendation}"</div>
-            <button className="mt-4 w-full text-sm bg-secondary hover:bg-secondary/80 transition-colors rounded-md py-2.5 border border-border">
-              Generate outreach draft
-            </button>
-          </div>
-
-          {/* Upcoming */}
-          <div className="glass rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Calendar className="h-4 w-4 text-primary" />
-              <div className="text-[10px] tracking-[0.34em] text-foreground">UPCOMING</div>
-            </div>
-            <div className="space-y-3">
-              {industry.upcoming.map(([d, t]) => (
-                <div key={t} className="flex items-baseline gap-3 text-sm">
-                  <span className="font-mono text-[10px] text-primary/80 w-14 tracking-widest shrink-0">
-                    {d}
-                  </span>
-                  <span className="text-foreground/90">{t}</span>
+          {/* Live Intelligence */}
+          <Card>
+            <CardHeader
+              eyebrow="LIVE INTELLIGENCE"
+              title={<>The <span className="italic text-gold-gradient">signal</span></>}
+              meta={
+                <Link
+                  to="/intelligence"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                >
+                  Open feed <ArrowUpRight className="h-3 w-3" />
+                </Link>
+              }
+            />
+            <div className="divide-y divide-border/40">
+              {topIntel.map((item, i) => (
+                <div
+                  key={i}
+                  className="group py-4 first:pt-1 last:pb-1 cursor-pointer"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-[9px] tracking-[0.3em] text-primary/80 px-2 py-0.5 border border-primary/30 rounded">
+                      {item.tag}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground font-mono">
+                      {item.region} · {item.time}
+                    </span>
+                  </div>
+                  <div className="text-[15px] text-foreground leading-snug group-hover:text-primary transition-colors">
+                    {item.title}
+                  </div>
+                  <div className="mt-1.5 text-[13px] text-muted-foreground leading-relaxed">
+                    {item.note}
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
+        </section>
+
+        {/* RIGHT — sidebar column */}
+        <aside className="space-y-6 lg:space-y-8">
+          {/* AI Recommendation */}
+          <Card accent>
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <div className="text-[10px] tracking-[0.34em] text-primary/80">
+                AURUM RECOMMENDS
+              </div>
+            </div>
+            <p className="font-serif text-[20px] leading-snug">
+              "{industry.aiRecommendation}"
+            </p>
+            <button className="mt-5 w-full text-sm rounded-full py-2.5 bg-[var(--gradient-gold)] text-primary-foreground shadow-[var(--shadow-gold)]">
+              Generate outreach
+            </button>
+          </Card>
+
+          {/* Upcoming */}
+          <Card>
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary" />
+                <div className="text-[10px] tracking-[0.34em] text-foreground">UPCOMING</div>
+              </div>
+              <span className="text-[10px] tracking-[0.3em] text-muted-foreground">
+                {industry.upcoming.length}
+              </span>
+            </div>
+            <div className="space-y-4">
+              {industry.upcoming.map(([d, t]) => (
+                <div key={t} className="group flex items-start gap-4 cursor-pointer">
+                  <div className="shrink-0 w-12">
+                    <div className="font-mono text-[10px] tracking-widest text-primary/80 uppercase">
+                      {d}
+                    </div>
+                  </div>
+                  <div className="flex-1 text-[14px] leading-snug text-foreground/90 group-hover:text-primary transition-colors">
+                    {t}
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Progression */}
+          <Card>
+            <div className="flex items-center gap-2 mb-5">
+              <Compass className="h-4 w-4 text-primary" />
+              <div className="text-[10px] tracking-[0.34em] text-foreground">PROGRESSION</div>
+            </div>
+            <div className="font-serif text-2xl">Initiate II</div>
+            <div className="text-[12px] text-muted-foreground mt-1">
+              Phase 02 · {industry.modeLabel}
+            </div>
+            <div className="mt-5">
+              <div className="flex items-center justify-between text-[10px] tracking-[0.3em] text-muted-foreground mb-2">
+                <span>NEXT TIER</span>
+                <span>67%</span>
+              </div>
+              <div className="h-1 w-full bg-border/40 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[var(--gradient-gold)] rounded-full"
+                  style={{ width: "67%" }}
+                />
+              </div>
+            </div>
+            <div className="mt-6 grid grid-cols-5 gap-1.5">
+              {["Initiate", "Operator", "Insider", "Counsel", "Aurum"].map((tier, i) => (
+                <div key={tier} className="text-center">
+                  <div
+                    className={`h-1.5 w-full rounded-full ${
+                      i <= 1 ? "bg-[var(--gradient-gold)]" : "bg-border/40"
+                    }`}
+                  />
+                  <div
+                    className={`mt-2 text-[9px] tracking-wider uppercase ${
+                      i <= 1 ? "text-foreground/80" : "text-muted-foreground/60"
+                    }`}
+                  >
+                    {tier}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
         </aside>
       </div>
-
-      {/* Achievements row */}
-      <section className="mt-12">
-        <SectionHeading eyebrow="PROGRESSION" title="Recently unlocked" />
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { icon: Flame, name: "10-day streak", note: "Daily execution unlocked" },
-            { icon: Trophy, name: "First intro secured", note: `Tier-2 ${industry.terms.client.toLowerCase()} contact` },
-            { icon: Radio, name: "Authority threshold", note: "Crossed 40 · top 14%" },
-            { icon: MessageCircle, name: "Mentor sync", note: "5 strategy sessions" },
-          ].map(({ icon: Icon, name, note }) => (
-            <div key={name} className="glass rounded-xl p-5 group hover:ring-gold transition-all">
-              <Icon className="h-5 w-5 text-primary mb-3" />
-              <div className="font-serif text-lg">{name}</div>
-              <div className="text-xs text-muted-foreground mt-1">{note}</div>
-            </div>
-          ))}
-        </div>
-      </section>
     </AppShell>
   );
 }
 
-function Metric({
-  label,
-  value,
-  delta,
-  hint,
-  highlight,
+/* ───────────────── primitives ───────────────── */
+
+function Card({
+  children,
+  accent,
 }: {
-  label: string;
-  value: string;
-  delta?: string;
-  hint?: string;
-  highlight?: boolean;
+  children: React.ReactNode;
+  accent?: boolean;
 }) {
   return (
     <div
-      className={`relative rounded-xl p-5 glass overflow-hidden ${highlight ? "ring-gold" : ""}`}
+      className={`relative glass rounded-2xl p-6 sm:p-7 overflow-hidden ${
+        accent ? "ring-gold" : ""
+      }`}
     >
-      {highlight && (
+      {accent && (
         <div className="absolute inset-0 bg-[var(--gradient-gold)] opacity-[0.04] pointer-events-none" />
       )}
-      <div className="text-[10px] tracking-[0.34em] text-muted-foreground">{label}</div>
-      <div className="mt-3 flex items-baseline gap-2">
-        <span className={`font-serif text-4xl ${highlight ? "text-gold-gradient" : "text-foreground"}`}>
-          {value}
-        </span>
-        {delta && (
-          <span className="inline-flex items-center gap-0.5 text-[11px] text-emerald-400/90">
-            <TrendingUp className="h-3 w-3" /> {delta}
-          </span>
-        )}
+      <div className="relative">{children}</div>
+    </div>
+  );
+}
+
+function CardHeader({
+  eyebrow,
+  title,
+  meta,
+}: {
+  eyebrow: string;
+  title: React.ReactNode;
+  meta?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-end justify-between mb-5 gap-4">
+      <div>
+        <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">{eyebrow}</div>
+        <h2 className="font-serif text-xl sm:text-[22px] leading-tight">{title}</h2>
       </div>
-      {hint && <div className="mt-2 text-[11px] text-muted-foreground">{hint}</div>}
+      {meta && (
+        <div className="text-xs text-muted-foreground font-mono shrink-0">{meta}</div>
+      )}
+    </div>
+  );
+}
+
+function SubHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
+  return (
+    <div className="mb-5">
+      <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">{eyebrow}</div>
+      <h2 className="font-serif text-xl sm:text-[22px] leading-tight">{title}</h2>
     </div>
   );
 }
