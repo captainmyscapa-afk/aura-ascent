@@ -162,13 +162,13 @@
   }
 
   body {
-    background: var(--gradient-hero);
-    background-attachment: fixed;
+    background: var(--ambient-2, oklch(0.1 0.005 240));
     color: var(--color-foreground);
     font-family: var(--font-sans);
     font-feature-settings: "ss01", "cv11";
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    transition: background 700ms var(--transition-smooth, ease);
   }
 
   h1,
