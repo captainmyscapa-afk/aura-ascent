@@ -118,11 +118,93 @@ function dayDelta(tz: string, d: Date) {
   }
 }
 
-export function GlobalTimeHub() {
+export function GlobalTimeHub({ compact = false }: { compact?: boolean } = {}) {
   useTick(1000);
   const [activeId, setActiveId] = useState<Mode["id"]>("yachts");
   const now = new Date();
   const active = MODES.find((m) => m.id === activeId)!;
+
+  if (compact) {
+    return (
+      <section className="relative rounded-xl overflow-hidden border border-border/60 glass-strong w-full">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-20 -right-20 w-[220px] h-[220px] rounded-full opacity-25 blur-3xl"
+          style={{ background: "var(--gradient-gold)" }}
+        />
+        <div className="relative p-3.5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5 text-[9px] tracking-[0.35em] text-primary/80 uppercase">
+              <Globe2 className="h-2.5 w-2.5" />
+              Global · Live
+            </div>
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-70" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+            </span>
+          </div>
+
+          <div className="flex gap-1 mb-3">
+            {MODES.map((m) => {
+              const Icon = m.icon;
+              const isActive = m.id === activeId;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setActiveId(m.id)}
+                  title={m.label}
+                  className={`flex-1 inline-flex items-center justify-center rounded-md py-1.5 transition-all border ${
+                    isActive
+                      ? "border-primary/60 text-foreground bg-primary/10"
+                      : "border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="space-y-1">
+            {active.cities.map((c, idx) => {
+              const time = formatTime(c.tz, now);
+              const hour = Number(time.split(":")[0]);
+              const isNight = hour >= 20 || hour < 6;
+              const day = dayDelta(c.tz, now);
+              return (
+                <div
+                  key={`${active.id}-${idx}`}
+                  className="flex items-center justify-between rounded-lg px-2.5 py-1.5 hover:bg-secondary/30 transition-colors"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div
+                      className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                        isNight ? "bg-primary/40" : "bg-primary"
+                      } shadow-[0_0_8px_currentColor]`}
+                    />
+                    <span className="text-sm leading-none">{c.flag}</span>
+                    <span className="text-[11px] tracking-[0.2em] uppercase text-foreground/90 truncate">
+                      {c.city}
+                    </span>
+                    {day !== "TODAY" && (
+                      <span className="text-[8px] tracking-[0.25em] text-primary/70 uppercase">
+                        {day === "TOMORROW" ? "+1" : "-1"}
+                      </span>
+                    )}
+                  </div>
+                  <span className="font-serif text-base tabular-nums text-foreground">
+                    {time}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+
 
   return (
     <section className="relative rounded-2xl overflow-hidden border border-border/60 glass-strong">
