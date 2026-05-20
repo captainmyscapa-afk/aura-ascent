@@ -85,45 +85,59 @@ function Dashboard() {
     <AppShell>
       {/* ───────────── HEADER ───────────── */}
       <header className="mb-12 sm:mb-16 animate-fade-up">
-        <div className="flex items-baseline justify-between flex-wrap gap-3 mb-8">
-          <div className="text-[10px] tracking-[0.4em] text-primary/70 uppercase">
-            {dayName} · {dateLong}
+        <div className="grid lg:grid-cols-[1fr_320px] gap-8 lg:gap-10 items-start">
+          <div>
+            <div className="flex items-baseline justify-between flex-wrap gap-3 mb-8">
+              <div className="text-[10px] tracking-[0.4em] text-primary/70 uppercase">
+                {dayName} · {dateLong}
+              </div>
+              <div className="font-mono text-xs tracking-[0.3em] text-muted-foreground lg:hidden">
+                {timeStr}
+              </div>
+            </div>
+
+            <h1 className="font-serif text-[34px] sm:text-[52px] leading-[1.05] tracking-tight">
+              Good {now.getHours() < 12 ? "morning" : now.getHours() < 18 ? "afternoon" : "evening"},
+              <br />
+              <span className="text-gold-gradient italic">Alexander.</span>
+            </h1>
+
+            <p className="mt-5 max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed">
+              {welcome}
+            </p>
+
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link
+                to="/mentor"
+                className="inline-flex items-center gap-2 bg-[var(--gradient-gold)] text-primary-foreground rounded-full px-5 py-2.5 text-sm shadow-[var(--shadow-gold)]"
+              >
+                <Sparkles className="h-4 w-4" /> Speak with AURUM
+              </Link>
+              <Link
+                to="/intelligence"
+                className="inline-flex items-center gap-2 glass rounded-full px-5 py-2.5 text-sm border border-border/60 hover:border-primary/50 transition-colors"
+              >
+                <Radio className="h-4 w-4 text-primary" /> Open Intelligence
+              </Link>
+            </div>
           </div>
-          <div className="font-mono text-xs tracking-[0.3em] text-muted-foreground">
-            {timeStr}
-          </div>
+
+          {/* Top-right time + global hub */}
+          <aside className="hidden lg:flex flex-col gap-3 items-end">
+            <div className="font-mono text-xs tracking-[0.3em] text-muted-foreground">
+              {timeStr}
+            </div>
+            <GlobalTimeHub compact />
+          </aside>
         </div>
 
-        <h1 className="font-serif text-[34px] sm:text-[52px] leading-[1.05] tracking-tight">
-          Good {now.getHours() < 12 ? "morning" : now.getHours() < 18 ? "afternoon" : "evening"},
-          <br />
-          <span className="text-gold-gradient italic">Alexander.</span>
-        </h1>
-
-        <p className="mt-5 max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed">
-          {welcome}
-        </p>
-
-        <div className="mt-7 flex flex-wrap gap-3">
-          <Link
-            to="/mentor"
-            className="inline-flex items-center gap-2 bg-[var(--gradient-gold)] text-primary-foreground rounded-full px-5 py-2.5 text-sm shadow-[var(--shadow-gold)]"
-          >
-            <Sparkles className="h-4 w-4" /> Speak with AURUM
-          </Link>
-          <Link
-            to="/intelligence"
-            className="inline-flex items-center gap-2 glass rounded-full px-5 py-2.5 text-sm border border-border/60 hover:border-primary/50 transition-colors"
-          >
-            <Radio className="h-4 w-4 text-primary" /> Open Intelligence
-          </Link>
+        {/* Mobile: compact hub below CTAs */}
+        <div className="mt-8 lg:hidden">
+          <GlobalTimeHub compact />
         </div>
       </header>
 
-      {/* ───────────── GLOBAL TIME HUB ───────────── */}
-      <div className="mb-10 lg:mb-12 animate-fade-up">
-        <GlobalTimeHub />
-      </div>
+
 
       {/* ───────────── MAIN GRID ───────────── */}
 
