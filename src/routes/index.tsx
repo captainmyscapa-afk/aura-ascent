@@ -74,7 +74,7 @@ function Landing() {
         >
           <Link
             to="/onboarding"
-            className="group inline-flex items-center gap-3 bg-[var(--gradient-gold)] text-primary-foreground rounded-full px-6 py-3.5 text-sm tracking-wider shadow-[var(--shadow-gold)] transition-transform hover:scale-[1.02]"
+            className="group inline-flex items-center gap-3 bg-[var(--gradient-gold)] text-primary-foreground rounded-full px-6 py-3.5 text-sm tracking-wider shadow-[var(--shadow-gold)] transition-transform hover:scale-[1.02] text-slate-50"
           >
             Begin Initiation
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
