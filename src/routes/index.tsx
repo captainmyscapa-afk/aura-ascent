@@ -1,18 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Compass, Plane, Building2, Sailboat, House, Car } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import heroImg from "@/assets/hero-yacht.jpg";
 import { Logo } from "@/components/aurum/Logo";
+import { INDUSTRY_LIST } from "@/lib/industry/config";
 
 export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-const ecosystems = [
-  { icon: Sailboat, name: "Brokerage, charter & UHNW clients", note: "Prime real estate & private estates" },
-  { icon: Building2, name: "Villas", note: "Ultra-prime real estate" },
-  { icon: Plane, name: "Jets", note: "Private aviation" },
-  { icon: Compass, name: "Cars", note: "Exotic & collector" },
-];
+const ecosystems = INDUSTRY_LIST.map((m) => ({
+  icon: m.icon,
+  name: m.modeLabel,
+  note: m.tagline,
+}));
 
 function Landing() {
   return (

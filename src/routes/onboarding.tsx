@@ -1,18 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, ArrowLeft, Check, Sailboat, Building2, Plane, Compass, Sparkles, House, Car } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, Sparkles } from "lucide-react";
 import { Logo } from "@/components/aurum/Logo";
+import { INDUSTRY_LIST } from "@/lib/industry/config";
+import { useIndustry } from "@/lib/industry/IndustryProvider";
 
 export const Route = createFileRoute("/onboarding")({
   component: Onboarding,
 });
-
-const ecosystems = [
-  { id: "real-estate", icon: Sailboat, name: "Brokerage, charter & UHNW clients", desc: "Prime real estate & private estates" },
-  { id: "villa", icon: Building2, name: "Villas", desc: "Ultra-prime real estate & private estates" },
-  { id: "jet", icon: Plane, name: "Jets", desc: "Private aviation, charters, fractional" },
-  { id: "car", icon: Compass, name: "Cars", desc: "Exotic, collector & investment-grade" },
-];
 
 const levels = [
   { id: "beginner", name: "Beginner", desc: "Curious, exploring, building foundation" },
@@ -35,8 +30,8 @@ const ambitions = [
 
 function Onboarding() {
   const navigate = useNavigate();
+  const { industryId, setIndustry, industry } = useIndustry();
   const [step, setStep] = useState(0);
-  const [eco, setEco] = useState<string | null>(null);
   const [level, setLevel] = useState<string | null>(null);
   const [amb, setAmb] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -56,7 +51,7 @@ function Onboarding() {
   }
 
   const canNext =
-    (step === 0 && !!eco) ||
+    step === 0 ||
     (step === 1 && !!level) ||
     (step === 2 && amb.length > 0) ||
     step === 3;
@@ -81,35 +76,39 @@ function Onboarding() {
 
       <main className="flex-1 px-6 sm:px-10 lg:px-16 py-14 max-w-5xl w-full mx-auto">
         {generating ? (
-          <Generating />
+          <Generating mode={industry.modeLabel} />
         ) : (
           <div key={step} className="animate-fade-up">
             {step === 0 && (
               <StepWrap
                 eyebrow="STEP 01 · CHOOSE YOUR WORLD"
                 title="Which elite ecosystem are you entering?"
-                sub="Your path, mentorship, intelligence feed and daily rituals adapt to this choice."
+                sub="Your mentor, intelligence feed, daily rituals, networking and content adapt completely to this choice. You can switch modes anytime."
               >
                 <div className="grid sm:grid-cols-2 gap-4">
-                  {ecosystems.map(({ id, icon: Icon, name, desc }) => (
-                    <button
-                      key={id}
-                      onClick={() => setEco(id)}
-                      className={`text-left p-6 rounded-lg border transition-all glass ${
-                        eco === id
-                          ? "border-primary/60 ring-gold"
-                          : "border-border hover:border-border/80"
-                      }`}
-                    >
-                      <Icon
-                        className={`h-6 w-6 mb-4 ${
-                          eco === id ? "text-primary" : "text-muted-foreground"
+                  {INDUSTRY_LIST.map((opt) => {
+                    const Icon = opt.icon;
+                    const selected = industryId === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => setIndustry(opt.id)}
+                        className={`text-left p-6 rounded-lg border transition-all glass ${
+                          selected
+                            ? "border-primary/60 ring-gold"
+                            : "border-border hover:border-border/80"
                         }`}
-                      />
-                      <div className="font-serif text-xl text-foreground">{name}</div>
-                      <div className="mt-1.5 text-sm text-muted-foreground">{desc}</div>
-                    </button>
-                  ))}
+                      >
+                        <Icon
+                          className={`h-6 w-6 mb-4 ${
+                            selected ? "text-primary" : "text-muted-foreground"
+                          }`}
+                        />
+                        <div className="font-serif text-xl text-foreground">{opt.modeLabel}</div>
+                        <div className="mt-1.5 text-sm text-muted-foreground">{opt.tagline}</div>
+                      </button>
+                    );
+                  })}
                 </div>
               </StepWrap>
             )}
@@ -189,7 +188,7 @@ function Onboarding() {
                 sub="On the next screen, AURUM AI will architect your personal 30-day immersion."
               >
                 <div className="glass rounded-xl p-8 space-y-5">
-                  <Row label="Ecosystem" value={ecosystems.find((e) => e.id === eco)?.name ?? "—"} />
+                  <Row label="Ecosystem" value={industry.modeLabel} />
                   <Row label="Level" value={levels.find((l) => l.id === level)?.name ?? "—"} />
                   <Row label="Ambitions" value={`${amb.length} selected`} />
                   <div className="hairline" />
@@ -256,7 +255,7 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Generating() {
+function Generating({ mode }: { mode: string }) {
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center text-center animate-fade-up">
       <div className="relative h-20 w-20 mb-8">
@@ -267,7 +266,7 @@ function Generating() {
       </div>
       <div className="text-[10px] tracking-[0.4em] text-primary/80 mb-3">AURUM AI</div>
       <h2 className="font-serif text-3xl sm:text-4xl text-foreground max-w-2xl">
-        Architecting your personal operating system…
+        Architecting your personal {mode} operating system…
       </h2>
       <div className="mt-10 space-y-2 text-sm text-muted-foreground font-mono max-w-md w-full text-left">
         {[

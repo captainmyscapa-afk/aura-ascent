@@ -2,35 +2,30 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/aurum/AppShell";
 import { Sparkles, Send, MessageCircle, Compass, Target, Zap } from "lucide-react";
+import { useIndustry } from "@/lib/industry/IndustryProvider";
 
 export const Route = createFileRoute("/mentor")({
   component: Mentor,
 });
 
-const seed = [
-  {
-    r: "ai",
-    t: "Good morning, Alexander. I reviewed last night's market activity and your follow-up queue. Before we plan today: how did the call with the Camper & Nicholsons broker land?",
-  },
-  {
-    r: "me",
-    t: "It was good. They invited me to Monaco for the show but I'm nervous I won't hold my own with senior brokers.",
-  },
-  {
-    r: "ai",
-    t: "Understandable — and a sign you're entering the right room. Three things will neutralize that anxiety:\n\n1. Memorize three current market data points so you contribute, not just receive.\n2. Prepare two questions only an insider would ask — I'll draft them.\n3. Dress register: matte tones, restraint, one expensive detail. Avoid logos.\n\nWant me to build your full Monaco preparation brief now?",
-  },
-];
-
-const prompts = [
-  { i: Target, t: "Plan my week strategically" },
-  { i: Compass, t: "Review my LinkedIn positioning" },
-  { i: Zap, t: "Draft outreach for a UHNW prospect" },
-  { i: MessageCircle, t: "Coach me through a difficult call" },
-];
+const promptIcons = [Target, Compass, Zap, MessageCircle];
 
 function Mentor() {
+  const { industry } = useIndustry();
   const [input, setInput] = useState("");
+
+  const seed = [
+    { r: "ai", t: industry.mentorOpener },
+    {
+      r: "me",
+      t: "It was good. They invited me to discuss further but I'm nervous I won't hold my own with senior players.",
+    },
+    {
+      r: "ai",
+      t: `Understandable — and a sign you're entering the right room. Three things will neutralize that anxiety in ${industry.label.toLowerCase()}:\n\n1. Memorize three current ${industry.terms.market.toLowerCase()} data points so you contribute, not just receive.\n2. Prepare two questions only an insider would ask — I'll draft them.\n3. Dress register: matte tones, restraint, one expensive detail. Avoid logos.\n\nWant me to build your full preparation brief now?`,
+    },
+  ];
+
   return (
     <AppShell>
       <div className="grid lg:grid-cols-[1fr_320px] gap-6 h-[calc(100vh-7rem)]">
@@ -40,10 +35,8 @@ function Mentor() {
               <Sparkles className="h-4 w-4 text-primary-foreground" />
             </div>
             <div>
-              <div className="font-serif text-lg leading-tight">AURUM</div>
-              <div className="text-[11px] text-muted-foreground">
-                Your elite-industry advisor · always present
-              </div>
+              <div className="font-serif text-lg leading-tight">{industry.mentorPersona}</div>
+              <div className="text-[11px] text-muted-foreground">{industry.mentorSpecialty}</div>
             </div>
             <span className="ml-auto inline-flex items-center gap-1.5 text-[10px] tracking-[0.3em] text-emerald-400/90">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -76,7 +69,7 @@ function Mentor() {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask AURUM anything — strategy, outreach, the industry…"
+                placeholder={`Ask AURUM about ${industry.label.toLowerCase()} — strategy, outreach, the market…`}
                 className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
               />
               <button className="h-9 w-9 rounded-full bg-[var(--gradient-gold)] flex items-center justify-center text-primary-foreground">
@@ -92,15 +85,18 @@ function Mentor() {
               QUICK INVOCATIONS
             </div>
             <div className="space-y-2">
-              {prompts.map(({ i: I, t }) => (
-                <button
-                  key={t}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/40 text-left text-sm transition-colors"
-                >
-                  <I className="h-4 w-4 text-primary shrink-0" />
-                  <span>{t}</span>
-                </button>
-              ))}
+              {industry.mentorPrompts.map((t, i) => {
+                const I = promptIcons[i % promptIcons.length];
+                return (
+                  <button
+                    key={t}
+                    className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/40 text-left text-sm transition-colors"
+                  >
+                    <I className="h-4 w-4 text-primary shrink-0" />
+                    <span>{t}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -109,10 +105,10 @@ function Mentor() {
               CONTEXT LOADED
             </div>
             <ul className="text-xs text-foreground/90 space-y-2">
-              <li>· Yacht Mode · Phase 02 (Brokerage immersion)</li>
+              <li>· {industry.modeLabel} · {industry.phaseLabel}</li>
               <li>· 12-day execution streak</li>
               <li>· 184 relationships (23 Tier-1)</li>
-              <li>· Monaco Yacht Show in 4 weeks</li>
+              <li>· Next event: {industry.upcoming[0][1]}</li>
               <li>· Authority score 42 · trajectory ↑</li>
             </ul>
           </div>

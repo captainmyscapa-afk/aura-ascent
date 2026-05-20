@@ -1,6 +1,7 @@
 import { Bell, Search, Command } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Logo } from "./Logo";
+import { IndustrySwitcher } from "./IndustrySwitcher";
 
 export function TopBar() {
   return (
@@ -21,7 +22,8 @@ export function TopBar() {
         </div>
 
         <div className="ml-auto flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2 glass rounded-full px-3 py-1.5">
+          <IndustrySwitcher />
+          <div className="hidden xl:flex items-center gap-2 glass rounded-full px-3 py-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[10px] tracking-[0.3em] text-muted-foreground">
               MARKETS LIVE

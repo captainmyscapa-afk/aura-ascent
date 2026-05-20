@@ -7,6 +7,8 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { IndustryProvider } from "@/lib/industry/IndustryProvider";
+import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
 
@@ -122,7 +124,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <IndustryProvider>
+        <Outlet />
+        <Toaster />
+      </IndustryProvider>
     </QueryClientProvider>
   );
 }
