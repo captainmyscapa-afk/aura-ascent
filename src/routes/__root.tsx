@@ -80,7 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "AI-powered immersion and career acceleration for yachting, luxury real estate, private aviation, and exotic cars.",
       },
-      { property: "og:title", content: "AURUM OS" },
+      { property: "og:title", content: "AURUM OS — The Career Operating System for Elite Industries" },
       {
         property: "og:description",
         content:
@@ -88,6 +88,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "AURUM OS — The Career Operating System for Elite Industries" },
+      { name: "description", content: "Aura Ascent is an AI-powered operating system for career acceleration in elite industries." },
+      { property: "og:description", content: "Aura Ascent is an AI-powered operating system for career acceleration in elite industries." },
+      { name: "twitter:description", content: "Aura Ascent is an AI-powered operating system for career acceleration in elite industries." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/1f2267ea-da4d-4c76-a75f-dc63fbdf24cc/id-preview-24bc2009--34a4fdb7-9d9c-47e0-beef-0c74edfee750.lovable.app-1779301866710.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/1f2267ea-da4d-4c76-a75f-dc63fbdf24cc/id-preview-24bc2009--34a4fdb7-9d9c-47e0-beef-0c74edfee750.lovable.app-1779301866710.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
