@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, ArrowLeft, Check, Sailboat, Building2, Plane, Compass, Sparkles, House } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, Sailboat, Building2, Plane, Compass, Sparkles, House, Car } from "lucide-react";
 import { Logo } from "@/components/aurum/Logo";
 
 export const Route = createFileRoute("/onboarding")({
@@ -8,7 +8,7 @@ export const Route = createFileRoute("/onboarding")({
 });
 
 const ecosystems = [
-  { id: "real-estate", icon: House, name: "Real Estate", desc: "Prime real estate & private estates" },
+  { id: "real-estate", icon: Car, name: "Brokerage, charter & UHNW clients", desc: "Prime real estate & private estates" },
   { id: "villa", icon: Building2, name: "Villas", desc: "Ultra-prime real estate & private estates" },
   { id: "jet", icon: Plane, name: "Jets", desc: "Private aviation, charters, fractional" },
   { id: "car", icon: Compass, name: "Cars", desc: "Exotic, collector & investment-grade" },
