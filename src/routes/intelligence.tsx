@@ -46,11 +46,11 @@ function Intelligence() {
     setLoading(true);
 
     const load = async () => {
-      const { data, error } = await (supabase.from("live_intelligence") as any)
+      const { data } = await (supabase.from("live_intelligence") as any)
         .select("*")
         .order("created_at", { ascending: false });
       if (!mounted) return;
-      setEntries(error || !data ? [] : (data as Entry[]));
+      setEntries([...((data as Entry[]) || [])]);
       setLastSync(new Date());
       setLoading(false);
     };
@@ -64,8 +64,8 @@ function Intelligence() {
     };
   }, []);
 
-
-  const sourceCount = new Set(entries.map((e) => e.source)).size;
+  const visible = entries.filter((e) => e.category === category);
+  const sourceCount = new Set(visible.map((e) => e.source)).size;
 
   return (
     <AppShell>
@@ -92,7 +92,7 @@ function Intelligence() {
 
       <div className="grid sm:grid-cols-3 gap-4 mb-10">
         {[
-          { i: Radio, l: "Signals tracked", v: String(entries.length) },
+          { i: Radio, l: "Signals tracked", v: String(visible.length) },
           { i: TrendingUp, l: "Sources", v: String(sourceCount) },
           { i: Globe2, l: "Realtime", v: "ON" },
         ].map(({ i: I, l, v }) => (
@@ -116,7 +116,7 @@ function Intelligence() {
         </div>
       ) : (
         <ul className="space-y-2">
-          {entries.map((e, i) => {
+          {visible.map((e, i) => {
             const inner = (
               <div className="group glass rounded-xl p-5 hover:ring-gold transition-all">
                 <div className="flex items-center gap-3 mb-2 flex-wrap">

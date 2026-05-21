@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useIndustry } from "@/lib/industry/IndustryProvider";
+import { INDUSTRY_TO_CATEGORY } from "@/lib/industry/categoryMap";
 
 type Entry = {
   id: string;
@@ -26,6 +28,8 @@ function timeAgo(iso: string): string {
 }
 
 export function LiveIntelligenceFeed() {
+  const { industryId } = useIndustry();
+  const activeCategory = INDUSTRY_TO_CATEGORY[industryId];
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<Date | null>(null);
@@ -35,11 +39,11 @@ export function LiveIntelligenceFeed() {
     setLoading(true);
 
     const load = async () => {
-      const { data, error } = await (supabase.from("live_intelligence") as any)
+      const { data } = await (supabase.from("live_intelligence") as any)
         .select("*")
         .order("created_at", { ascending: false });
       if (!mounted) return;
-      setEntries(error || !data ? [] : (data as Entry[]));
+      setEntries([...((data as Entry[]) || [])]);
       setLastSync(new Date());
       setLoading(false);
     };
@@ -52,6 +56,11 @@ export function LiveIntelligenceFeed() {
       clearInterval(interval);
     };
   }, []);
+
+  const visible = useMemo(
+    () => entries.filter((e) => e.category === activeCategory),
+    [entries, activeCategory],
+  );
 
 
   return (
@@ -88,7 +97,7 @@ export function LiveIntelligenceFeed() {
           </div>
         ) : (
           <ul className="space-y-2">
-            {entries.map((e, i) => {
+            {visible.map((e, i) => {
               const content = (
                 <div className="relative rounded-xl border border-border/40 bg-black/30 backdrop-blur-sm p-4 sm:p-5 transition-all hover:border-primary/40 hover:bg-black/50 active:scale-[0.99]">
                   <div className="flex items-center justify-between gap-3 mb-2">
