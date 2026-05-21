@@ -93,7 +93,7 @@ function Intelligence() {
       <div className="grid sm:grid-cols-3 gap-4 mb-10">
         {[
           { i: Radio, l: "Signals tracked", v: String(entries.length) },
-          { i: TrendingUp, l: "Sources", v: String(Math.max(0, sources.length - 1)) },
+          { i: TrendingUp, l: "Sources", v: String(sourceCount) },
           { i: Globe2, l: "Realtime", v: "ON" },
         ].map(({ i: I, l, v }) => (
           <div key={l} className="glass rounded-xl p-5 flex items-center gap-4">
@@ -106,23 +106,6 @@ function Intelligence() {
         ))}
       </div>
 
-      <div className="flex items-center gap-2 mb-4 text-xs flex-wrap">
-        <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-        {sources.map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-full transition-colors ${
-              filter === f
-                ? "bg-primary/15 text-primary border border-primary/30"
-                : "text-muted-foreground hover:text-foreground border border-transparent"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
       <SectionHeading eyebrow="LATEST" title={`Signals · ${category}`} />
 
       {loading && entries.length === 0 ? (
@@ -131,14 +114,9 @@ function Intelligence() {
             <div key={i} className="h-24 rounded-xl bg-secondary/20 animate-pulse" />
           ))}
         </div>
-      ) : visible.length === 0 ? (
-        <div className="glass rounded-xl py-16 text-center">
-          <Radio className="h-6 w-6 text-primary/60 mx-auto mb-3" />
-          <div className="text-sm text-muted-foreground">No live intelligence in {category} yet.</div>
-        </div>
       ) : (
         <ul className="space-y-2">
-          {visible.map((e, i) => {
+          {entries.map((e, i) => {
             const inner = (
               <div className="group glass rounded-xl p-5 hover:ring-gold transition-all">
                 <div className="flex items-center gap-3 mb-2 flex-wrap">
