@@ -42,7 +42,6 @@ function Intelligence() {
   const { industry, industryId } = useIndustry();
   const category = INDUSTRY_TO_CATEGORY[industryId];
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [rawRows, setRawRows] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [filter, setFilter] = useState<string>("All");
@@ -69,7 +68,7 @@ function Intelligence() {
         console.log(`[Intelligence DEBUG] created_at=${r.created_at} category=${r.category}`),
       );
       if (!mounted) return;
-      setRawRows(data ?? []);
+
       if (data) setEntries(data as Entry[]);
       setLastSync(new Date());
       setLoading(false);
@@ -145,10 +144,7 @@ function Intelligence() {
       </div>
 
       <SectionHeading eyebrow="LATEST" title={`Signals · ${category}`} />
-
-      <pre className="mb-6 max-h-96 overflow-auto rounded-xl border border-border/50 bg-secondary/20 p-4 text-xs text-foreground">
-        {JSON.stringify(rawRows, null, 2)}
-      </pre>
+      
 
       {loading && entries.length === 0 ? (
         <div className="space-y-2">
