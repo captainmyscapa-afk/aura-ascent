@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  ArrowUpRight,
   Sparkles,
   Check,
   Calendar,
@@ -12,6 +11,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/aurum/AppShell";
 import { GlobalTimeHub } from "@/components/aurum/GlobalTimeHub";
+import { LiveIntelligenceFeed } from "@/components/aurum/LiveIntelligenceFeed";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
 
@@ -79,7 +79,7 @@ function Dashboard() {
     ambientImage: INDUSTRY_LIST[1].ambientImage,
   };
 
-  const topIntel = industry.intelFeed.slice(0, 3);
+  
 
   return (
     <AppShell>
@@ -258,44 +258,8 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Live Intelligence */}
-          <Card>
-            <CardHeader
-              eyebrow="LIVE INTELLIGENCE"
-              title={<>The <span className="italic text-gold-gradient">signal</span></>}
-              meta={
-                <Link
-                  to="/intelligence"
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-                >
-                  Open feed <ArrowUpRight className="h-3 w-3" />
-                </Link>
-              }
-            />
-            <div className="divide-y divide-border/40">
-              {topIntel.map((item, i) => (
-                <div
-                  key={i}
-                  className="group py-4 first:pt-1 last:pb-1 cursor-pointer"
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-[9px] tracking-[0.3em] text-primary/80 px-2 py-0.5 border border-primary/30 rounded">
-                      {item.tag}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground font-mono">
-                      {item.region} · {item.time}
-                    </span>
-                  </div>
-                  <div className="text-[15px] text-foreground leading-snug group-hover:text-primary transition-colors">
-                    {item.title}
-                  </div>
-                  <div className="mt-1.5 text-[13px] text-muted-foreground leading-relaxed">
-                    {item.note}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+          {/* Live Intelligence — connected to Supabase */}
+          <LiveIntelligenceFeed />
         </section>
 
         {/* RIGHT — sidebar column */}
