@@ -22,11 +22,6 @@ type Entry = {
   created_at: string;
 };
 
-type DebugResponse = {
-  data: Entry[] | null;
-  error: unknown;
-};
-
 function timeAgo(iso: string): string {
   const diff = Math.max(0, Date.now() - new Date(iso).getTime());
   const m = Math.floor(diff / 60_000);
@@ -52,38 +47,28 @@ function Intelligence() {
     setFilter("All");
 
     const load = async () => {
-      const supabaseProjectUrl = import.meta.env.VITE_SUPABASE_URL;
-      const response = (await supabase
-        .from("live_intelligence" as never)
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(20)) as DebugResponse;
-      const { data, error } = response;
-      console.log("[Intelligence DEBUG] Supabase project URL:", supabaseProjectUrl);
-      console.log("[Intelligence DEBUG] table queried:", "public.live_intelligence");
-      console.log("[Intelligence DEBUG] Supabase response:", response);
-      console.log("[Intelligence DEBUG] returned row count:", data?.length ?? 0);
-      console.log("[Intelligence DEBUG] returned rows:", data);
-      console.log("[Intelligence DEBUG] query errors:", error);
-      data?.forEach((r) => console.log(`[Intelligence DEBUG] created_at=${r.created_at} category=${r.category}`));
-      console.log("SUPABASE DATA:", data);
-
-      if (data) {
-        console.log("LIVE ROWS:", data)
-          setEntries([...data] as Entry[]);
-      }
+      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data } = await (supabase
+        .from("live_intelligence") as any)
+        .select("id,title,source,category,description,url,published_at,created_at")
+        .eq("category", category)
+        .gte("created_at", since)
+        .order("created_at", { ascending: false });
+      if (!mounted) return;
+      if (data) setEntries(data as Entry[]);
       setLastSync(new Date());
       setLoading(false);
     };
 
     load();
-    const interval = setInterval(load, 45_000);
+    const interval = setInterval(load, 30 * 60_000);
 
     return () => {
       mounted = false;
       clearInterval(interval);
     };
   }, [category]);
+
 
   const sources = ["All", ...Array.from(new Set(entries.map((e) => e.source)))];
   const visible = entries;
