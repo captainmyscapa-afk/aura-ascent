@@ -47,14 +47,17 @@ function Intelligence() {
     setFilter("All");
 
     const load = async () => {
+      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const { data, error } = await (supabase
         .from("live_intelligence") as any)
         .select("id,title,source,category,description,url,published_at,created_at")
         .eq("category", category)
+        .gte("created_at", since)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(100);
       console.log("[Intelligence page] fetched", {
         category,
+        since,
         count: data?.length,
         error,
         latest: data?.[0]?.created_at,
