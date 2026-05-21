@@ -1,15 +1,80 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/aurum/AppShell";
 import { SectionHeading } from "@/components/aurum/SectionHeading";
-import { Radio, TrendingUp, Globe2, Sparkles, Filter } from "lucide-react";
+import { ArrowUpRight, Radio, TrendingUp, Globe2, Sparkles, Filter } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/intelligence")({
   component: Intelligence,
 });
 
+type Entry = {
+  id: string;
+  title: string;
+  source: string;
+  description: string | null;
+  url: string | null;
+  published_at: string;
+  created_at: string;
+};
+
+function timeAgo(iso: string): string {
+  const diff = Math.max(0, Date.now() - new Date(iso).getTime());
+  const m = Math.floor(diff / 60_000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
+
 function Intelligence() {
   const { industry } = useIndustry();
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [filter, setFilter] = useState<string>("All");
+
+  useEffect(() => {
+    let mounted = true;
+
+    const load = async () => {
+      const { data, error } = await supabase
+        .from("live_intelligence")
+        .select("id,title,source,description,url,published_at,created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      console.log("[Intelligence page] fetched", { count: data?.length, error });
+      if (!mounted) return;
+      if (data) setEntries(data as Entry[]);
+      setLastSync(new Date());
+      setLoading(false);
+    };
+
+    load();
+    const interval = setInterval(load, 45_000);
+
+    const channel = supabase
+      .channel("live_intelligence_page")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "live_intelligence" },
+        () => load(),
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const sources = ["All", ...Array.from(new Set(entries.map((e) => e.source)))];
+  const visible = filter === "All" ? entries : entries.filter((e) => e.source === filter);
 
   return (
     <AppShell>
@@ -20,24 +85,26 @@ function Intelligence() {
           </div>
           <h1 className="font-serif text-4xl sm:text-5xl">The signal beneath the noise.</h1>
           <p className="mt-3 text-muted-foreground max-w-xl text-sm">
-            Real-time AI synthesis of the {industry.label.toLowerCase()} market — key player
-            activity, {industry.terms.client.toLowerCase()} behavior and emerging opportunities,
-            analyzed for <span className="italic text-foreground">your</span> position.
+            Real-time synthesis from the AURUM intelligence network — curated for{" "}
+            <span className="italic text-foreground">your</span> position in the{" "}
+            {industry.label.toLowerCase()} market.
           </p>
         </div>
         <div className="flex items-center gap-2 glass rounded-full px-4 py-2 text-xs">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
           <span className="tracking-[0.3em] text-muted-foreground">LIVE</span>
           <span className="text-muted-foreground/50">·</span>
-          <span className="font-mono text-foreground">Last sync 02:14 ago</span>
+          <span className="font-mono text-foreground">
+            {lastSync ? `Sync ${timeAgo(lastSync.toISOString())}` : "Syncing…"}
+          </span>
         </div>
       </div>
 
       <div className="grid sm:grid-cols-3 gap-4 mb-10">
         {[
-          { i: Radio, l: "Signals today", v: "124" },
-          { i: TrendingUp, l: "Actionable for you", v: "9" },
-          { i: Globe2, l: `${industry.shortLabel} markets monitored`, v: "26" },
+          { i: Radio, l: "Signals tracked", v: String(entries.length) },
+          { i: TrendingUp, l: "Sources", v: String(Math.max(0, sources.length - 1)) },
+          { i: Globe2, l: "Realtime", v: "ON" },
         ].map(({ i: I, l, v }) => (
           <div key={l} className="glass rounded-xl p-5 flex items-center gap-4">
             <I className="h-5 w-5 text-primary" />
@@ -49,15 +116,16 @@ function Intelligence() {
         ))}
       </div>
 
-      <div className="flex items-center gap-3 mb-4 text-xs flex-wrap">
+      <div className="flex items-center gap-2 mb-4 text-xs flex-wrap">
         <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-        {["All", "Market", "Deal", "People", "Event", "Regulatory"].map((f, i) => (
+        {sources.map((f) => (
           <button
             key={f}
+            onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-full transition-colors ${
-              i === 0
+              filter === f
                 ? "bg-primary/15 text-primary border border-primary/30"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground border border-transparent"
             }`}
           >
             {f}
@@ -65,28 +133,69 @@ function Intelligence() {
         ))}
       </div>
 
-      <SectionHeading eyebrow="LATEST" title="Signals · synthesized" />
-      <div className="space-y-1">
-        {industry.intelFeed.map((s, i) => (
-          <div
-            key={i}
-            className="group glass rounded-xl p-5 hover:ring-gold transition-all cursor-pointer"
-          >
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-[9px] tracking-[0.3em] text-primary/80 px-2 py-0.5 border border-primary/30 rounded">
-                {s.tag}
-              </span>
-              <span className="text-[11px] text-muted-foreground font-mono">{s.region}</span>
-              <span className="text-[11px] text-muted-foreground font-mono ml-auto">{s.time}</span>
-            </div>
-            <div className="text-[16px] text-foreground leading-snug">{s.title}</div>
-            <div className="mt-3 flex items-start gap-2 text-sm text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 mt-0.5 text-primary/80 shrink-0" />
-              <span>{s.note}</span>
-            </div>
+      <SectionHeading eyebrow="LATEST" title="Signals · live" />
+
+      {loading && entries.length === 0 ? (
+        <div className="space-y-2">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-24 rounded-xl bg-secondary/20 animate-pulse" />
+          ))}
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="glass rounded-xl py-16 text-center">
+          <Radio className="h-6 w-6 text-primary/60 mx-auto mb-3" />
+          <div className="text-sm text-muted-foreground">
+            No live intelligence available yet.
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {visible.map((e, i) => {
+            const inner = (
+              <div className="group glass rounded-xl p-5 hover:ring-gold transition-all">
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
+                  <span className="text-[9px] tracking-[0.3em] text-primary/80 px-2 py-0.5 border border-primary/30 rounded uppercase">
+                    {e.source}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground font-mono ml-auto">
+                    {timeAgo(e.published_at)}
+                  </span>
+                </div>
+                <div className="text-[16px] text-foreground leading-snug group-hover:text-primary transition-colors">
+                  {e.title}
+                </div>
+                {e.description && (
+                  <div className="mt-3 flex items-start gap-2 text-sm text-muted-foreground">
+                    <Sparkles className="h-3.5 w-3.5 mt-0.5 text-primary/80 shrink-0" />
+                    <span>{e.description}</span>
+                  </div>
+                )}
+                {e.url && (
+                  <div className="mt-3 flex items-center gap-1 text-[11px] tracking-[0.2em] uppercase text-primary/80">
+                    Read brief
+                    <ArrowUpRight className="h-3 w-3" />
+                  </div>
+                )}
+              </div>
+            );
+            return (
+              <li
+                key={e.id}
+                className="animate-fade-up"
+                style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}
+              >
+                {e.url ? (
+                  <a href={e.url} target="_blank" rel="noopener noreferrer" className="block">
+                    {inner}
+                  </a>
+                ) : (
+                  inner
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </AppShell>
   );
 }
