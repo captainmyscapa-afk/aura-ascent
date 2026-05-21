@@ -144,7 +144,7 @@ function Intelligence() {
       </div>
 
       <SectionHeading eyebrow="LATEST" title={`Signals · ${category}`} />
-      </pre>
+      
 
       {loading && entries.length === 0 ? (
         <div className="space-y-2">
