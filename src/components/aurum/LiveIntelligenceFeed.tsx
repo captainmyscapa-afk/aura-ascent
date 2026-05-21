@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Radio, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useIndustry } from "@/lib/industry/IndustryProvider";
-import { INDUSTRY_TO_CATEGORY } from "@/lib/industry/categoryMap";
 
 type Entry = {
   id: string;
@@ -10,6 +8,7 @@ type Entry = {
   source: string;
   category: string | null;
   description: string | null;
+  image: string | null;
   url: string | null;
   published_at: string;
   created_at: string;
@@ -27,8 +26,6 @@ function timeAgo(iso: string): string {
 }
 
 export function LiveIntelligenceFeed() {
-  const { industryId } = useIndustry();
-  const category = INDUSTRY_TO_CATEGORY[industryId];
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<Date | null>(null);
@@ -38,14 +35,11 @@ export function LiveIntelligenceFeed() {
     setLoading(true);
 
     const load = async () => {
-      const { data } = await (supabase
-        .from("live_intelligence") as any)
-        .select("id,title,source,category,description,url,published_at,created_at")
-        .eq("category", category)
-        .order("created_at", { ascending: false })
-        .limit(5);
+      const { data, error } = await (supabase.from("live_intelligence") as any)
+        .select("*")
+        .order("created_at", { ascending: false });
       if (!mounted) return;
-      if (data) setEntries(data as Entry[]);
+      setEntries(error || !data ? [] : (data as Entry[]));
       setLastSync(new Date());
       setLoading(false);
     };
@@ -57,7 +51,7 @@ export function LiveIntelligenceFeed() {
       mounted = false;
       clearInterval(interval);
     };
-  }, [category]);
+  }, []);
 
 
   return (
@@ -72,9 +66,7 @@ export function LiveIntelligenceFeed() {
                 <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
               </span>
-              <div className="text-[10px] tracking-[0.34em] text-primary/80">
-                LIVE · {category.toUpperCase()}
-              </div>
+              <div className="text-[10px] tracking-[0.34em] text-primary/80">LIVE</div>
             </div>
             <h2 className="font-serif text-xl sm:text-[22px] leading-tight">
               The <span className="italic text-gold-gradient">signal</span>
@@ -93,13 +85,6 @@ export function LiveIntelligenceFeed() {
                 className="h-20 rounded-xl bg-secondary/20 animate-pulse"
               />
             ))}
-          </div>
-        ) : entries.length === 0 ? (
-          <div className="py-12 text-center">
-            <Radio className="h-6 w-6 text-primary/60 mx-auto mb-3" />
-            <div className="text-sm text-muted-foreground">
-              No live intelligence in {category} yet.
-            </div>
           </div>
         ) : (
           <ul className="space-y-2">
