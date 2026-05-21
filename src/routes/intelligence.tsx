@@ -116,7 +116,7 @@ function Intelligence() {
         </div>
       ) : (
         <ul className="space-y-2">
-          {entries.map((e, i) => {
+          {visible.map((e, i) => {
             const inner = (
               <div className="group glass rounded-xl p-5 hover:ring-gold transition-all">
                 <div className="flex items-center gap-3 mb-2 flex-wrap">
