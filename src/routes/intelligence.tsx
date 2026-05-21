@@ -22,6 +22,11 @@ type Entry = {
   created_at: string;
 };
 
+type DebugResponse = {
+  data: Entry[] | null;
+  error: unknown;
+};
+
 function timeAgo(iso: string): string {
   const diff = Math.max(0, Date.now() - new Date(iso).getTime());
   const m = Math.floor(diff / 60_000);
@@ -48,11 +53,11 @@ function Intelligence() {
     setFilter("All");
 
     const load = async () => {
-      const supabaseProjectUrl = (supabase as any).supabaseUrl ?? import.meta.env.VITE_SUPABASE_URL;
-      const response = await (supabase
-        .from("live_intelligence") as any)
+      const supabaseProjectUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = (await supabase
+        .from("live_intelligence" as never)
         .select("*")
-        .limit(10);
+        .limit(10)) as DebugResponse;
       const { data, error } = response;
       console.log("[Intelligence DEBUG] Supabase project URL:", supabaseProjectUrl);
       console.log("[Intelligence DEBUG] table queried:", "public.live_intelligence");
@@ -60,7 +65,7 @@ function Intelligence() {
       console.log("[Intelligence DEBUG] returned row count:", data?.length ?? 0);
       console.log("[Intelligence DEBUG] returned rows:", data);
       console.log("[Intelligence DEBUG] query errors:", error);
-      data?.forEach((r: any) =>
+      data?.forEach((r) =>
         console.log(`[Intelligence DEBUG] created_at=${r.created_at} category=${r.category}`),
       );
       if (!mounted) return;
