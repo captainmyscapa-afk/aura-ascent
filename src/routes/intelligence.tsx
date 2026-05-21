@@ -46,11 +46,11 @@ function Intelligence() {
     setLoading(true);
 
     const load = async () => {
-      const { data, error } = await (supabase.from("live_intelligence") as any)
+      const { data } = await (supabase.from("live_intelligence") as any)
         .select("*")
         .order("created_at", { ascending: false });
       if (!mounted) return;
-      setEntries(error || !data ? [] : (data as Entry[]));
+      setEntries([...((data as Entry[]) || [])]);
       setLastSync(new Date());
       setLoading(false);
     };
@@ -64,8 +64,8 @@ function Intelligence() {
     };
   }, []);
 
-
-  const sourceCount = new Set(entries.map((e) => e.source)).size;
+  const visible = entries.filter((e) => e.category === category);
+  const sourceCount = new Set(visible.map((e) => e.source)).size;
 
   return (
     <AppShell>
