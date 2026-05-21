@@ -9,6 +9,7 @@ type Entry = {
   description: string | null;
   url: string | null;
   published_at: string;
+  created_at: string;
 };
 
 function timeAgo(iso: string): string {
@@ -31,11 +32,12 @@ export function LiveIntelligenceFeed() {
     let mounted = true;
 
     const load = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("live_intelligence")
-        .select("id,title,source,description,url,published_at")
-        .order("published_at", { ascending: false })
+        .select("id,title,source,description,url,published_at,created_at")
+        .order("created_at", { ascending: false })
         .limit(5);
+      console.log("[LiveIntelligence] fetched", { count: data?.length, error, data });
       if (!mounted) return;
       if (data) setEntries(data as Entry[]);
       setLastSync(new Date());
@@ -100,7 +102,7 @@ export function LiveIntelligenceFeed() {
           <div className="py-12 text-center">
             <Radio className="h-6 w-6 text-primary/60 mx-auto mb-3" />
             <div className="text-sm text-muted-foreground">
-              No signals yet. The feed will populate as intelligence arrives.
+              No live intelligence available yet.
             </div>
           </div>
         ) : (
