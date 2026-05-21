@@ -57,27 +57,9 @@ export function LiveIntelligenceFeed() {
     load();
     const interval = setInterval(load, 45_000);
 
-    const channel = supabase
-      .channel(`live_intelligence_feed_${category}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "live_intelligence",
-          filter: `category=eq.${category}`,
-        },
-        (payload) => {
-          console.log("[LiveIntelligence] realtime", payload);
-          load();
-        },
-      )
-      .subscribe();
-
     return () => {
       mounted = false;
       clearInterval(interval);
-      supabase.removeChannel(channel);
     };
   }, [category]);
 
