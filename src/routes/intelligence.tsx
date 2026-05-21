@@ -42,7 +42,6 @@ function Intelligence() {
   const { industry, industryId } = useIndustry();
   const category = INDUSTRY_TO_CATEGORY[industryId];
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [rawRows, setRawRows] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [filter, setFilter] = useState<string>("All");
