@@ -9,6 +9,7 @@ type Entry = {
   description: string | null;
   url: string | null;
   published_at: string;
+  created_at: string;
 };
 
 function timeAgo(iso: string): string {
@@ -31,11 +32,12 @@ export function LiveIntelligenceFeed() {
     let mounted = true;
 
     const load = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("live_intelligence")
-        .select("id,title,source,description,url,published_at")
-        .order("published_at", { ascending: false })
+        .select("id,title,source,description,url,published_at,created_at")
+        .order("created_at", { ascending: false })
         .limit(5);
+      console.log("[LiveIntelligence] fetched", { count: data?.length, error, data });
       if (!mounted) return;
       if (data) setEntries(data as Entry[]);
       setLastSync(new Date());
