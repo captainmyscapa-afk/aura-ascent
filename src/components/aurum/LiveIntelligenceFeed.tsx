@@ -97,7 +97,7 @@ export function LiveIntelligenceFeed() {
           </div>
         ) : (
           <ul className="space-y-2">
-            {entries.map((e, i) => {
+            {visible.map((e, i) => {
               const content = (
                 <div className="relative rounded-xl border border-border/40 bg-black/30 backdrop-blur-sm p-4 sm:p-5 transition-all hover:border-primary/40 hover:bg-black/50 active:scale-[0.99]">
                   <div className="flex items-center justify-between gap-3 mb-2">
