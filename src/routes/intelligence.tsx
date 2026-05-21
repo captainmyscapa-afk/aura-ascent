@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/aurum/AppShell";
 import { SectionHeading } from "@/components/aurum/SectionHeading";
-import { ArrowUpRight, Radio, TrendingUp, Globe2, Sparkles, Filter } from "lucide-react";
+import { ArrowUpRight, Radio, TrendingUp, Globe2, Sparkles } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_TO_CATEGORY } from "@/lib/industry/categoryMap";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,7 @@ type Entry = {
   source: string;
   category: string | null;
   description: string | null;
+  image: string | null;
   url: string | null;
   published_at: string;
   created_at: string;
@@ -39,23 +40,17 @@ function Intelligence() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<Date | null>(null);
-  const [filter, setFilter] = useState<string>("All");
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    setFilter("All");
 
     const load = async () => {
-      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { data } = await (supabase
-        .from("live_intelligence") as any)
-        .select("id,title,source,category,description,url,published_at,created_at")
-        .eq("category", category)
-        .gte("created_at", since)
+      const { data, error } = await (supabase.from("live_intelligence") as any)
+        .select("*")
         .order("created_at", { ascending: false });
       if (!mounted) return;
-      if (data) setEntries(data as Entry[]);
+      setEntries(error || !data ? [] : (data as Entry[]));
       setLastSync(new Date());
       setLoading(false);
     };
@@ -67,11 +62,10 @@ function Intelligence() {
       mounted = false;
       clearInterval(interval);
     };
-  }, [category]);
+  }, []);
 
 
-  const sources = ["All", ...Array.from(new Set(entries.map((e) => e.source)))];
-  const visible = entries;
+  const sourceCount = new Set(entries.map((e) => e.source)).size;
 
   return (
     <AppShell>
@@ -99,7 +93,7 @@ function Intelligence() {
       <div className="grid sm:grid-cols-3 gap-4 mb-10">
         {[
           { i: Radio, l: "Signals tracked", v: String(entries.length) },
-          { i: TrendingUp, l: "Sources", v: String(Math.max(0, sources.length - 1)) },
+          { i: TrendingUp, l: "Sources", v: String(sourceCount) },
           { i: Globe2, l: "Realtime", v: "ON" },
         ].map(({ i: I, l, v }) => (
           <div key={l} className="glass rounded-xl p-5 flex items-center gap-4">
@@ -112,23 +106,6 @@ function Intelligence() {
         ))}
       </div>
 
-      <div className="flex items-center gap-2 mb-4 text-xs flex-wrap">
-        <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-        {sources.map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-full transition-colors ${
-              filter === f
-                ? "bg-primary/15 text-primary border border-primary/30"
-                : "text-muted-foreground hover:text-foreground border border-transparent"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
       <SectionHeading eyebrow="LATEST" title={`Signals · ${category}`} />
 
       {loading && entries.length === 0 ? (
@@ -137,14 +114,9 @@ function Intelligence() {
             <div key={i} className="h-24 rounded-xl bg-secondary/20 animate-pulse" />
           ))}
         </div>
-      ) : visible.length === 0 ? (
-        <div className="glass rounded-xl py-16 text-center">
-          <Radio className="h-6 w-6 text-primary/60 mx-auto mb-3" />
-          <div className="text-sm text-muted-foreground">No live intelligence in {category} yet.</div>
-        </div>
       ) : (
         <ul className="space-y-2">
-          {visible.map((e, i) => {
+          {entries.map((e, i) => {
             const inner = (
               <div className="group glass rounded-xl p-5 hover:ring-gold transition-all">
                 <div className="flex items-center gap-3 mb-2 flex-wrap">
