@@ -38,21 +38,16 @@ export function LiveIntelligenceFeed() {
     setLoading(true);
 
     const load = async () => {
-      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const { data, error } = await (supabase
         .from("live_intelligence") as any)
         .select("id,title,source,category,description,url,published_at,created_at")
-        .eq("category", category)
-        .gte("created_at", since)
         .order("created_at", { ascending: false })
-        .limit(5);
-      console.log("[LiveIntelligence] fetched", {
-        category,
-        since,
-        count: data?.length,
-        error,
-        latest: data?.[0]?.created_at,
-      });
+        .limit(10);
+      console.log("[LiveIntelligence DEBUG] count:", data?.length, "error:", error);
+      console.log("[LiveIntelligence DEBUG] rows:", data);
+      data?.forEach((r: any) =>
+        console.log(`[LiveIntelligence DEBUG] created_at=${r.created_at} category=${r.category}`),
+      );
       if (!mounted) return;
       if (data) setEntries(data as Entry[]);
       setLastSync(new Date());
@@ -62,27 +57,9 @@ export function LiveIntelligenceFeed() {
     load();
     const interval = setInterval(load, 45_000);
 
-    const channel = supabase
-      .channel(`live_intelligence_feed_${category}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "live_intelligence",
-          filter: `category=eq.${category}`,
-        },
-        (payload) => {
-          console.log("[LiveIntelligence] realtime", payload);
-          load();
-        },
-      )
-      .subscribe();
-
     return () => {
       mounted = false;
       clearInterval(interval);
-      supabase.removeChannel(channel);
     };
   }, [category]);
 
