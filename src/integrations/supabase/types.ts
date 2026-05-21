@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       live_intelligence: {
         Row: {
+          category: string | null
           created_at: string
           description: string | null
           id: string
@@ -25,6 +26,7 @@ export type Database = {
           url: string | null
         }
         Insert: {
+          category?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -34,6 +36,7 @@ export type Database = {
           url?: string | null
         }
         Update: {
+          category?: string | null
           created_at?: string
           description?: string | null
           id?: string

@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Radio, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useIndustry } from "@/lib/industry/IndustryProvider";
+import { INDUSTRY_TO_CATEGORY } from "@/lib/industry/categoryMap";
 
 type Entry = {
   id: string;
   title: string;
   source: string;
+  category: string | null;
   description: string | null;
   url: string | null;
   published_at: string;
@@ -24,20 +27,29 @@ function timeAgo(iso: string): string {
 }
 
 export function LiveIntelligenceFeed() {
+  const { industryId } = useIndustry();
+  const category = INDUSTRY_TO_CATEGORY[industryId];
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<Date | null>(null);
 
   useEffect(() => {
     let mounted = true;
+    setLoading(true);
 
     const load = async () => {
-      const { data, error } = await supabase
-        .from("live_intelligence")
-        .select("id,title,source,description,url,published_at,created_at")
+      const { data, error } = await (supabase
+        .from("live_intelligence") as any)
+        .select("id,title,source,category,description,url,published_at,created_at")
+        .eq("category", category)
         .order("created_at", { ascending: false })
         .limit(5);
-      console.log("[LiveIntelligence] fetched", { count: data?.length, error, data });
+      console.log("[LiveIntelligence] fetched", {
+        category,
+        count: data?.length,
+        error,
+        latest: data?.[0]?.created_at,
+      });
       if (!mounted) return;
       if (data) setEntries(data as Entry[]);
       setLastSync(new Date());
@@ -48,11 +60,19 @@ export function LiveIntelligenceFeed() {
     const interval = setInterval(load, 45_000);
 
     const channel = supabase
-      .channel("live_intelligence_feed")
+      .channel(`live_intelligence_feed_${category}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "live_intelligence" },
-        () => load(),
+        {
+          event: "*",
+          schema: "public",
+          table: "live_intelligence",
+          filter: `category=eq.${category}`,
+        },
+        (payload) => {
+          console.log("[LiveIntelligence] realtime", payload);
+          load();
+        },
       )
       .subscribe();
 
@@ -61,11 +81,10 @@ export function LiveIntelligenceFeed() {
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [category]);
 
   return (
     <div className="relative glass rounded-2xl p-6 sm:p-7 overflow-hidden ring-gold">
-      {/* ambient gold wash */}
       <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-[var(--gradient-gold)] opacity-[0.06] blur-3xl" />
 
       <div className="relative">
@@ -77,7 +96,7 @@ export function LiveIntelligenceFeed() {
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
               </span>
               <div className="text-[10px] tracking-[0.34em] text-primary/80">
-                LIVE INTELLIGENCE
+                LIVE · {category.toUpperCase()}
               </div>
             </div>
             <h2 className="font-serif text-xl sm:text-[22px] leading-tight">
@@ -102,7 +121,7 @@ export function LiveIntelligenceFeed() {
           <div className="py-12 text-center">
             <Radio className="h-6 w-6 text-primary/60 mx-auto mb-3" />
             <div className="text-sm text-muted-foreground">
-              No live intelligence available yet.
+              No live intelligence in {category} yet.
             </div>
           </div>
         ) : (
@@ -116,9 +135,14 @@ export function LiveIntelligenceFeed() {
                       <span className="text-[10px] tracking-[0.28em] uppercase text-primary/80 truncate">
                         {e.source}
                       </span>
+                      {e.category && (
+                        <span className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground border border-border/50 rounded px-1.5 py-0.5">
+                          {e.category}
+                        </span>
+                      )}
                     </div>
                     <span className="text-[10px] font-mono text-muted-foreground shrink-0">
-                      {timeAgo(e.published_at)}
+                      {timeAgo(e.created_at)}
                     </span>
                   </div>
                   <div className="text-[15px] sm:text-[15.5px] leading-snug text-foreground group-hover:text-primary transition-colors">
@@ -135,10 +159,6 @@ export function LiveIntelligenceFeed() {
                       <ArrowUpRight className="h-3 w-3" />
                     </div>
                   )}
-                  <div
-                    className="absolute left-0 top-4 bottom-4 w-px bg-[var(--gradient-gold)] opacity-0 group-hover:opacity-80 transition-opacity"
-                    aria-hidden
-                  />
                 </div>
               );
 
