@@ -4,6 +4,7 @@ import { AppShell } from "@/components/aurum/AppShell";
 import { SectionHeading } from "@/components/aurum/SectionHeading";
 import { ArrowUpRight, Radio, TrendingUp, Globe2, Sparkles, Filter } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
+import { INDUSTRY_TO_CATEGORY } from "@/lib/industry/categoryMap";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/intelligence")({
@@ -14,6 +15,7 @@ type Entry = {
   id: string;
   title: string;
   source: string;
+  category: string | null;
   description: string | null;
   url: string | null;
   published_at: string;
@@ -32,7 +34,8 @@ function timeAgo(iso: string): string {
 }
 
 function Intelligence() {
-  const { industry } = useIndustry();
+  const { industry, industryId } = useIndustry();
+  const category = INDUSTRY_TO_CATEGORY[industryId];
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<Date | null>(null);
@@ -40,14 +43,22 @@ function Intelligence() {
 
   useEffect(() => {
     let mounted = true;
+    setLoading(true);
+    setFilter("All");
 
     const load = async () => {
-      const { data, error } = await supabase
-        .from("live_intelligence")
-        .select("id,title,source,description,url,published_at,created_at")
+      const { data, error } = await (supabase
+        .from("live_intelligence") as any)
+        .select("id,title,source,category,description,url,published_at,created_at")
+        .eq("category", category)
         .order("created_at", { ascending: false })
         .limit(50);
-      console.log("[Intelligence page] fetched", { count: data?.length, error });
+      console.log("[Intelligence page] fetched", {
+        category,
+        count: data?.length,
+        error,
+        latest: data?.[0]?.created_at,
+      });
       if (!mounted) return;
       if (data) setEntries(data as Entry[]);
       setLastSync(new Date());
@@ -58,11 +69,19 @@ function Intelligence() {
     const interval = setInterval(load, 45_000);
 
     const channel = supabase
-      .channel("live_intelligence_page")
+      .channel(`live_intelligence_page_${category}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "live_intelligence" },
-        () => load(),
+        {
+          event: "*",
+          schema: "public",
+          table: "live_intelligence",
+          filter: `category=eq.${category}`,
+        },
+        (payload) => {
+          console.log("[Intelligence page] realtime", payload);
+          load();
+        },
       )
       .subscribe();
 
@@ -71,7 +90,7 @@ function Intelligence() {
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [category]);
 
   const sources = ["All", ...Array.from(new Set(entries.map((e) => e.source)))];
   const visible = filter === "All" ? entries : entries.filter((e) => e.source === filter);
@@ -81,7 +100,7 @@ function Intelligence() {
       <div className="flex items-end justify-between flex-wrap gap-4 mb-8 animate-fade-up">
         <div>
           <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">
-            AURUM · {industry.modeLabel.toUpperCase()} INTELLIGENCE
+            AURUM · {industry.modeLabel.toUpperCase()} · {category.toUpperCase()}
           </div>
           <h1 className="font-serif text-4xl sm:text-5xl">The signal beneath the noise.</h1>
           <p className="mt-3 text-muted-foreground max-w-xl text-sm">
@@ -133,7 +152,7 @@ function Intelligence() {
         ))}
       </div>
 
-      <SectionHeading eyebrow="LATEST" title="Signals · live" />
+      <SectionHeading eyebrow="LATEST" title={`Signals · ${category}`} />
 
       {loading && entries.length === 0 ? (
         <div className="space-y-2">
@@ -145,7 +164,7 @@ function Intelligence() {
         <div className="glass rounded-xl py-16 text-center">
           <Radio className="h-6 w-6 text-primary/60 mx-auto mb-3" />
           <div className="text-sm text-muted-foreground">
-            No live intelligence available yet.
+            No live intelligence in {category} yet.
           </div>
         </div>
       ) : (
@@ -157,8 +176,13 @@ function Intelligence() {
                   <span className="text-[9px] tracking-[0.3em] text-primary/80 px-2 py-0.5 border border-primary/30 rounded uppercase">
                     {e.source}
                   </span>
+                  {e.category && (
+                    <span className="text-[9px] tracking-[0.3em] text-muted-foreground px-2 py-0.5 border border-border/50 rounded uppercase">
+                      {e.category}
+                    </span>
+                  )}
                   <span className="text-[11px] text-muted-foreground font-mono ml-auto">
-                    {timeAgo(e.published_at)}
+                    {timeAgo(e.created_at)}
                   </span>
                 </div>
                 <div className="text-[16px] text-foreground leading-snug group-hover:text-primary transition-colors">
