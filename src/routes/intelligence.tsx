@@ -65,9 +65,11 @@ function Intelligence() {
       console.log("[Intelligence DEBUG] returned rows:", data);
       console.log("[Intelligence DEBUG] query errors:", error);
       data?.forEach((r) => console.log(`[Intelligence DEBUG] created_at=${r.created_at} category=${r.category}`));
-      if (!mounted) return;
+      console.log("SUPABASE DATA:", data);
 
-      if (data) setEntries(data as Entry[]);
+      if (data) {
+        setEntries(data as Entry[]);
+      }
       setLastSync(new Date());
       setLoading(false);
     };
