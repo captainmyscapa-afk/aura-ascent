@@ -37,6 +37,7 @@ function Intelligence() {
   const { industry, industryId } = useIndustry();
   const category = INDUSTRY_TO_CATEGORY[industryId];
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [rawRows, setRawRows] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [filter, setFilter] = useState<string>("All");
@@ -47,17 +48,23 @@ function Intelligence() {
     setFilter("All");
 
     const load = async () => {
-      const { data, error } = await (supabase
+      const supabaseProjectUrl = (supabase as any).supabaseUrl ?? import.meta.env.VITE_SUPABASE_URL;
+      const response = await (supabase
         .from("live_intelligence") as any)
-        .select("id,title,source,category,description,url,published_at,created_at")
-        .order("created_at", { ascending: false })
+        .select("*")
         .limit(10);
-      console.log("[Intelligence DEBUG] count:", data?.length, "error:", error);
-      console.log("[Intelligence DEBUG] rows:", data);
+      const { data, error } = response;
+      console.log("[Intelligence DEBUG] Supabase project URL:", supabaseProjectUrl);
+      console.log("[Intelligence DEBUG] table queried:", "public.live_intelligence");
+      console.log("[Intelligence DEBUG] Supabase response:", response);
+      console.log("[Intelligence DEBUG] returned row count:", data?.length ?? 0);
+      console.log("[Intelligence DEBUG] returned rows:", data);
+      console.log("[Intelligence DEBUG] query errors:", error);
       data?.forEach((r: any) =>
         console.log(`[Intelligence DEBUG] created_at=${r.created_at} category=${r.category}`),
       );
       if (!mounted) return;
+      setRawRows(data ?? []);
       if (data) setEntries(data as Entry[]);
       setLastSync(new Date());
       setLoading(false);
