@@ -22,6 +22,11 @@ type Entry = {
   created_at: string;
 };
 
+type DebugResponse = {
+  data: Entry[] | null;
+  error: unknown;
+};
+
 function timeAgo(iso: string): string {
   const diff = Math.max(0, Date.now() - new Date(iso).getTime());
   const m = Math.floor(diff / 60_000);
@@ -37,6 +42,7 @@ function Intelligence() {
   const { industry, industryId } = useIndustry();
   const category = INDUSTRY_TO_CATEGORY[industryId];
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [rawRows, setRawRows] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [filter, setFilter] = useState<string>("All");
@@ -47,17 +53,23 @@ function Intelligence() {
     setFilter("All");
 
     const load = async () => {
-      const { data, error } = await (supabase
-        .from("live_intelligence") as any)
-        .select("id,title,source,category,description,url,published_at,created_at")
-        .order("created_at", { ascending: false })
-        .limit(10);
-      console.log("[Intelligence DEBUG] count:", data?.length, "error:", error);
-      console.log("[Intelligence DEBUG] rows:", data);
-      data?.forEach((r: any) =>
+      const supabaseProjectUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = (await supabase
+        .from("live_intelligence" as never)
+        .select("*")
+        .limit(10)) as DebugResponse;
+      const { data, error } = response;
+      console.log("[Intelligence DEBUG] Supabase project URL:", supabaseProjectUrl);
+      console.log("[Intelligence DEBUG] table queried:", "public.live_intelligence");
+      console.log("[Intelligence DEBUG] Supabase response:", response);
+      console.log("[Intelligence DEBUG] returned row count:", data?.length ?? 0);
+      console.log("[Intelligence DEBUG] returned rows:", data);
+      console.log("[Intelligence DEBUG] query errors:", error);
+      data?.forEach((r) =>
         console.log(`[Intelligence DEBUG] created_at=${r.created_at} category=${r.category}`),
       );
       if (!mounted) return;
+      setRawRows(data ?? []);
       if (data) setEntries(data as Entry[]);
       setLastSync(new Date());
       setLoading(false);
@@ -133,6 +145,10 @@ function Intelligence() {
       </div>
 
       <SectionHeading eyebrow="LATEST" title={`Signals · ${category}`} />
+
+      <pre className="mb-6 max-h-96 overflow-auto rounded-xl border border-border/50 bg-secondary/20 p-4 text-xs text-foreground">
+        {JSON.stringify(rawRows, null, 2)}
+      </pre>
 
       {loading && entries.length === 0 ? (
         <div className="space-y-2">
