@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/aurum/AppShell";
 import { SectionHeading } from "@/components/aurum/SectionHeading";
-import { ArrowUpRight, Radio, TrendingUp, Globe2, Sparkles, Filter } from "lucide-react";
+import { ArrowUpRight, Radio, TrendingUp, Globe2, Sparkles } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_TO_CATEGORY } from "@/lib/industry/categoryMap";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,7 @@ type Entry = {
   source: string;
   category: string | null;
   description: string | null;
+  image: string | null;
   url: string | null;
   published_at: string;
   created_at: string;
@@ -39,23 +40,17 @@ function Intelligence() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<Date | null>(null);
-  const [filter, setFilter] = useState<string>("All");
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    setFilter("All");
 
     const load = async () => {
-      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { data } = await (supabase
-        .from("live_intelligence") as any)
-        .select("id,title,source,category,description,url,published_at,created_at")
-        .eq("category", category)
-        .gte("created_at", since)
+      const { data, error } = await (supabase.from("live_intelligence") as any)
+        .select("*")
         .order("created_at", { ascending: false });
       if (!mounted) return;
-      if (data) setEntries(data as Entry[]);
+      setEntries(error || !data ? [] : (data as Entry[]));
       setLastSync(new Date());
       setLoading(false);
     };
@@ -67,11 +62,10 @@ function Intelligence() {
       mounted = false;
       clearInterval(interval);
     };
-  }, [category]);
+  }, []);
 
 
-  const sources = ["All", ...Array.from(new Set(entries.map((e) => e.source)))];
-  const visible = entries;
+  const sourceCount = new Set(entries.map((e) => e.source)).size;
 
   return (
     <AppShell>
