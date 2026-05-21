@@ -141,6 +141,10 @@ function Intelligence() {
 
       <SectionHeading eyebrow="LATEST" title={`Signals · ${category}`} />
 
+      <pre className="mb-6 max-h-96 overflow-auto rounded-xl border border-border/50 bg-secondary/20 p-4 text-xs text-foreground">
+        {JSON.stringify(rawRows, null, 2)}
+      </pre>
+
       {loading && entries.length === 0 ? (
         <div className="space-y-2">
           {[0, 1, 2, 3, 4].map((i) => (
