@@ -56,8 +56,8 @@ function Intelligence() {
       const response = (await supabase
         .from("live_intelligence" as never)
         .select("*")
-       .order('created_at', { ascending: false })
-.limit(20)
+        .order("created_at", { ascending: false })
+        .limit(20)) as DebugResponse;
       const { data, error } = response;
       console.log("[Intelligence DEBUG] Supabase project URL:", supabaseProjectUrl);
       console.log("[Intelligence DEBUG] table queried:", "public.live_intelligence");
