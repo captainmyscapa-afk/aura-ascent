@@ -64,9 +64,7 @@ function Intelligence() {
       console.log("[Intelligence DEBUG] returned row count:", data?.length ?? 0);
       console.log("[Intelligence DEBUG] returned rows:", data);
       console.log("[Intelligence DEBUG] query errors:", error);
-      data?.forEach((r) =>
-        console.log(`[Intelligence DEBUG] created_at=${r.created_at} category=${r.category}`),
-      );
+      data?.forEach((r) => console.log(`[Intelligence DEBUG] created_at=${r.created_at} category=${r.category}`));
       if (!mounted) return;
 
       if (data) setEntries(data as Entry[]);
@@ -84,7 +82,7 @@ function Intelligence() {
   }, [category]);
 
   const sources = ["All", ...Array.from(new Set(entries.map((e) => e.source)))];
-  const visible = filter === "All" ? entries : entries.filter((e) => e.source === filter);
+  const visible = entries;
 
   return (
     <AppShell>
@@ -96,8 +94,7 @@ function Intelligence() {
           <h1 className="font-serif text-4xl sm:text-5xl">The signal beneath the noise.</h1>
           <p className="mt-3 text-muted-foreground max-w-xl text-sm">
             Real-time synthesis from the AURUM intelligence network — curated for{" "}
-            <span className="italic text-foreground">your</span> position in the{" "}
-            {industry.label.toLowerCase()} market.
+            <span className="italic text-foreground">your</span> position in the {industry.label.toLowerCase()} market.
           </p>
         </div>
         <div className="flex items-center gap-2 glass rounded-full px-4 py-2 text-xs">
@@ -144,7 +141,6 @@ function Intelligence() {
       </div>
 
       <SectionHeading eyebrow="LATEST" title={`Signals · ${category}`} />
-      
 
       {loading && entries.length === 0 ? (
         <div className="space-y-2">
@@ -155,9 +151,7 @@ function Intelligence() {
       ) : visible.length === 0 ? (
         <div className="glass rounded-xl py-16 text-center">
           <Radio className="h-6 w-6 text-primary/60 mx-auto mb-3" />
-          <div className="text-sm text-muted-foreground">
-            No live intelligence in {category} yet.
-          </div>
+          <div className="text-sm text-muted-foreground">No live intelligence in {category} yet.</div>
         </div>
       ) : (
         <ul className="space-y-2">
@@ -173,9 +167,7 @@ function Intelligence() {
                       {e.category}
                     </span>
                   )}
-                  <span className="text-[11px] text-muted-foreground font-mono ml-auto">
-                    {timeAgo(e.created_at)}
-                  </span>
+                  <span className="text-[11px] text-muted-foreground font-mono ml-auto">{timeAgo(e.created_at)}</span>
                 </div>
                 <div className="text-[16px] text-foreground leading-snug group-hover:text-primary transition-colors">
                   {e.title}
@@ -195,11 +187,7 @@ function Intelligence() {
               </div>
             );
             return (
-              <li
-                key={e.id}
-                className="animate-fade-up"
-                style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}
-              >
+              <li key={e.id} className="animate-fade-up" style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}>
                 {e.url ? (
                   <a href={e.url} target="_blank" rel="noopener noreferrer" className="block">
                     {inner}
