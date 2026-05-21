@@ -56,7 +56,8 @@ function Intelligence() {
       const response = (await supabase
         .from("live_intelligence" as never)
         .select("*")
-        .limit(10)) as DebugResponse;
+       .order('created_at', { ascending: false })
+.limit(20)
       const { data, error } = response;
       console.log("[Intelligence DEBUG] Supabase project URL:", supabaseProjectUrl);
       console.log("[Intelligence DEBUG] table queried:", "public.live_intelligence");
@@ -68,7 +69,8 @@ function Intelligence() {
       console.log("SUPABASE DATA:", data);
 
       if (data) {
-        setEntries(data as Entry[]);
+        console.log("LIVE ROWS:", data)
+          setEntries([...data] as Entry[]);
       }
       setLastSync(new Date());
       setLoading(false);
