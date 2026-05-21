@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  ArrowUpRight,
   Sparkles,
   Check,
   Calendar,
@@ -80,7 +79,7 @@ function Dashboard() {
     ambientImage: INDUSTRY_LIST[1].ambientImage,
   };
 
-  const topIntel = industry.intelFeed.slice(0, 3);
+  
 
   return (
     <AppShell>
