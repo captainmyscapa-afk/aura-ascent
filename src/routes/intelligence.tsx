@@ -92,7 +92,7 @@ function Intelligence() {
 
       <div className="grid sm:grid-cols-3 gap-4 mb-10">
         {[
-          { i: Radio, l: "Signals tracked", v: String(entries.length) },
+          { i: Radio, l: "Signals tracked", v: String(visible.length) },
           { i: TrendingUp, l: "Sources", v: String(sourceCount) },
           { i: Globe2, l: "Realtime", v: "ON" },
         ].map(({ i: I, l, v }) => (
