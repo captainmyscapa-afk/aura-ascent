@@ -102,7 +102,7 @@ export function LiveIntelligenceFeed() {
           <div className="py-12 text-center">
             <Radio className="h-6 w-6 text-primary/60 mx-auto mb-3" />
             <div className="text-sm text-muted-foreground">
-              No signals yet. The feed will populate as intelligence arrives.
+              No live intelligence available yet.
             </div>
           </div>
         ) : (
