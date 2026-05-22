@@ -58,7 +58,7 @@ export function LiveIntelligenceFeed() {
   }, []);
 
   const visible = entries;
-
+  console.log("ENTRIES LENGTH:", entries.length);
 
   return (
     <div className="relative glass rounded-2xl p-6 sm:p-7 overflow-hidden ring-gold">
@@ -91,6 +91,7 @@ export function LiveIntelligenceFeed() {
           </div>
         ) : (
           <ul className="space-y-2">
+            <p style={{ color: "white" }}>TEST COUNT: {visible.length}</p>
             {visible.map((e, i) => {
               const content = (
                 <div className="relative rounded-xl border border-border/40 bg-black/30 backdrop-blur-sm p-4 sm:p-5 transition-all hover:border-primary/40 hover:bg-black/50 active:scale-[0.99]">
