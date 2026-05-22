@@ -57,7 +57,7 @@ export function LiveIntelligenceFeed() {
     };
   }, []);
 
-  const visible = useMemo(
+  const visible = entries
     () => entries.filter((e) => e.category === activeCategory),
     [entries, activeCategory],
   );
