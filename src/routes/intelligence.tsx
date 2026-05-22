@@ -65,7 +65,7 @@ function Intelligence() {
       mounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [category]);
 
   const visible = entries.filter((e) => e.category === category);
   const sourceCount = new Set(visible.map((e) => e.source)).size;
