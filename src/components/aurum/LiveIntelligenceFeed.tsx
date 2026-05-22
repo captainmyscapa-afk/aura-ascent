@@ -120,29 +120,21 @@ export function LiveIntelligenceFeed() {
                     </p>
                   )}
                   {e.url && (
-                    <div className="mt-3 flex items-center gap-1 text-[11px] tracking-[0.2em] uppercase text-primary/80">
-                      Read brief
-                      <ArrowUpRight className="h-3 w-3" />
-                    </div>
-                  )}
-                </div>
-              );
+                    <p style={{ color: "white" }}>
+  TEST COUNT: {visible.length}
+</p>
 
-              return (
-                <li key={e.id} className="group animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
-                  {e.url ? (
-                    <a href={e.url} target="_blank" rel="noopener noreferrer" className="block">
-                      {content}
-                    </a>
-                  ) : (
-                    content
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-}
+{visible.map((e) => (
+  <li
+    key={e.id}
+    style={{
+      color: "white",
+      border: "1px solid white",
+      marginBottom: "10px",
+      padding: "10px",
+    }}
+  >
+    <h2>{e.title}</h2>
+    <p>{e.category}</p>
+  </li>
+))}
