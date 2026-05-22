@@ -96,17 +96,23 @@ export function LiveIntelligenceFeed() {
   TEST COUNT: {visible.length}
 </p>
 
-{visible.map((e) => (
-  <li
-    key={e.id}
-    style={{
-      color: "white",
-      border: "1px solid white",
-      marginBottom: "10px",
-      padding: "10px",
-    }}
-  >
-    <h2>{e.title}</h2>
-    <p>{e.category}</p>
-  </li>
-))}
+<ul className="space-y-2">
+  <p style={{ color: "white" }}>
+    TEST COUNT: {visible.length}
+  </p>
+
+  {visible.map((e) => (
+    <li
+      key={e.id}
+      style={{
+        color: "white",
+        border: "1px solid white",
+        marginBottom: "10px",
+        padding: "10px",
+      }}
+    >
+      <h2>{e.title}</h2>
+      <p>{e.category}</p>
+    </li>
+  ))}
+</ul>
