@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useIndustry } from "@/lib/industry/IndustryProvider";
-import { INDUSTRY_TO_CATEGORY } from "@/lib/industry/categoryMap";
 
 type Entry = {
   id: string;
@@ -10,9 +8,7 @@ type Entry = {
   source: string;
   category: string | null;
   description: string | null;
-  image: string | null;
   url: string | null;
-  published_at: string;
   created_at: string;
 };
 
@@ -28,37 +24,17 @@ function timeAgo(iso: string): string {
 }
 
 export function LiveIntelligenceFeed() {
-  const { industryId } = useIndustry();
-  const activeCategory = INDUSTRY_TO_CATEGORY[industryId];
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [lastSync, setLastSync] = useState<Date | null>(null);
 
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-
     const load = async () => {
       const { data } = await (supabase.from("live_intelligence") as any)
         .select("*")
         .order("created_at", { ascending: false });
-      if (!mounted) return;
       setEntries([...((data as Entry[]) || [])]);
-      setLastSync(new Date());
-      setLoading(false);
     };
-
     load();
-    const interval = setInterval(load, 30 * 60_000);
-
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
   }, []);
-
-  const visible = entries;
-  console.log("ENTRIES LENGTH:", entries.length);
 
   return (
     <div className="relative glass rounded-2xl p-6 sm:p-7 overflow-hidden ring-gold">
@@ -78,41 +54,53 @@ export function LiveIntelligenceFeed() {
               The <span className="italic text-gold-gradient">signal</span>
             </h2>
           </div>
-          <div className="text-[10px] tracking-[0.25em] text-muted-foreground font-mono shrink-0 uppercase">
-            {lastSync ? `Sync ${timeAgo(lastSync.toISOString())}` : "Syncing"}
-          </div>
         </div>
 
-        {loading && entries.length === 0 ? (
-          <div className="space-y-3">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-20 rounded-xl bg-secondary/20 animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <ul className="space-y-2">
-            <p style={{ color: "white" }}>TEST COUNT: {visible.length}</p>
-           <p style={{ color: "white" }}>
-  TEST COUNT: {visible.length}
-</p>
-
-<ul className="space-y-2">
-  <p style={{ color: "white" }}>
-    TEST COUNT: {visible.length}
-  </p>
-
-  {visible.map((e) => (
-    <li
-      key={e.id}
-      style={{
-        color: "white",
-        border: "1px solid white",
-        marginBottom: "10px",
-        padding: "10px",
-      }}
-    >
-      <h2>{e.title}</h2>
-      <p>{e.category}</p>
-    </li>
-  ))}
-</ul>
+        <ul className="space-y-2">
+          {entries.map((e) => {
+            const inner = (
+              <div className="group glass rounded-xl p-5 hover:ring-gold transition-all">
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
+                  <span className="text-[9px] tracking-[0.3em] text-primary/80 px-2 py-0.5 border border-primary/30 rounded uppercase">
+                    {e.source}
+                  </span>
+                  {e.category && (
+                    <span className="text-[9px] tracking-[0.3em] text-muted-foreground px-2 py-0.5 border border-border/50 rounded uppercase">
+                      {e.category}
+                    </span>
+                  )}
+                  <span className="text-[11px] text-muted-foreground font-mono ml-auto">
+                    {timeAgo(e.created_at)}
+                  </span>
+                </div>
+                <div className="text-[16px] text-foreground leading-snug group-hover:text-primary transition-colors">
+                  {e.title}
+                </div>
+                {e.description && (
+                  <div className="mt-2 text-sm text-muted-foreground">{e.description}</div>
+                )}
+                {e.url && (
+                  <div className="mt-3 flex items-center gap-1 text-[11px] tracking-[0.2em] uppercase text-primary/80">
+                    Read brief
+                    <ArrowUpRight className="h-3 w-3" />
+                  </div>
+                )}
+              </div>
+            );
+            return (
+              <li key={e.id}>
+                {e.url ? (
+                  <a href={e.url} target="_blank" rel="noopener noreferrer" className="block">
+                    {inner}
+                  </a>
+                ) : (
+                  inner
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+}
