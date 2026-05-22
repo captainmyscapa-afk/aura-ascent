@@ -92,35 +92,7 @@ export function LiveIntelligenceFeed() {
         ) : (
           <ul className="space-y-2">
             <p style={{ color: "white" }}>TEST COUNT: {visible.length}</p>
-            {visible.map((e, i) => {
-              const content = (
-                <div className="relative rounded-xl border border-border/40 bg-black/30 backdrop-blur-sm p-4 sm:p-5 transition-all hover:border-primary/40 hover:bg-black/50 active:scale-[0.99]">
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Sparkles className="h-3 w-3 text-primary/80 shrink-0" />
-                      <span className="text-[10px] tracking-[0.28em] uppercase text-primary/80 truncate">
-                        {e.source}
-                      </span>
-                      {e.category && (
-                        <span className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground border border-border/50 rounded px-1.5 py-0.5">
-                          {e.category}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[10px] font-mono text-muted-foreground shrink-0">
-                      {timeAgo(e.created_at)}
-                    </span>
-                  </div>
-                  <div className="text-[15px] sm:text-[15.5px] leading-snug text-foreground group-hover:text-primary transition-colors">
-                    {e.title}
-                  </div>
-                  {e.description && (
-                    <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground line-clamp-2">
-                      {e.description}
-                    </p>
-                  )}
-                  {e.url && (
-                    <p style={{ color: "white" }}>
+           <p style={{ color: "white" }}>
   TEST COUNT: {visible.length}
 </p>
 
