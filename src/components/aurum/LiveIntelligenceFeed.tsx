@@ -58,8 +58,8 @@ export function LiveIntelligenceFeed() {
   }, []);
 
   const visible = entries;
-
-
+  console.log("VISIBLE ENTRIES:", visible);
+  return <div style={{ color: "white", padding: 20 }}>TEST {visible.length}</div>;
 
   return (
     <div className="relative glass rounded-2xl p-6 sm:p-7 overflow-hidden ring-gold">
@@ -87,10 +87,7 @@ export function LiveIntelligenceFeed() {
         {loading && entries.length === 0 ? (
           <div className="space-y-3">
             {[0, 1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="h-20 rounded-xl bg-secondary/20 animate-pulse"
-              />
+              <div key={i} className="h-20 rounded-xl bg-secondary/20 animate-pulse" />
             ))}
           </div>
         ) : (
@@ -132,18 +129,9 @@ export function LiveIntelligenceFeed() {
               );
 
               return (
-                <li
-                  key={e.id}
-                  className="group animate-fade-up"
-                  style={{ animationDelay: `${i * 60}ms` }}
-                >
+                <li key={e.id} className="group animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
                   {e.url ? (
-                    <a
-                      href={e.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block"
-                    >
+                    <a href={e.url} target="_blank" rel="noopener noreferrer" className="block">
                       {content}
                     </a>
                   ) : (
