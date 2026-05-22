@@ -57,10 +57,11 @@ export function LiveIntelligenceFeed() {
     };
   }, []);
 
-  const visible = entries
+  const visible = useMemo(
     () => entries.filter((e) => e.category === activeCategory),
     [entries, activeCategory],
   );
+
 
 
   return (
