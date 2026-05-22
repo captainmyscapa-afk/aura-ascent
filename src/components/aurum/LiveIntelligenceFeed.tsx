@@ -58,8 +58,7 @@ export function LiveIntelligenceFeed() {
   }, []);
 
   const visible = entries;
-  console.log("VISIBLE ENTRIES:", visible);
-  return <div style={{ color: "white", padding: 20 }}>TEST {visible.length}</div>;
+
 
   return (
     <div className="relative glass rounded-2xl p-6 sm:p-7 overflow-hidden ring-gold">
