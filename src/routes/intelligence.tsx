@@ -46,8 +46,11 @@ function Intelligence() {
     setLoading(true);
 
     const load = async () => {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const { data } = await (supabase.from("live_intelligence") as any)
         .select("*")
+        .eq("category", category)
+        .gte("created_at", sevenDaysAgo)
         .order("created_at", { ascending: false });
       if (!mounted) return;
       setEntries([...((data as Entry[]) || [])]);
@@ -62,7 +65,7 @@ function Intelligence() {
       mounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [category]);
 
   const visible = entries.filter((e) => e.category === category);
   const sourceCount = new Set(visible.map((e) => e.source)).size;
