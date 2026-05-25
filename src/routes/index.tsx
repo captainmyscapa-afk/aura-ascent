@@ -170,7 +170,7 @@ function Landing() {
             className="group inline-flex items-center gap-3 rounded-full px-7 py-3.5 text-sm tracking-wide text-primary-foreground shadow-[var(--shadow-gold)] transition-transform hover:scale-[1.02]"
             style={{ background: "var(--gradient-gold)" }}
           >
-            Join Early Access
+            Join the full experience
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
           <Link
@@ -352,7 +352,7 @@ function Landing() {
               className="mt-10 inline-flex items-center gap-3 rounded-full px-8 py-4 text-sm tracking-wide text-primary-foreground shadow-[var(--shadow-gold)] transition-transform hover:scale-[1.02]"
               style={{ background: "var(--gradient-gold)" }}
             >
-              Join Early Access
+              Get the full experience
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
