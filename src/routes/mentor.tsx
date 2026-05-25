@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
 import { Sparkles, Send, MessageCircle, Compass, Target, Zap } from "lucide-react";
-import { useIndustry } from "@/lib/industry/IndustryProvider";
+import { useIndustry, useIndustrySystemPrompt } from "@/lib/industry/IndustryProvider";
+import { askGemini } from "@/lib/gemini.functions";
 
 export const Route = createFileRoute("/mentor")({
   component: Mentor,
@@ -12,9 +14,13 @@ const promptIcons = [Target, Compass, Zap, MessageCircle];
 
 function Mentor() {
   const { industry } = useIndustry();
+  const systemPrompt = useIndustrySystemPrompt();
+  const ask = useServerFn(askGemini);
   const [input, setInput] = useState("");
+  const [pending, setPending] = useState(false);
+  const [thread, setThread] = useState<Array<{ r: "ai" | "me"; t: string }> | null>(null);
 
-  const seed = [
+  const seed: Array<{ r: "ai" | "me"; t: string }> = [
     { r: "ai", t: industry.mentorOpener },
     {
       r: "me",
@@ -25,6 +31,39 @@ function Mentor() {
       t: `Understandable — and a sign you're entering the right room. Three things will neutralize that anxiety in ${industry.label.toLowerCase()}:\n\n1. Memorize three current ${industry.terms.market.toLowerCase()} data points so you contribute, not just receive.\n2. Prepare two questions only an insider would ask — I'll draft them.\n3. Dress register: matte tones, restraint, one expensive detail. Avoid logos.\n\nWant me to build your full preparation brief now?`,
     },
   ];
+
+  const messages = thread ?? seed;
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || pending) return;
+    const next: Array<{ r: "ai" | "me"; t: string }> = [
+      ...messages,
+      { r: "me", t: text },
+    ];
+    setThread(next);
+    setInput("");
+    setPending(true);
+    try {
+      const { text: reply } = await ask({
+        data: {
+          system: systemPrompt,
+          messages: next.map((m) => ({
+            role: m.r === "me" ? ("user" as const) : ("assistant" as const),
+            text: m.t,
+          })),
+        },
+      });
+      setThread([...next, { r: "ai", t: reply || "…" }]);
+    } catch (e) {
+      setThread([
+        ...next,
+        { r: "ai", t: `⚠️ ${e instanceof Error ? e.message : "Request failed"}` },
+      ]);
+    } finally {
+      setPending(false);
+    }
+  };
 
   return (
     <AppShell>
@@ -45,7 +84,7 @@ function Mentor() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {seed.map((m, i) => (
+            {messages.map((m, i) => (
               <div
                 key={i}
                 className={`flex ${m.r === "me" ? "justify-end" : "justify-start"} animate-fade-up`}
@@ -62,6 +101,9 @@ function Mentor() {
                 </div>
               </div>
             ))}
+            {pending && (
+              <div className="text-xs text-muted-foreground italic">AURUM is thinking…</div>
+            )}
           </div>
 
           <div className="border-t border-border/60 p-4">
@@ -69,10 +111,20 @@ function Mentor() {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void send();
+                  }
+                }}
                 placeholder={`Ask AURUM about ${industry.label.toLowerCase()} — strategy, outreach, the market…`}
                 className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
               />
-              <button className="h-9 w-9 rounded-full bg-[var(--gradient-gold)] flex items-center justify-center text-primary-foreground">
+              <button
+                onClick={() => void send()}
+                disabled={pending}
+                className="h-9 w-9 rounded-full bg-[var(--gradient-gold)] flex items-center justify-center text-primary-foreground disabled:opacity-50"
+              >
                 <Send className="h-4 w-4" />
               </button>
             </div>
@@ -90,6 +142,9 @@ function Mentor() {
                 return (
                   <button
                     key={t}
+                    onClick={() => {
+                      setInput(t);
+                    }}
                     className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/40 text-left text-sm transition-colors"
                   >
                     <I className="h-4 w-4 text-primary shrink-0" />
