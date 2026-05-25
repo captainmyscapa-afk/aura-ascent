@@ -84,7 +84,7 @@ function Mentor() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {seed.map((m, i) => (
+            {messages.map((m, i) => (
               <div
                 key={i}
                 className={`flex ${m.r === "me" ? "justify-end" : "justify-start"} animate-fade-up`}
@@ -101,6 +101,9 @@ function Mentor() {
                 </div>
               </div>
             ))}
+            {pending && (
+              <div className="text-xs text-muted-foreground italic">AURUM is thinking…</div>
+            )}
           </div>
 
           <div className="border-t border-border/60 p-4">
@@ -108,10 +111,20 @@ function Mentor() {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void send();
+                  }
+                }}
                 placeholder={`Ask AURUM about ${industry.label.toLowerCase()} — strategy, outreach, the market…`}
                 className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
               />
-              <button className="h-9 w-9 rounded-full bg-[var(--gradient-gold)] flex items-center justify-center text-primary-foreground">
+              <button
+                onClick={() => void send()}
+                disabled={pending}
+                className="h-9 w-9 rounded-full bg-[var(--gradient-gold)] flex items-center justify-center text-primary-foreground disabled:opacity-50"
+              >
                 <Send className="h-4 w-4" />
               </button>
             </div>
