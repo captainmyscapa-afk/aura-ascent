@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
 import { Sparkles, Send, MessageCircle, Compass, Target, Zap } from "lucide-react";
-import { useIndustry } from "@/lib/industry/IndustryProvider";
+import { useIndustry, useIndustrySystemPrompt } from "@/lib/industry/IndustryProvider";
+import { askGemini } from "@/lib/gemini.functions";
 
 export const Route = createFileRoute("/mentor")({
   component: Mentor,
@@ -12,7 +14,11 @@ const promptIcons = [Target, Compass, Zap, MessageCircle];
 
 function Mentor() {
   const { industry } = useIndustry();
+  const systemPrompt = useIndustrySystemPrompt();
+  const ask = useServerFn(askGemini);
   const [input, setInput] = useState("");
+  const [pending, setPending] = useState(false);
+  const [thread, setThread] = useState<Array<{ r: "ai" | "me"; t: string }> | null>(null);
 
   const seed = [
     { r: "ai", t: industry.mentorOpener },
