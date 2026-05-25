@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { IndustryProvider } from "@/lib/industry/IndustryProvider";
+import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
