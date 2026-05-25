@@ -1,11 +1,21 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/aurum/AppShell";
+import { useAuth } from "@/hooks/useAuth";
+import { LogOut } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
   component: Settings,
 });
 
 function Settings() {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate({ to: "/login", replace: true });
+  };
+
   return (
     <AppShell>
       <div className="max-w-2xl">
@@ -30,6 +40,16 @@ function Settings() {
               <span className="text-xs text-muted-foreground">Edit</span>
             </div>
           ))}
+          <button
+            onClick={handleLogout}
+            className="w-full glass rounded-xl p-5 flex items-center justify-between hover:ring-gold transition-all cursor-pointer text-left"
+          >
+            <div>
+              <div className="text-sm">Log out</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Sign out of your account</div>
+            </div>
+            <LogOut className="h-4 w-4 text-muted-foreground" />
+          </button>
         </div>
       </div>
     </AppShell>
