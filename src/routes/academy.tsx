@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/aurum/AppShell";
 import { SectionHeading } from "@/components/aurum/SectionHeading";
 import { Play, Lock, Sparkles } from "lucide-react";
@@ -99,7 +99,7 @@ function Academy() {
         <div>
           <div className="font-serif text-lg">AI tutor for this module</div>
           <p className="text-sm text-muted-foreground mt-1 max-w-2xl">{industry.tutorBlurb}</p>
-          <button className="mt-3 text-sm text-primary hover:underline">Begin role-play →</button>
+          <Link to="/tutor" className="mt-3 inline-block text-sm text-primary hover:underline">Begin role-play →</Link>
         </div>
       </div>
     </AppShell>
