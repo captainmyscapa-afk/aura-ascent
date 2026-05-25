@@ -1,4 +1,4 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Radio,
@@ -9,8 +9,10 @@ import {
   Video,
   User2,
   Settings,
+  LogOut,
 } from "lucide-react";
 import { Logo } from "./Logo";
+import { useAuth } from "@/hooks/useAuth";
 
 const nav = [
   { to: "/dashboard", label: "Mission Control", icon: LayoutDashboard },
@@ -25,6 +27,13 @@ const nav = [
 
 export function Sidebar() {
   const { pathname } = useLocation();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+  const handleLogout = async () => {
+    await signOut();
+    navigate({ to: "/login", replace: true });
+  };
+
 
   return (
     <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col glass-strong border-r border-border/60 z-30">
@@ -90,6 +99,13 @@ export function Sidebar() {
           <Settings className="h-3.5 w-3.5" />
           Preferences
         </Link>
+        <button
+          onClick={handleLogout}
+          className="mt-1 w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Sign out
+        </button>
       </div>
     </aside>
   );
