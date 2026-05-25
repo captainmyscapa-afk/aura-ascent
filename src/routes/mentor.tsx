@@ -142,6 +142,9 @@ function Mentor() {
                 return (
                   <button
                     key={t}
+                    onClick={() => {
+                      setInput(t);
+                    }}
                     className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/40 text-left text-sm transition-colors"
                   >
                     <I className="h-4 w-4 text-primary shrink-0" />
