@@ -20,7 +20,7 @@ function Mentor() {
   const [pending, setPending] = useState(false);
   const [thread, setThread] = useState<Array<{ r: "ai" | "me"; t: string }> | null>(null);
 
-  const seed = [
+  const seed: Array<{ r: "ai" | "me"; t: string }> = [
     { r: "ai", t: industry.mentorOpener },
     {
       r: "me",
@@ -31,6 +31,39 @@ function Mentor() {
       t: `Understandable — and a sign you're entering the right room. Three things will neutralize that anxiety in ${industry.label.toLowerCase()}:\n\n1. Memorize three current ${industry.terms.market.toLowerCase()} data points so you contribute, not just receive.\n2. Prepare two questions only an insider would ask — I'll draft them.\n3. Dress register: matte tones, restraint, one expensive detail. Avoid logos.\n\nWant me to build your full preparation brief now?`,
     },
   ];
+
+  const messages = thread ?? seed;
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || pending) return;
+    const next: Array<{ r: "ai" | "me"; t: string }> = [
+      ...messages,
+      { r: "me", t: text },
+    ];
+    setThread(next);
+    setInput("");
+    setPending(true);
+    try {
+      const { text: reply } = await ask({
+        data: {
+          system: systemPrompt,
+          messages: next.map((m) => ({
+            role: m.r === "me" ? ("user" as const) : ("assistant" as const),
+            text: m.t,
+          })),
+        },
+      });
+      setThread([...next, { r: "ai", t: reply || "…" }]);
+    } catch (e) {
+      setThread([
+        ...next,
+        { r: "ai", t: `⚠️ ${e instanceof Error ? e.message : "Request failed"}` },
+      ]);
+    } finally {
+      setPending(false);
+    }
+  };
 
   return (
     <AppShell>
