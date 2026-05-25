@@ -14,9 +14,14 @@ import { GlobalTimeHub } from "@/components/aurum/GlobalTimeHub";
 import { LiveIntelligenceFeed } from "@/components/aurum/LiveIntelligenceFeed";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 
 export const Route = createFileRoute("/dashboard")({
-  component: Dashboard,
+  component: () => (
+    <RequireAuth>
+      <Dashboard />
+    </RequireAuth>
+  ),
 });
 
 const WELCOMES = [
