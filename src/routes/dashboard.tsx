@@ -16,14 +16,9 @@ import { LiveIntelligenceFeed } from "@/components/aurum/LiveIntelligenceFeed";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
 import { useAuth } from "@/hooks/useAuth";
-import { RequireCoreState } from "@/hooks/useCoreState";
 
 export const Route = createFileRoute("/dashboard")({
-  component: () => (
-    <RequireCoreState>
-      <Dashboard />
-    </RequireCoreState>
-  ),
+  component: Dashboard,
 });
 
 const WELCOMES = [

@@ -9,7 +9,6 @@ import {
 } from "@tanstack/react-router";
 import { IndustryProvider } from "@/lib/industry/IndustryProvider";
 import { AuthProvider } from "@/hooks/useAuth";
-import { CoreStateProvider } from "@/hooks/useCoreState";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
@@ -149,14 +148,11 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <CoreStateProvider>
-          <IndustryProvider>
-            <Outlet />
-            <Toaster />
-          </IndustryProvider>
-        </CoreStateProvider>
+        <IndustryProvider>
+          <Outlet />
+          <Toaster />
+        </IndustryProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
 }
-

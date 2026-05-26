@@ -4,14 +4,9 @@ import { SectionHeading } from "@/components/aurum/SectionHeading";
 import { Sparkles, Play } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { studioActionIcons } from "@/lib/industry/config";
-import { RequireCoreState } from "@/hooks/useCoreState";
 
 export const Route = createFileRoute("/studio")({
-  component: () => (
-    <RequireCoreState>
-      <Studio />
-    </RequireCoreState>
-  ),
+  component: Studio,
 });
 
 function Studio() {
