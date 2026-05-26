@@ -27,7 +27,7 @@ function ResetPasswordPage() {
       setError("We couldn't update your password. The link may have expired.");
       return;
     }
-    navigate({ to: "/dashboard", replace: true });
+    navigate({ to: "/app", replace: true });
   };
 
   return (

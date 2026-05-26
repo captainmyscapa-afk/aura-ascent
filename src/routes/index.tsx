@@ -174,7 +174,7 @@ function Landing() {
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
           <Link
-            to="/dashboard"
+            to="/app"
             className="inline-flex items-center gap-2 glass rounded-full px-6 py-3 text-sm text-foreground hover:ring-gold transition-all"
           >
             Explore Platform
@@ -264,7 +264,7 @@ function Landing() {
               ))}
             </ul>
             <Link
-              to="/dashboard"
+              to="/app"
               className="mt-10 inline-flex items-center gap-2 text-sm text-primary hover:gap-3 transition-all"
             >
               Enter Mission Control <ArrowRight className="h-4 w-4" />

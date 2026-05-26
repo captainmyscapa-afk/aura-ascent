@@ -41,7 +41,7 @@ function Onboarding() {
   function next() {
     if (step === totalSteps - 1) {
       setGenerating(true);
-      setTimeout(() => navigate({ to: "/dashboard" }), 2200);
+      setTimeout(() => navigate({ to: "/login" }), 2200);
       return;
     }
     setStep((s) => s + 1);
