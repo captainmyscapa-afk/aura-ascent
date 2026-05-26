@@ -39,7 +39,7 @@ function Studio() {
   const generate = useServerFn(generateStudioContent);
 
   const [mode, setMode] = useState<Mode>("assisted");
-  const [format, setFormat] = useState<Format>("reel");
+  const [format, setFormat] = useState<Format>("post");
   const [videoDuration, setVideoDuration] = useState<5 | 10 | 15 | 30>(15);
   const [userLevel, setUserLevel] = useState<"beginner" | "advanced">("advanced");
   const [idea, setIdea] = useState("");
