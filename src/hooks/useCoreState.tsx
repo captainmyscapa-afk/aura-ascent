@@ -90,14 +90,55 @@ export function CoreStateProvider({ children }: { children: ReactNode }) {
 
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      setState(null);
-      setLoading(false);
-      return;
+    let cancelled = false;
+
+    const runForVerifiedUser = async () => {
+      const { data, error: getUserErr } = await supabase.auth.getUser();
+      if (cancelled) return;
+      if (getUserErr || !data?.user) {
+        console.error("[aurum_core_state] getUser() failed, skipping init", getUserErr);
+        setState(null);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      await load(data.user.id);
+    };
+
+    // Wait for Supabase session to be fully loaded before doing anything.
+    if (!authLoading) {
+      if (!user) {
+        setState(null);
+        setLoading(false);
+      } else {
+        runForVerifiedUser();
+      }
     }
-    setLoading(true);
-    load(user.id);
+
+    // Also react to auth state change events — only insert/load AFTER a
+    // verified session is available.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (cancelled) return;
+        if (!session?.user) {
+          setState(null);
+          setLoading(false);
+          return;
+        }
+        if (
+          event === "SIGNED_IN" ||
+          event === "INITIAL_SESSION" ||
+          event === "TOKEN_REFRESHED"
+        ) {
+          await runForVerifiedUser();
+        }
+      },
+    );
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, authLoading]);
 
