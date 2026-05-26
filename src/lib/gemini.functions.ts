@@ -7,36 +7,43 @@ export const askGemini = createServerFn({ method: "POST" })
     (input: { messages: GeminiMessage[]; system?: string }) => input,
   )
   .handler(async ({ data }) => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const contents = data.messages.map((m) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.text }],
-    }));
+    const messages = [
+      ...(data.system ? [{ role: "system", content: data.system }] : []),
+      ...data.messages.map((m) => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.text,
+      })),
+    ];
 
-    const body: Record<string, unknown> = { contents };
-    if (data.system) {
-      body.systemInstruction = { parts: [{ text: data.system }] };
-    }
-
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
       },
-    );
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages,
+      }),
+    });
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Gemini API error ${res.status}: ${errText}`);
+      if (res.status === 429) {
+        throw new Error("Rate limit reached. Please try again in a moment.");
+      }
+      if (res.status === 402) {
+        throw new Error("AI credits exhausted. Please add credits in your workspace settings.");
+      }
+      throw new Error(`AI gateway error ${res.status}: ${errText}`);
     }
 
     const json = (await res.json()) as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      choices?: Array<{ message?: { content?: string } }>;
     };
-    const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    const text = json.choices?.[0]?.message?.content ?? "";
     return { text };
   });
