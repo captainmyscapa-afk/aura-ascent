@@ -44,11 +44,26 @@ function useNow() {
 
 export default function Dashboard() {
   const { industry, industryId, setIndustry } = useIndustry();
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const isDemo = !session;
   const now = useNow();
   const [done, setDone] = useState<Record<number, boolean>>({ 0: true, 1: true });
+  const [profileName, setProfileName] = useState<string | null>(null);
   const toggle = (i: number) => setDone((d) => ({ ...d, [i]: !d[i] }));
+
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    supabase
+      .from("user_profiles")
+      .select("full_name")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (alive) setProfileName((data as { full_name: string | null } | null)?.full_name ?? null);
+      });
+    return () => { alive = false; };
+  }, [user]);
 
   const completed = industry.dailyObjectives.filter((_, i) => done[i]).length;
   const total = industry.dailyObjectives.length;
