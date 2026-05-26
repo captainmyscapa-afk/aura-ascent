@@ -15,7 +15,7 @@ import { Logo } from "./Logo";
 import { useAuth } from "@/hooks/useAuth";
 
 const nav = [
-  { to: "/dashboard", label: "Mission Control", icon: LayoutDashboard },
+  { to: "/app", label: "Mission Control", icon: LayoutDashboard },
   { to: "/intelligence", label: "Intelligence", icon: Radio },
   { to: "/mentor", label: "AI Mentor", icon: Sparkles },
   { to: "/academy", label: "Academy", icon: GraduationCap },
@@ -27,7 +27,7 @@ const nav = [
 
 export function Sidebar() {
   const { pathname } = useLocation();
-  const { signOut } = useAuth();
+  const { session, signOut } = useAuth();
   const navigate = useNavigate();
   const handleLogout = async () => {
     await signOut();
@@ -38,7 +38,7 @@ export function Sidebar() {
   return (
     <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col glass-strong border-r border-border/60 z-30">
       <div className="px-6 pt-7 pb-8">
-        <Link to="/dashboard">
+        <Link to="/app">
           <Logo />
         </Link>
       </div>
@@ -99,13 +99,23 @@ export function Sidebar() {
           <Settings className="h-3.5 w-3.5" />
           Preferences
         </Link>
-        <button
-          onClick={handleLogout}
-          className="mt-1 w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          Sign out
-        </button>
+        {session ? (
+          <button
+            onClick={handleLogout}
+            className="mt-1 w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Sign out
+          </button>
+        ) : (
+          <Link
+            to="/login"
+            className="mt-1 w-full flex items-center gap-2 px-3 py-2 text-xs text-primary hover:text-foreground transition-colors"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Sign in to unlock
+          </Link>
+        )}
       </div>
     </aside>
   );

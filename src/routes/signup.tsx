@@ -20,7 +20,7 @@ function SignupPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && session) navigate({ to: "/dashboard", replace: true });
+    if (!loading && session) navigate({ to: "/app", replace: true });
   }, [loading, session, navigate]);
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -36,7 +36,7 @@ function SignupPage() {
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}/app`,
       },
     });
 
@@ -59,7 +59,7 @@ function SignupPage() {
       navigate({ to: "/login", replace: true });
       return;
     }
-    navigate({ to: "/dashboard", replace: true });
+    navigate({ to: "/app", replace: true });
   };
 
   return (

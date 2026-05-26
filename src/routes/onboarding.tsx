@@ -41,7 +41,7 @@ function Onboarding() {
   function next() {
     if (step === totalSteps - 1) {
       setGenerating(true);
-      setTimeout(() => navigate({ to: "/dashboard" }), 2200);
+      setTimeout(() => navigate({ to: "/login" }), 2200);
       return;
     }
     setStep((s) => s + 1);
@@ -266,7 +266,7 @@ function Generating({ mode }: { mode: string }) {
       </div>
       <div className="text-[10px] tracking-[0.4em] text-primary/80 mb-3">AURUM AI</div>
       <h2 className="font-serif text-3xl sm:text-4xl text-foreground max-w-2xl">
-        Architecting your personal {mode} operating system…
+        Setting up your personalized {mode} experience…
       </h2>
       <div className="mt-10 space-y-2 text-sm text-muted-foreground font-mono max-w-md w-full text-left">
         {[

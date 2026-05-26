@@ -11,7 +11,7 @@ export function TopBar() {
         {/* Mobile: menu + logo */}
         <div className="lg:hidden flex items-center gap-2">
           <MobileNav />
-          <Link to="/dashboard" aria-label="Aurum OS home">
+          <Link to="/app" aria-label="Aurum OS home">
             <Logo />
           </Link>
         </div>
