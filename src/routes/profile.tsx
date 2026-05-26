@@ -551,11 +551,10 @@ function Profile() {
 
       {/* SECTION 4 — SOCIAL ACCOUNTS */}
       <div className="glass rounded-2xl p-6 sm:p-8 mb-10 animate-fade-up" style={{ animationDelay: "240ms" }}>
-        <SectionHeading
-          eyebrow="CONNECTED ACCOUNTS"
-          title="Your publishing network."
-          subtitle="Connect your accounts so AURUM can publish directly on your behalf."
-        />
+        <SectionHeading eyebrow="CONNECTED ACCOUNTS" title="Your publishing network." />
+        <p className="text-sm text-muted-foreground -mt-2 mb-1">
+          Connect your accounts so AURUM can publish directly on your behalf.
+        </p>
         <div className="grid sm:grid-cols-2 gap-3 mt-5">
           {PLATFORMS.map((p) => {
             const connected = socials.find((s) => s.platform === p.key);
