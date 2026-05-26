@@ -5,13 +5,11 @@ import {
   Radio,
   Sparkles,
   GraduationCap,
-  Users,
   Video,
   User2,
   Settings,
   Menu,
   X,
-  Compass,
   Crown,
 } from "lucide-react";
 import {
@@ -20,9 +18,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Logo } from "./Logo";
-import { useIndustry } from "@/lib/industry/IndustryProvider";
-import { INDUSTRY_LIST } from "@/lib/industry/config";
-import { toast } from "sonner";
 
 const primaryNav = [
   { to: "/app", label: "Dashboard", icon: LayoutDashboard },
@@ -33,7 +28,6 @@ const primaryNav = [
 ] as const;
 
 const secondaryNav = [
-  { to: "/profile", label: "Identity", icon: User2 },
   { to: "/settings", label: "Preferences", icon: Settings },
 ] as const;
 
