@@ -116,10 +116,9 @@ function Studio() {
           goal: goal || undefined,
           userIdea: mode === "assisted" ? idea || undefined : undefined,
           intelligenceContext,
-          format,
-          videoDuration: undefined,
         },
       });
+
       setPlan(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generation failed");
