@@ -77,6 +77,24 @@ function Studio() {
     setError(null);
     setPlan(null);
     setPending(true);
+
+    if (format === "reel" || format === "video") {
+      setPending(false);
+      setPlan({
+        title: "Coming Soon",
+        viralHook: `Cinematic ${format} generation with scene-by-scene breakdown, camera direction, and motion design — launching in the next update.`,
+        platforms: {
+          instagram: `Our AI creative director is learning to build ${format}-ready scripts with shot lists, pacing curves, and platform-native hooks.`,
+          tiktok: `${format} generation is in final training — fully automated script, visual prompt, and hashtag kit coming shortly.`,
+          linkedin: `We're calibrating ${format} output for luxury brand storytelling. Stay tuned.`,
+        },
+        script: [`Cinematic ${format} generation is in final beta.`, "Switch to Post to generate content right now."],
+        hashtags: ["#ComingSoon", "#AurumStudio"],
+        visualPrompt: `A premium ${format === "reel" ? "vertical 9:16" : "horizontal 16:9"} frame featuring a glowing gold AURUM logo against a dark cinematic backdrop — luxury, minimal, teaser.`,
+      });
+      return;
+    }
+
     try {
       const intelligenceContext =
         mode === "intelligence"
