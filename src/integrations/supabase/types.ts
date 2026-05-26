@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      aurum_core_state: {
+        Row: {
+          created_at: string
+          current_focus: string
+          execution_score: number
+          goal: string
+          id: string
+          level: string
+          mode: string
+          streak: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_focus?: string
+          execution_score?: number
+          goal?: string
+          id?: string
+          level?: string
+          mode?: string
+          streak?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_focus?: string
+          execution_score?: number
+          goal?: string
+          id?: string
+          level?: string
+          mode?: string
+          streak?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       live_intelligence: {
         Row: {
           category: string | null
