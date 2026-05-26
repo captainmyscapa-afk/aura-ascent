@@ -5,9 +5,14 @@ import { AppShell } from "@/components/aurum/AppShell";
 import { GraduationCap, Send, BookOpen, Lightbulb, ListChecks, HelpCircle } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { askGemini } from "@/lib/gemini.functions";
+import { RequireCoreState } from "@/hooks/useCoreState";
 
 export const Route = createFileRoute("/tutor")({
-  component: Tutor,
+  component: () => (
+    <RequireCoreState>
+      <Tutor />
+    </RequireCoreState>
+  ),
 });
 
 const promptIcons = [BookOpen, Lightbulb, ListChecks, HelpCircle];

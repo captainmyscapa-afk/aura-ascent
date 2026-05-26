@@ -5,9 +5,14 @@ import { AppShell } from "@/components/aurum/AppShell";
 import { Sparkles, Send, MessageCircle, Compass, Target, Zap } from "lucide-react";
 import { useIndustry, useIndustrySystemPrompt } from "@/lib/industry/IndustryProvider";
 import { askGemini } from "@/lib/gemini.functions";
+import { RequireCoreState } from "@/hooks/useCoreState";
 
 export const Route = createFileRoute("/mentor")({
-  component: Mentor,
+  component: () => (
+    <RequireCoreState>
+      <Mentor />
+    </RequireCoreState>
+  ),
 });
 
 const promptIcons = [Target, Compass, Zap, MessageCircle];
