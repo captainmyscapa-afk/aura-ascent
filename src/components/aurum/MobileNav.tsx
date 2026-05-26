@@ -173,7 +173,7 @@ export function MobileNav() {
               </div>
               <div className="mt-2.5 flex items-center gap-2 text-[11px] text-muted-foreground">
                 <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                <span>12-day streak · {industry.modeLabel}</span>
+                <span>12-day streak</span>
               </div>
             </div>
           </div>
