@@ -7,6 +7,7 @@ import {
   Radio,
   ChevronRight,
   Hotel,
+  Lock,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/aurum/AppShell";
@@ -14,14 +15,10 @@ import { GlobalTimeHub } from "@/components/aurum/GlobalTimeHub";
 import { LiveIntelligenceFeed } from "@/components/aurum/LiveIntelligenceFeed";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
-import { RequireAuth } from "@/components/auth/RequireAuth";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/dashboard")({
-  component: () => (
-    <RequireAuth>
-      <Dashboard />
-    </RequireAuth>
-  ),
+  component: Dashboard,
 });
 
 const WELCOMES = [
@@ -44,8 +41,10 @@ function useNow() {
   return now;
 }
 
-function Dashboard() {
+export default function Dashboard() {
   const { industry, industryId, setIndustry } = useIndustry();
+  const { session } = useAuth();
+  const isDemo = !session;
   const now = useNow();
   const [done, setDone] = useState<Record<number, boolean>>({ 0: true, 1: true });
   const toggle = (i: number) => setDone((d) => ({ ...d, [i]: !d[i] }));
@@ -75,7 +74,6 @@ function Dashboard() {
     nextEvent: m.upcoming[0],
   }));
 
-  // Add a 5th "Elite Hospitality" hub (coming soon) for the luxury hub grid
   const hospitality = {
     id: "hospitality" as const,
     label: "Hospitality",
@@ -84,10 +82,29 @@ function Dashboard() {
     ambientImage: INDUSTRY_LIST[1].ambientImage,
   };
 
-  
-
   return (
     <AppShell>
+      {isDemo && (
+        <div className="mb-6 flex items-center justify-between gap-4 glass rounded-xl px-4 sm:px-5 py-3 border border-primary/20 animate-fade-up">
+          <div className="flex items-center gap-3 min-w-0">
+            <Lock className="h-4 w-4 text-primary shrink-0" />
+            <div className="min-w-0">
+              <div className="text-[10px] tracking-[0.32em] text-primary/80 uppercase">Demo mode</div>
+              <div className="text-sm text-foreground/90 truncate">
+                Sign in to unlock the full experience — memory, persistence, unlimited AI.
+              </div>
+            </div>
+          </div>
+          <Link
+            to="/login"
+            className="shrink-0 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs tracking-wide text-primary-foreground shadow-[var(--shadow-gold)]"
+            style={{ background: "var(--gradient-gold)" }}
+          >
+            Sign in
+          </Link>
+        </div>
+      )}
+
       {/* ───────────── HEADER ───────────── */}
       <header className="mb-12 sm:mb-16 animate-fade-up">
         <div className="grid lg:grid-cols-[1fr_320px] gap-8 lg:gap-10 items-start">
@@ -127,7 +144,6 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Top-right time + global hub */}
           <aside className="hidden lg:flex flex-col gap-3 items-end">
             <div className="font-mono text-xs tracking-[0.3em] text-muted-foreground">
               {timeStr}
@@ -136,20 +152,13 @@ function Dashboard() {
           </aside>
         </div>
 
-        {/* Mobile: compact hub below CTAs */}
         <div className="mt-8 lg:hidden">
           <GlobalTimeHub compact />
         </div>
       </header>
 
-
-
-      {/* ───────────── MAIN GRID ───────────── */}
-
       <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
-        {/* LEFT — primary column */}
         <section className="lg:col-span-2 space-y-6 lg:space-y-8">
-          {/* Daily objectives */}
           <Card>
             <CardHeader
               eyebrow={`TODAY · ${industry.modeLabel.toUpperCase()}`}
@@ -164,9 +173,7 @@ function Dashboard() {
                     key={i}
                     onClick={() => toggle(i)}
                     className={`group w-full text-left flex items-center gap-4 px-4 py-3.5 rounded-lg transition-all ${
-                      isDone
-                        ? "bg-secondary/20"
-                        : "hover:bg-secondary/40"
+                      isDone ? "bg-secondary/20" : "hover:bg-secondary/40"
                     }`}
                   >
                     <div
@@ -189,7 +196,6 @@ function Dashboard() {
                 );
               })}
             </div>
-            {/* Progress line */}
             <div className="mt-5 h-px w-full bg-border/40 relative overflow-hidden">
               <div
                 className="absolute inset-y-0 left-0 bg-[var(--gradient-gold)] transition-all duration-500"
@@ -201,7 +207,6 @@ function Dashboard() {
             </div>
           </Card>
 
-          {/* Luxury Hubs */}
           <div>
             <SubHeading eyebrow="LUXURY HUBS" title="Your ecosystems" />
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
@@ -241,7 +246,6 @@ function Dashboard() {
                   </button>
                 );
               })}
-              {/* Hospitality — coming */}
               <div className="relative aspect-[4/5] rounded-xl overflow-hidden border border-border/40 opacity-60">
                 <img
                   src={hospitality.ambientImage}
@@ -263,13 +267,10 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Live Intelligence — connected to Supabase */}
           <LiveIntelligenceFeed />
         </section>
 
-        {/* RIGHT — sidebar column */}
         <aside className="space-y-6 lg:space-y-8">
-          {/* AI Recommendation */}
           <Card accent>
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="h-4 w-4 text-primary" />
@@ -285,7 +286,6 @@ function Dashboard() {
             </button>
           </Card>
 
-          {/* Upcoming */}
           <Card>
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
@@ -313,7 +313,6 @@ function Dashboard() {
             </div>
           </Card>
 
-          {/* Progression */}
           <Card>
             <div className="flex items-center gap-2 mb-5">
               <Compass className="h-4 w-4 text-primary" />
@@ -360,15 +359,7 @@ function Dashboard() {
   );
 }
 
-/* ───────────────── primitives ───────────────── */
-
-function Card({
-  children,
-  accent,
-}: {
-  children: React.ReactNode;
-  accent?: boolean;
-}) {
+function Card({ children, accent }: { children: React.ReactNode; accent?: boolean }) {
   return (
     <div
       className={`relative glass rounded-2xl p-6 sm:p-7 overflow-hidden ${
@@ -398,9 +389,7 @@ function CardHeader({
         <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">{eyebrow}</div>
         <h2 className="font-serif text-xl sm:text-[22px] leading-tight">{title}</h2>
       </div>
-      {meta && (
-        <div className="text-xs text-muted-foreground font-mono shrink-0">{meta}</div>
-      )}
+      {meta && <div className="text-xs text-muted-foreground font-mono shrink-0">{meta}</div>}
     </div>
   );
 }
