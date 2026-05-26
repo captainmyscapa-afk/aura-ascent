@@ -45,6 +45,7 @@ export function CoreStateProvider({ children }: { children: ReactNode }) {
   const load = async (uid: string) => {
     setError(null);
 
+    console.info("[aurum_core_state] CHECKING CORE STATE for user", uid);
     const { data, error: selErr } = await supabase
       .from("aurum_core_state")
       .select("*")
@@ -59,13 +60,13 @@ export function CoreStateProvider({ children }: { children: ReactNode }) {
     }
 
     if (data) {
+      console.info("[aurum_core_state] existing row loaded", data.id);
       setState(data as CoreState);
       setLoading(false);
       return;
     }
 
-    // No row found — explicitly INSERT into Supabase
-    console.info("[aurum_core_state] no row found, inserting for user", uid);
+    console.info("[aurum_core_state] CREATING CORE STATE for user", uid);
     const { data: inserted, error: insErr } = await supabase
       .from("aurum_core_state")
       .insert({ user_id: uid, ...DEFAULTS })
@@ -73,11 +74,7 @@ export function CoreStateProvider({ children }: { children: ReactNode }) {
       .single();
 
     if (insErr || !inserted) {
-      console.error(
-        "[aurum_core_state] INSERT failed for user",
-        uid,
-        insErr,
-      );
+      console.error("[aurum_core_state] INSERT failed for user", uid, insErr);
       setError(insErr?.message ?? "Failed to initialize core state");
       setLoading(false);
       return;
@@ -88,37 +85,53 @@ export function CoreStateProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   };
 
-
   useEffect(() => {
     let cancelled = false;
 
     const runForVerifiedUser = async () => {
+      // Always fetch the verified user from Supabase — never trust cached context.
       const { data, error: getUserErr } = await supabase.auth.getUser();
       if (cancelled) return;
-      if (getUserErr || !data?.user) {
-        console.error("[aurum_core_state] getUser() failed, skipping init", getUserErr);
+
+      if (getUserErr) {
+        console.error("[aurum_core_state] getUser() error", getUserErr);
         setState(null);
         setLoading(false);
         return;
       }
-      setLoading(true);
-      await load(data.user.id);
-    };
 
-    // Wait for Supabase session to be fully loaded before doing anything.
-    if (!authLoading) {
-      if (!user) {
+      const verifiedUser = data?.user;
+      if (!verifiedUser) {
+        console.info("[aurum_core_state] no verified user — stopping init");
         setState(null);
         setLoading(false);
-      } else {
-        runForVerifiedUser();
+        return;
       }
+
+      console.info("[aurum_core_state] USER FOUND", verifiedUser.id);
+      setLoading(true);
+      await load(verifiedUser.id);
+    };
+
+    // Wait for Supabase auth session to be fully loaded BEFORE doing anything.
+    if (authLoading) {
+      return () => {
+        cancelled = true;
+      };
     }
 
-    // Also react to auth state change events — only insert/load AFTER a
-    // verified session is available.
+    console.info("[aurum_core_state] AUTH LOADED");
+
+    if (!user) {
+      setState(null);
+      setLoading(false);
+    } else {
+      void runForVerifiedUser();
+    }
+
+    // React to subsequent auth state changes (sign-in, token refresh).
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (cancelled) return;
         if (!session?.user) {
           setState(null);
@@ -130,7 +143,8 @@ export function CoreStateProvider({ children }: { children: ReactNode }) {
           event === "INITIAL_SESSION" ||
           event === "TOKEN_REFRESHED"
         ) {
-          await runForVerifiedUser();
+          // Fire and forget — do not await inside the auth callback.
+          void runForVerifiedUser();
         }
       },
     );
