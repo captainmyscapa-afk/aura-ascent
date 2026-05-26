@@ -34,7 +34,6 @@ const secondaryNav = [
 export function MobileNav() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
-  const { industry, setIndustry } = useIndustry();
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -85,51 +84,6 @@ export function MobileNav() {
                 </div>
               </div>
             </Link>
-          </div>
-
-          {/* Industry switcher */}
-          <div className="px-5 pb-3">
-            <div className="px-2 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70 flex items-center gap-2">
-              <Compass className="h-3 w-3" />
-              INDUSTRY MODE
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {INDUSTRY_LIST.map((opt) => {
-                const Icon = opt.icon;
-                const active = opt.id === industry.id;
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => {
-                      if (!active) {
-                        setIndustry(opt.id);
-                        toast(`Entering ${opt.modeLabel}`, { description: opt.tagline });
-                      }
-                    }}
-                    className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl transition-all active:scale-95 ${
-                      active
-                        ? "glass ring-1 ring-primary/50 shadow-[var(--shadow-gold)]"
-                        : "glass opacity-60 hover:opacity-100"
-                    }`}
-                  >
-                    <span
-                      className={`h-7 w-7 rounded-full flex items-center justify-center ${
-                        active ? "bg-[var(--gradient-gold)]" : "bg-secondary/60"
-                      }`}
-                    >
-                      <Icon
-                        className={`h-3.5 w-3.5 ${
-                          active ? "text-primary-foreground" : "text-muted-foreground"
-                        }`}
-                      />
-                    </span>
-                    <span className="text-[10px] tracking-wide text-foreground/80">
-                      {opt.shortLabel}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
           </div>
 
           {/* Nav */}
