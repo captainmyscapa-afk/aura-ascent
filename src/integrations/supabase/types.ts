@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       aurum_core_state: {
         Row: {
+          ai_summary: Json | null
+          ai_summary_updated_at: string | null
           created_at: string
           current_focus: string
           execution_score: number
@@ -24,10 +26,14 @@ export type Database = {
           level: string
           mode: string
           streak: number
+          today_brief: Json | null
+          today_brief_date: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          ai_summary?: Json | null
+          ai_summary_updated_at?: string | null
           created_at?: string
           current_focus?: string
           execution_score?: number
@@ -36,10 +42,14 @@ export type Database = {
           level?: string
           mode?: string
           streak?: number
+          today_brief?: Json | null
+          today_brief_date?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          ai_summary?: Json | null
+          ai_summary_updated_at?: string | null
           created_at?: string
           current_focus?: string
           execution_score?: number
@@ -48,6 +58,8 @@ export type Database = {
           level?: string
           mode?: string
           streak?: number
+          today_brief?: Json | null
+          today_brief_date?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -83,6 +95,99 @@ export type Database = {
           source?: string
           title?: string
           url?: string | null
+        }
+        Relationships: []
+      }
+      social_accounts: {
+        Row: {
+          access_token: string | null
+          connected_at: string
+          created_at: string
+          id: string
+          platform: string
+          refresh_token: string | null
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          connected_at?: string
+          created_at?: string
+          id?: string
+          platform: string
+          refresh_token?: string | null
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          connected_at?: string
+          created_at?: string
+          id?: string
+          platform?: string
+          refresh_token?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          created_at: string
+          current_profession: string | null
+          full_name: string | null
+          goal: string | null
+          id: string
+          instagram_url: string | null
+          linkedin_url: string | null
+          location: string | null
+          mission: string | null
+          photo_url: string | null
+          substack_url: string | null
+          tiktok_url: string | null
+          twitter_url: string | null
+          updated_at: string
+          user_id: string
+          youtube_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_profession?: string | null
+          full_name?: string | null
+          goal?: string | null
+          id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
+          location?: string | null
+          mission?: string | null
+          photo_url?: string | null
+          substack_url?: string | null
+          tiktok_url?: string | null
+          twitter_url?: string | null
+          updated_at?: string
+          user_id: string
+          youtube_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_profession?: string | null
+          full_name?: string | null
+          goal?: string | null
+          id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
+          location?: string | null
+          mission?: string | null
+          photo_url?: string | null
+          substack_url?: string | null
+          tiktok_url?: string | null
+          twitter_url?: string | null
+          updated_at?: string
+          user_id?: string
+          youtube_url?: string | null
         }
         Relationships: []
       }
