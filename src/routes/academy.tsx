@@ -4,14 +4,9 @@ import { SectionHeading } from "@/components/aurum/SectionHeading";
 import { Play, Lock, Sparkles } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
-import { RequireAuth } from "@/components/auth/RequireAuth";
 
 export const Route = createFileRoute("/academy")({
-  component: () => (
-    <RequireAuth>
-      <Academy />
-    </RequireAuth>
-  ),
+  component: Academy,
 });
 
 function Academy() {
