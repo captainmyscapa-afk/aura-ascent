@@ -480,34 +480,8 @@ function PlanOutput({
         </ol>
       </div>
 
-      {/* Video */}
-      {plan.video && (
-        <div className="glass rounded-xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-[10px] tracking-[0.34em] text-primary/80 flex items-center gap-2">
-              <Video className="h-3 w-3" /> VIDEO · {plan.video.duration}s
-            </div>
-            <div className="text-[11px] text-muted-foreground italic max-w-[60%] text-right">
-              {plan.video.motion}
-            </div>
-          </div>
-          <div className="space-y-2">
-            {plan.video.scenes.map((s, i) => (
-              <div key={i} className="border border-border/60 rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] tracking-[0.3em] text-primary/80 font-mono">
-                    {s.time}
-                  </span>
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                    {s.camera}
-                  </span>
-                </div>
-                <div className="text-xs leading-relaxed">{s.description}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
+
 
       {/* Hashtags */}
       <div className="glass rounded-xl p-5">
