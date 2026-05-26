@@ -5,9 +5,7 @@ import {
   Sparkles,
   GraduationCap,
   BookOpen,
-  Users,
   Video,
-  User2,
   Settings,
   LogOut,
 } from "lucide-react";
