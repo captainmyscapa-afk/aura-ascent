@@ -44,6 +44,7 @@ export function CoreStateProvider({ children }: { children: ReactNode }) {
 
   const load = async (uid: string) => {
     setError(null);
+
     const { data, error: selErr } = await supabase
       .from("aurum_core_state")
       .select("*")
@@ -51,6 +52,7 @@ export function CoreStateProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
 
     if (selErr) {
+      console.error("[aurum_core_state] select failed:", selErr);
       setError(selErr.message);
       setLoading(false);
       return;
@@ -62,20 +64,30 @@ export function CoreStateProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // No row found — explicitly INSERT into Supabase
+    console.info("[aurum_core_state] no row found, inserting for user", uid);
     const { data: inserted, error: insErr } = await supabase
       .from("aurum_core_state")
       .insert({ user_id: uid, ...DEFAULTS })
       .select()
       .single();
 
-    if (insErr) {
-      setError(insErr.message);
+    if (insErr || !inserted) {
+      console.error(
+        "[aurum_core_state] INSERT failed for user",
+        uid,
+        insErr,
+      );
+      setError(insErr?.message ?? "Failed to initialize core state");
       setLoading(false);
       return;
     }
+
+    console.info("[aurum_core_state] insert success", inserted.id);
     setState(inserted as CoreState);
     setLoading(false);
   };
+
 
   useEffect(() => {
     if (authLoading) return;
