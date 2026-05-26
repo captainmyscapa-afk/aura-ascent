@@ -117,7 +117,7 @@ function Studio() {
           userIdea: mode === "assisted" ? idea || undefined : undefined,
           intelligenceContext,
           format,
-          videoDuration: format === "video" ? videoDuration : undefined,
+          videoDuration: undefined,
         },
       });
       setPlan(result);
