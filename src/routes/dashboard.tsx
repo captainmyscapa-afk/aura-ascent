@@ -134,11 +134,10 @@ export default function Dashboard() {
               </div>
             </div>
 
-            const displayName = profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Operator";
             <h1 className="font-serif text-[34px] sm:text-[52px] leading-[1.05] tracking-tight">
               Good {now.getHours() < 12 ? "morning" : now.getHours() < 18 ? "afternoon" : "evening"},
               <br />
-              <span className="text-gold-gradient italic">{displayName}.</span>
+              <span className="text-gold-gradient italic">{profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Operator"}.</span>
             </h1>
 
             <p className="mt-5 max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed">
