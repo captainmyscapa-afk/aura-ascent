@@ -3,7 +3,7 @@ import {
   LayoutDashboard,
   GraduationCap,
   Sparkles,
-  Users,
+  Video,
   User2,
 } from "lucide-react";
 
@@ -11,7 +11,7 @@ const tabs = [
   { to: "/app", label: "Home", icon: LayoutDashboard },
   { to: "/academy", label: "Academy", icon: GraduationCap },
   { to: "/mentor", label: "Mentor", icon: Sparkles },
-  { to: "/network", label: "Network", icon: Users },
+  { to: "/studio", label: "Studio", icon: Video },
   { to: "/profile", label: "Identity", icon: User2 },
 ] as const;
 
