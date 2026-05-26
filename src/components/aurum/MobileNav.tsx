@@ -29,7 +29,6 @@ const primaryNav = [
   { to: "/academy", label: "Academy", icon: GraduationCap },
   { to: "/intelligence", label: "Intelligence", icon: Radio },
   { to: "/mentor", label: "AI Mentor", icon: Sparkles },
-  { to: "/network", label: "Network", icon: Users },
   { to: "/studio", label: "Content Studio", icon: Video },
 ] as const;
 

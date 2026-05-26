@@ -1,4 +1,4 @@
-import { Bell, Search } from "lucide-react";
+import { Bell } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Logo } from "./Logo";
 import { IndustrySwitcher } from "./IndustrySwitcher";
@@ -16,11 +16,8 @@ export function TopBar() {
           </Link>
         </div>
 
-        {/* Desktop: search */}
-        <div className="hidden md:flex flex-1 max-w-xl items-center gap-2 glass rounded-md px-3.5 py-2 text-sm text-muted-foreground">
-          <Search className="h-4 w-4" />
-          <span className="flex-1">Search markets, players, listings, events…</span>
-        </div>
+        {/* Desktop: spacer */}
+        <div className="hidden md:flex flex-1" />
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           <div className="hidden sm:block">
