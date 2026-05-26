@@ -25,7 +25,7 @@ import { INDUSTRY_LIST } from "@/lib/industry/config";
 import { toast } from "sonner";
 
 const primaryNav = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/app", label: "Dashboard", icon: LayoutDashboard },
   { to: "/academy", label: "Academy", icon: GraduationCap },
   { to: "/intelligence", label: "Intelligence", icon: Radio },
   { to: "/mentor", label: "AI Mentor", icon: Sparkles },

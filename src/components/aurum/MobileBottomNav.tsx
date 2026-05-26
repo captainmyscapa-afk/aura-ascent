@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 const tabs = [
-  { to: "/dashboard", label: "Home", icon: LayoutDashboard },
+  { to: "/app", label: "Home", icon: LayoutDashboard },
   { to: "/academy", label: "Academy", icon: GraduationCap },
   { to: "/mentor", label: "Mentor", icon: Sparkles },
   { to: "/network", label: "Network", icon: Users },
