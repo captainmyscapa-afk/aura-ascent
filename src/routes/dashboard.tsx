@@ -16,6 +16,7 @@ import { LiveIntelligenceFeed } from "@/components/aurum/LiveIntelligenceFeed";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
@@ -43,11 +44,26 @@ function useNow() {
 
 export default function Dashboard() {
   const { industry, industryId, setIndustry } = useIndustry();
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const isDemo = !session;
   const now = useNow();
   const [done, setDone] = useState<Record<number, boolean>>({ 0: true, 1: true });
+  const [profileName, setProfileName] = useState<string | null>(null);
   const toggle = (i: number) => setDone((d) => ({ ...d, [i]: !d[i] }));
+
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    supabase
+      .from("user_profiles")
+      .select("full_name")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (alive) setProfileName((data as { full_name: string | null } | null)?.full_name ?? null);
+      });
+    return () => { alive = false; };
+  }, [user]);
 
   const completed = industry.dailyObjectives.filter((_, i) => done[i]).length;
   const total = industry.dailyObjectives.length;
@@ -121,7 +137,7 @@ export default function Dashboard() {
             <h1 className="font-serif text-[34px] sm:text-[52px] leading-[1.05] tracking-tight">
               Good {now.getHours() < 12 ? "morning" : now.getHours() < 18 ? "afternoon" : "evening"},
               <br />
-              <span className="text-gold-gradient italic">Alexander.</span>
+              <span className="text-gold-gradient italic">{profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Operator"}.</span>
             </h1>
 
             <p className="mt-5 max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed">
