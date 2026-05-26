@@ -5,7 +5,9 @@ import {
   Sparkles,
   GraduationCap,
   BookOpen,
+  Users,
   Video,
+  User2,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -18,7 +20,9 @@ const nav = [
   { to: "/mentor", label: "AI Mentor", icon: Sparkles },
   { to: "/academy", label: "Academy", icon: GraduationCap },
   { to: "/tutor", label: "AI Tutor", icon: BookOpen },
+  { to: "/network", label: "Network", icon: Users },
   { to: "/studio", label: "Content Studio", icon: Video },
+  { to: "/profile", label: "Identity", icon: User2 },
 ] as const;
 
 export function Sidebar() {

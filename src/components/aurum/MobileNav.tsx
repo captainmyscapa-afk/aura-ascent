@@ -5,11 +5,13 @@ import {
   Radio,
   Sparkles,
   GraduationCap,
+  Users,
   Video,
   User2,
   Settings,
   Menu,
   X,
+  Compass,
   Crown,
 } from "lucide-react";
 import {
@@ -18,6 +20,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Logo } from "./Logo";
+import { useIndustry } from "@/lib/industry/IndustryProvider";
+import { INDUSTRY_LIST } from "@/lib/industry/config";
+import { toast } from "sonner";
 
 const primaryNav = [
   { to: "/app", label: "Dashboard", icon: LayoutDashboard },
@@ -28,12 +33,14 @@ const primaryNav = [
 ] as const;
 
 const secondaryNav = [
+  { to: "/profile", label: "Identity", icon: User2 },
   { to: "/settings", label: "Preferences", icon: Settings },
 ] as const;
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const { industry, setIndustry } = useIndustry();
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -84,6 +91,51 @@ export function MobileNav() {
                 </div>
               </div>
             </Link>
+          </div>
+
+          {/* Industry switcher */}
+          <div className="px-5 pb-3">
+            <div className="px-2 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70 flex items-center gap-2">
+              <Compass className="h-3 w-3" />
+              INDUSTRY MODE
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {INDUSTRY_LIST.map((opt) => {
+                const Icon = opt.icon;
+                const active = opt.id === industry.id;
+                return (
+                  <button
+                    key={opt.id}
+                    onClick={() => {
+                      if (!active) {
+                        setIndustry(opt.id);
+                        toast(`Entering ${opt.modeLabel}`, { description: opt.tagline });
+                      }
+                    }}
+                    className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl transition-all active:scale-95 ${
+                      active
+                        ? "glass ring-1 ring-primary/50 shadow-[var(--shadow-gold)]"
+                        : "glass opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <span
+                      className={`h-7 w-7 rounded-full flex items-center justify-center ${
+                        active ? "bg-[var(--gradient-gold)]" : "bg-secondary/60"
+                      }`}
+                    >
+                      <Icon
+                        className={`h-3.5 w-3.5 ${
+                          active ? "text-primary-foreground" : "text-muted-foreground"
+                        }`}
+                      />
+                    </span>
+                    <span className="text-[10px] tracking-wide text-foreground/80">
+                      {opt.shortLabel}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Nav */}
@@ -173,7 +225,7 @@ export function MobileNav() {
               </div>
               <div className="mt-2.5 flex items-center gap-2 text-[11px] text-muted-foreground">
                 <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                <span>12-day streak</span>
+                <span>12-day streak · {industry.modeLabel}</span>
               </div>
             </div>
           </div>
