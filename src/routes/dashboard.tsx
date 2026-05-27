@@ -150,7 +150,7 @@ export default function Dashboard() {
       if (recStale) {
         refreshRecommendation(ctx);
       } else {
-        setRecommendation(c.ai_summary.recommendation ?? null);
+        setRecommendation(c.ai_summary?.recommendation ?? null);
       }
 
       // Daily tasks — daily
