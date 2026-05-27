@@ -20,6 +20,8 @@ export type Database = {
           ai_summary_updated_at: string | null
           created_at: string
           current_focus: string
+          daily_tasks: Json | null
+          daily_tasks_date: string | null
           execution_score: number
           goal: string
           id: string
@@ -28,6 +30,8 @@ export type Database = {
           streak: number
           today_brief: Json | null
           today_brief_date: string | null
+          upcoming_events: Json | null
+          upcoming_events_week_start: string | null
           updated_at: string
           user_id: string
         }
@@ -36,6 +40,8 @@ export type Database = {
           ai_summary_updated_at?: string | null
           created_at?: string
           current_focus?: string
+          daily_tasks?: Json | null
+          daily_tasks_date?: string | null
           execution_score?: number
           goal?: string
           id?: string
@@ -44,6 +50,8 @@ export type Database = {
           streak?: number
           today_brief?: Json | null
           today_brief_date?: string | null
+          upcoming_events?: Json | null
+          upcoming_events_week_start?: string | null
           updated_at?: string
           user_id: string
         }
@@ -52,6 +60,8 @@ export type Database = {
           ai_summary_updated_at?: string | null
           created_at?: string
           current_focus?: string
+          daily_tasks?: Json | null
+          daily_tasks_date?: string | null
           execution_score?: number
           goal?: string
           id?: string
@@ -60,6 +70,8 @@ export type Database = {
           streak?: number
           today_brief?: Json | null
           today_brief_date?: string | null
+          upcoming_events?: Json | null
+          upcoming_events_week_start?: string | null
           updated_at?: string
           user_id?: string
         }
