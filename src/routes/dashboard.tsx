@@ -8,15 +8,22 @@ import {
   ChevronRight,
   Hotel,
   Lock,
+  RefreshCw,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
 import { GlobalTimeHub } from "@/components/aurum/GlobalTimeHub";
-import { LiveIntelligenceFeed } from "@/components/aurum/LiveIntelligenceFeed";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
+import type { IndustryId } from "@/lib/industry/types";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  generateRecommendation,
+  generateDailyTasks,
+  generateUpcomingEvents,
+} from "@/lib/identity.functions";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
@@ -33,6 +40,13 @@ const WELCOMES = [
   "Make today undeniable — in craft, in presence, in execution.",
 ];
 
+const INDUSTRY_TO_TRACK: Record<IndustryId, string> = {
+  yachts: "yachting",
+  villas: "property",
+  jets: "aviation",
+  cars: "automotive",
+};
+
 function useNow() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -42,15 +56,56 @@ function useNow() {
   return now;
 }
 
+function isoDay(d = new Date()) {
+  return d.toISOString().slice(0, 10);
+}
+function weekStartIso(d = new Date()) {
+  const dt = new Date(d);
+  const day = dt.getUTCDay();
+  const diff = (day + 6) % 7; // Monday as start
+  dt.setUTCDate(dt.getUTCDate() - diff);
+  return dt.toISOString().slice(0, 10);
+}
+
+type CoreState = {
+  mode: string;
+  level: string;
+  goal: string;
+  streak: number;
+  current_focus: string;
+  ai_summary: { recommendation?: string } | null;
+  ai_summary_updated_at: string | null;
+  daily_tasks: string[] | null;
+  daily_tasks_date: string | null;
+  upcoming_events: { date: string; title: string }[] | null;
+  upcoming_events_week_start: string | null;
+};
+
 export default function Dashboard() {
   const { industry, industryId, setIndustry } = useIndustry();
   const { session, user } = useAuth();
   const isDemo = !session;
   const now = useNow();
-  const [done, setDone] = useState<Record<number, boolean>>({ 0: true, 1: true });
   const [profileName, setProfileName] = useState<string | null>(null);
+  const [core, setCore] = useState<CoreState | null>(null);
+
+  const [recommendation, setRecommendation] = useState<string | null>(null);
+  const [recLoading, setRecLoading] = useState(false);
+  const [dailyTasks, setDailyTasks] = useState<string[]>(industry.dailyObjectives);
+  const [tasksLoading, setTasksLoading] = useState(false);
+  const [events, setEvents] = useState<{ date: string; title: string }[]>(
+    industry.upcoming.map(([d, t]) => ({ date: d, title: t })),
+  );
+  const [eventsLoading, setEventsLoading] = useState(false);
+
+  const [done, setDone] = useState<Record<number, boolean>>({});
   const toggle = (i: number) => setDone((d) => ({ ...d, [i]: !d[i] }));
 
+  const recFn = useServerFn(generateRecommendation);
+  const tasksFn = useServerFn(generateDailyTasks);
+  const eventsFn = useServerFn(generateUpcomingEvents);
+
+  // Load profile name
   useEffect(() => {
     if (!user) return;
     let alive = true;
@@ -65,8 +120,118 @@ export default function Dashboard() {
     return () => { alive = false; };
   }, [user]);
 
-  const completed = industry.dailyObjectives.filter((_, i) => done[i]).length;
-  const total = industry.dailyObjectives.length;
+  // Load core state, refresh AI when stale
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    (async () => {
+      const { data } = await supabase
+        .from("aurum_core_state")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!alive) return;
+      const c = (data as unknown as CoreState | null) ?? null;
+      setCore(c);
+
+      const ctx = {
+        mode: industry.label,
+        level: c?.level,
+        goal: c?.goal,
+        streak: c?.streak,
+        phase: industry.phaseLabel,
+      };
+
+      // Recommendation — daily
+      const recStale =
+        !c?.ai_summary?.recommendation ||
+        !c?.ai_summary_updated_at ||
+        Date.now() - new Date(c.ai_summary_updated_at).getTime() > 86_400_000;
+      if (recStale) {
+        refreshRecommendation(ctx);
+      } else {
+        setRecommendation(c.ai_summary.recommendation ?? null);
+      }
+
+      // Daily tasks — daily
+      if (c?.daily_tasks && c.daily_tasks_date === isoDay()) {
+        setDailyTasks(c.daily_tasks);
+      } else {
+        refreshDailyTasks(ctx);
+      }
+
+      // Upcoming — weekly
+      if (c?.upcoming_events && c.upcoming_events_week_start === weekStartIso()) {
+        setEvents(c.upcoming_events);
+      } else {
+        refreshEvents(industry.label);
+      }
+    })();
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, industryId]);
+
+  async function refreshRecommendation(ctx: {
+    mode: string; level?: string; goal?: string; streak?: number; phase?: string;
+  }) {
+    if (!user) return;
+    setRecLoading(true);
+    try {
+      const { recommendation: text } = await recFn({ data: ctx });
+      setRecommendation(text);
+      await supabase
+        .from("aurum_core_state")
+        .update({
+          ai_summary: { recommendation: text },
+          ai_summary_updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", user.id);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRecLoading(false);
+    }
+  }
+
+  async function refreshDailyTasks(ctx: {
+    mode: string; level?: string; goal?: string; streak?: number; phase?: string;
+  }) {
+    if (!user) return;
+    setTasksLoading(true);
+    try {
+      const { tasks } = await tasksFn({ data: ctx });
+      setDailyTasks(tasks);
+      setDone({});
+      await supabase
+        .from("aurum_core_state")
+        .update({ daily_tasks: tasks, daily_tasks_date: isoDay() })
+        .eq("user_id", user.id);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setTasksLoading(false);
+    }
+  }
+
+  async function refreshEvents(mode: string) {
+    if (!user) return;
+    setEventsLoading(true);
+    try {
+      const { events: ev } = await eventsFn({ data: { mode } });
+      setEvents(ev);
+      await supabase
+        .from("aurum_core_state")
+        .update({ upcoming_events: ev, upcoming_events_week_start: weekStartIso() })
+        .eq("user_id", user.id);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setEventsLoading(false);
+    }
+  }
+
+  const completed = dailyTasks.filter((_, i) => done[i]).length;
+  const total = dailyTasks.length || 1;
 
   const welcome = useMemo(() => {
     const dayOfYear = Math.floor(
@@ -86,7 +251,6 @@ export default function Dashboard() {
   const hubs = INDUSTRY_LIST.map((m) => ({
     ...m,
     active: m.id === industryId,
-    signals: m.intelFeed.length,
     nextEvent: m.upcoming[0],
   }));
 
@@ -179,10 +343,10 @@ export default function Dashboard() {
             <CardHeader
               eyebrow={`TODAY · ${industry.modeLabel.toUpperCase()}`}
               title="Daily ritual"
-              meta={`${completed} of ${total}`}
+              meta={tasksLoading ? "…" : `${completed} of ${total}`}
             />
             <div className="space-y-1.5">
-              {industry.dailyObjectives.map((t, i) => {
+              {dailyTasks.map((t, i) => {
                 const isDone = !!done[i];
                 return (
                   <button
@@ -224,15 +388,17 @@ export default function Dashboard() {
           </Card>
 
           <div>
-            <SubHeading eyebrow="LUXURY HUBS" title="Your ecosystems" />
+            <SubHeading eyebrow="ACADEMY" title="Your tracks" />
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               {hubs.map((m) => {
                 const Icon = m.icon;
+                const trackSlug = INDUSTRY_TO_TRACK[m.id];
                 return (
-                  <button
+                  <Link
                     key={m.id}
-                    onClick={() => setIndustry(m.id)}
-                    className={`group relative aspect-[4/5] rounded-xl overflow-hidden border transition-all text-left ${
+                    to="/academy"
+                    search={{ track: trackSlug }}
+                    className={`group relative aspect-[4/5] rounded-xl overflow-hidden border transition-all text-left block ${
                       m.active
                         ? "border-primary/60 ring-1 ring-primary/30"
                         : "border-border/60 hover:border-primary/40"
@@ -255,11 +421,11 @@ export default function Dashboard() {
                       <div>
                         <div className="font-serif text-lg leading-tight">{m.label}</div>
                         <div className="mt-1 text-[10px] tracking-wider text-muted-foreground uppercase">
-                          {m.signals} signals
+                          {m.trackProgress}/{m.trackModules} complete
                         </div>
                       </div>
                     </div>
-                  </button>
+                  </Link>
                 );
               })}
               <div className="relative aspect-[4/5] rounded-xl overflow-hidden border border-border/40 opacity-60">
@@ -282,8 +448,6 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-
-          <LiveIntelligenceFeed />
         </section>
 
         <aside className="space-y-6 lg:space-y-8">
@@ -293,9 +457,12 @@ export default function Dashboard() {
               <div className="text-[10px] tracking-[0.34em] text-primary/80">
                 AURUM RECOMMENDS
               </div>
+              {recLoading && (
+                <RefreshCw className="h-3 w-3 text-primary/60 animate-spin ml-auto" />
+              )}
             </div>
             <p className="font-serif text-[20px] leading-snug">
-              "{industry.aiRecommendation}"
+              "{recommendation || industry.aiRecommendation}"
             </p>
             <button className="mt-5 w-full text-sm rounded-full py-2.5 bg-[var(--gradient-gold)] text-primary-foreground shadow-[var(--shadow-gold)]">
               Generate outreach
@@ -309,19 +476,19 @@ export default function Dashboard() {
                 <div className="text-[10px] tracking-[0.34em] text-foreground">UPCOMING</div>
               </div>
               <span className="text-[10px] tracking-[0.3em] text-muted-foreground">
-                {industry.upcoming.length}
+                {eventsLoading ? "…" : events.length}
               </span>
             </div>
             <div className="space-y-4">
-              {industry.upcoming.map(([d, t]) => (
-                <div key={t} className="group flex items-start gap-4 cursor-pointer">
+              {events.map((ev) => (
+                <div key={ev.title} className="group flex items-start gap-4 cursor-pointer">
                   <div className="shrink-0 w-12">
                     <div className="font-mono text-[10px] tracking-widest text-primary/80 uppercase">
-                      {d}
+                      {ev.date}
                     </div>
                   </div>
                   <div className="flex-1 text-[14px] leading-snug text-foreground/90 group-hover:text-primary transition-colors">
-                    {t}
+                    {ev.title}
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
