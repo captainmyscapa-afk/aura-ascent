@@ -518,7 +518,7 @@ function Profile() {
 
         {audit ? (
           <div className="space-y-5 mt-4">
-            {audit.actions.map((a) => (
+            {(audit?.actions ?? []).map((a) => (
               <div key={a.headline} className="border-t border-border/60 first:border-0 pt-5 first:pt-0">
                 <div className="flex items-start justify-between gap-4">
                   <div>
