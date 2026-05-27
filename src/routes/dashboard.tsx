@@ -1,15 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  Sparkles,
-  Check,
-  Calendar,
-  Compass,
-  Radio,
-  ChevronRight,
-  Hotel,
-  Lock,
-  RefreshCw,
-} from "lucide-react";
+import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, Hotel, Lock, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
@@ -19,11 +9,7 @@ import { INDUSTRY_LIST } from "@/lib/industry/config";
 import type { IndustryId } from "@/lib/industry/types";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  generateRecommendation,
-  generateDailyTasks,
-  generateUpcomingEvents,
-} from "@/lib/identity.functions";
+import { generateRecommendation, generateDailyTasks, generateUpcomingEvents } from "@/lib/identity.functions";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
@@ -94,7 +80,7 @@ export default function Dashboard() {
   const [dailyTasks, setDailyTasks] = useState<string[]>(industry.dailyObjectives);
   const [tasksLoading, setTasksLoading] = useState(false);
   const [events, setEvents] = useState<{ date: string; title: string }[]>(
-    industry.upcoming.map(([d, t]) => ({ date: d, title: t })),
+    (industry.upcoming ?? []).map(([d, t]) => ({ date: d, title: t })),
   );
   const [eventsLoading, setEventsLoading] = useState(false);
 
@@ -117,7 +103,9 @@ export default function Dashboard() {
       .then(({ data }) => {
         if (alive) setProfileName((data as { full_name: string | null } | null)?.full_name ?? null);
       });
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [user]);
 
   // Load core state, refresh AI when stale
@@ -125,11 +113,7 @@ export default function Dashboard() {
     if (!user) return;
     let alive = true;
     (async () => {
-      const { data } = await supabase
-        .from("aurum_core_state")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const { data } = await supabase.from("aurum_core_state").select("*").eq("user_id", user.id).maybeSingle();
       if (!alive) return;
       const c = (data as unknown as CoreState | null) ?? null;
       setCore(c);
@@ -167,12 +151,18 @@ export default function Dashboard() {
         refreshEvents(industry.label);
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, industryId]);
 
   async function refreshRecommendation(ctx: {
-    mode: string; level?: string; goal?: string; streak?: number; phase?: string;
+    mode: string;
+    level?: string;
+    goal?: string;
+    streak?: number;
+    phase?: string;
   }) {
     if (!user) return;
     setRecLoading(true);
@@ -194,7 +184,11 @@ export default function Dashboard() {
   }
 
   async function refreshDailyTasks(ctx: {
-    mode: string; level?: string; goal?: string; streak?: number; phase?: string;
+    mode: string;
+    level?: string;
+    goal?: string;
+    streak?: number;
+    phase?: string;
   }) {
     if (!user) return;
     setTasksLoading(true);
@@ -234,9 +228,7 @@ export default function Dashboard() {
   const total = dailyTasks.length || 1;
 
   const welcome = useMemo(() => {
-    const dayOfYear = Math.floor(
-      (now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86_400_000,
-    );
+    const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86_400_000);
     return WELCOMES[dayOfYear % WELCOMES.length];
   }, [now]);
 
@@ -293,20 +285,18 @@ export default function Dashboard() {
               <div className="text-[10px] tracking-[0.4em] text-primary/70 uppercase">
                 {dayName} · {dateLong}
               </div>
-              <div className="font-mono text-xs tracking-[0.3em] text-muted-foreground lg:hidden">
-                {timeStr}
-              </div>
+              <div className="font-mono text-xs tracking-[0.3em] text-muted-foreground lg:hidden">{timeStr}</div>
             </div>
 
             <h1 className="font-serif text-[34px] sm:text-[52px] leading-[1.05] tracking-tight">
               Good {now.getHours() < 12 ? "morning" : now.getHours() < 18 ? "afternoon" : "evening"},
               <br />
-              <span className="text-gold-gradient italic">{profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Operator"}.</span>
+              <span className="text-gold-gradient italic">
+                {profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Operator"}.
+              </span>
             </h1>
 
-            <p className="mt-5 max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed">
-              {welcome}
-            </p>
+            <p className="mt-5 max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed">{welcome}</p>
 
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
@@ -325,9 +315,7 @@ export default function Dashboard() {
           </div>
 
           <aside className="hidden lg:flex flex-col gap-3 items-end">
-            <div className="font-mono text-xs tracking-[0.3em] text-muted-foreground">
-              {timeStr}
-            </div>
+            <div className="font-mono text-xs tracking-[0.3em] text-muted-foreground">{timeStr}</div>
             <GlobalTimeHub compact />
           </aside>
         </div>
@@ -358,9 +346,7 @@ export default function Dashboard() {
                   >
                     <div
                       className={`h-5 w-5 rounded-full flex items-center justify-center border transition-colors ${
-                        isDone
-                          ? "bg-primary border-primary"
-                          : "border-border/70 group-hover:border-primary/60"
+                        isDone ? "bg-primary border-primary" : "border-border/70 group-hover:border-primary/60"
                       }`}
                     >
                       {isDone && <Check className="h-3 w-3 text-primary-foreground" />}
@@ -399,9 +385,7 @@ export default function Dashboard() {
                     to="/academy"
                     search={{ track: trackSlug }}
                     className={`group relative aspect-[4/5] rounded-xl overflow-hidden border transition-all text-left block ${
-                      m.active
-                        ? "border-primary/60 ring-1 ring-primary/30"
-                        : "border-border/60 hover:border-primary/40"
+                      m.active ? "border-primary/60 ring-1 ring-primary/30" : "border-border/60 hover:border-primary/40"
                     }`}
                   >
                     <img
@@ -414,9 +398,7 @@ export default function Dashboard() {
                     <div className="relative h-full p-4 flex flex-col justify-between">
                       <div className="flex items-center justify-between">
                         <Icon className="h-4 w-4 text-primary/90" />
-                        {m.active && (
-                          <span className="text-[8px] tracking-[0.3em] text-primary/90">LIVE</span>
-                        )}
+                        {m.active && <span className="text-[8px] tracking-[0.3em] text-primary/90">LIVE</span>}
                       </div>
                       <div>
                         <div className="font-serif text-lg leading-tight">{m.label}</div>
@@ -440,9 +422,7 @@ export default function Dashboard() {
                   <Hotel className="h-4 w-4 text-primary/70" />
                   <div>
                     <div className="font-serif text-lg leading-tight">Hospitality</div>
-                    <div className="mt-1 text-[10px] tracking-wider text-muted-foreground uppercase">
-                      Arriving soon
-                    </div>
+                    <div className="mt-1 text-[10px] tracking-wider text-muted-foreground uppercase">Arriving soon</div>
                   </div>
                 </div>
               </div>
@@ -454,16 +434,10 @@ export default function Dashboard() {
           <Card accent>
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="h-4 w-4 text-primary" />
-              <div className="text-[10px] tracking-[0.34em] text-primary/80">
-                AURUM RECOMMENDS
-              </div>
-              {recLoading && (
-                <RefreshCw className="h-3 w-3 text-primary/60 animate-spin ml-auto" />
-              )}
+              <div className="text-[10px] tracking-[0.34em] text-primary/80">AURUM RECOMMENDS</div>
+              {recLoading && <RefreshCw className="h-3 w-3 text-primary/60 animate-spin ml-auto" />}
             </div>
-            <p className="font-serif text-[20px] leading-snug">
-              "{recommendation || industry.aiRecommendation}"
-            </p>
+            <p className="font-serif text-[20px] leading-snug">"{recommendation || industry.aiRecommendation}"</p>
             <button className="mt-5 w-full text-sm rounded-full py-2.5 bg-[var(--gradient-gold)] text-primary-foreground shadow-[var(--shadow-gold)]">
               Generate outreach
             </button>
@@ -483,9 +457,7 @@ export default function Dashboard() {
               {events.map((ev) => (
                 <div key={ev.title} className="group flex items-start gap-4 cursor-pointer">
                   <div className="shrink-0 w-12">
-                    <div className="font-mono text-[10px] tracking-widest text-primary/80 uppercase">
-                      {ev.date}
-                    </div>
+                    <div className="font-mono text-[10px] tracking-widest text-primary/80 uppercase">{ev.date}</div>
                   </div>
                   <div className="flex-1 text-[14px] leading-snug text-foreground/90 group-hover:text-primary transition-colors">
                     {ev.title}
@@ -502,28 +474,21 @@ export default function Dashboard() {
               <div className="text-[10px] tracking-[0.34em] text-foreground">PROGRESSION</div>
             </div>
             <div className="font-serif text-2xl">Initiate II</div>
-            <div className="text-[12px] text-muted-foreground mt-1">
-              Phase 02 · {industry.modeLabel}
-            </div>
+            <div className="text-[12px] text-muted-foreground mt-1">Phase 02 · {industry.modeLabel}</div>
             <div className="mt-5">
               <div className="flex items-center justify-between text-[10px] tracking-[0.3em] text-muted-foreground mb-2">
                 <span>NEXT TIER</span>
                 <span>67%</span>
               </div>
               <div className="h-1 w-full bg-border/40 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[var(--gradient-gold)] rounded-full"
-                  style={{ width: "67%" }}
-                />
+                <div className="h-full bg-[var(--gradient-gold)] rounded-full" style={{ width: "67%" }} />
               </div>
             </div>
             <div className="mt-6 grid grid-cols-5 gap-1.5">
               {["Initiate", "Operator", "Insider", "Counsel", "Aurum"].map((tier, i) => (
                 <div key={tier} className="text-center">
                   <div
-                    className={`h-1.5 w-full rounded-full ${
-                      i <= 1 ? "bg-[var(--gradient-gold)]" : "bg-border/40"
-                    }`}
+                    className={`h-1.5 w-full rounded-full ${i <= 1 ? "bg-[var(--gradient-gold)]" : "bg-border/40"}`}
                   />
                   <div
                     className={`mt-2 text-[9px] tracking-wider uppercase ${
@@ -544,28 +509,14 @@ export default function Dashboard() {
 
 function Card({ children, accent }: { children: React.ReactNode; accent?: boolean }) {
   return (
-    <div
-      className={`relative glass rounded-2xl p-6 sm:p-7 overflow-hidden ${
-        accent ? "ring-gold" : ""
-      }`}
-    >
-      {accent && (
-        <div className="absolute inset-0 bg-[var(--gradient-gold)] opacity-[0.04] pointer-events-none" />
-      )}
+    <div className={`relative glass rounded-2xl p-6 sm:p-7 overflow-hidden ${accent ? "ring-gold" : ""}`}>
+      {accent && <div className="absolute inset-0 bg-[var(--gradient-gold)] opacity-[0.04] pointer-events-none" />}
       <div className="relative">{children}</div>
     </div>
   );
 }
 
-function CardHeader({
-  eyebrow,
-  title,
-  meta,
-}: {
-  eyebrow: string;
-  title: React.ReactNode;
-  meta?: React.ReactNode;
-}) {
+function CardHeader({ eyebrow, title, meta }: { eyebrow: string; title: React.ReactNode; meta?: React.ReactNode }) {
   return (
     <div className="flex items-end justify-between mb-5 gap-4">
       <div>
