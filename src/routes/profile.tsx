@@ -158,11 +158,16 @@ function Profile() {
     (async () => {
       setLoading(true);
       const [p, c, s] = await Promise.all([
-        supabase.from("user_profiles").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase
+          .from("user_profiles")
+          .upsert({ user_id: user.id }, { onConflict: "user_id", ignoreDuplicates: false })
+          .select("*")
+          .maybeSingle(),
         supabase.from("aurum_core_state").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("social_accounts").select("*").eq("user_id", user.id),
       ]);
       if (!alive) return;
+      if (p.error) console.error("user_profiles upsert error", p.error);
       setProfile((p.data as UserProfile) ?? EMPTY_PROFILE(user.id));
       setCore((c.data as CoreState) ?? null);
       setSocials((s.data as SocialAccount[]) ?? []);
