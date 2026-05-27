@@ -4,13 +4,35 @@ import { SectionHeading } from "@/components/aurum/SectionHeading";
 import { Play, Lock, Sparkles } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
+import type { IndustryId } from "@/lib/industry/types";
+import { useEffect } from "react";
+
+const TRACK_TO_INDUSTRY: Record<string, IndustryId> = {
+  yachting: "yachts",
+  property: "villas",
+  aviation: "jets",
+  automotive: "cars",
+};
 
 export const Route = createFileRoute("/academy")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    track: typeof s.track === "string" ? s.track : undefined,
+  }),
   component: Academy,
 });
 
 function Academy() {
   const { industry, industryId, setIndustry } = useIndustry();
+  const { track } = Route.useSearch();
+
+  useEffect(() => {
+    if (track && TRACK_TO_INDUSTRY[track] && TRACK_TO_INDUSTRY[track] !== industryId) {
+      setIndustry(TRACK_TO_INDUSTRY[track]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [track]);
+
+
 
   return (
     <AppShell>
