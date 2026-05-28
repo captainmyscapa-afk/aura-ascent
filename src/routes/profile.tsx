@@ -146,18 +146,37 @@ function Profile() {
     let alive = true;
     (async () => {
       setLoading(true);
-      const [p, s] = await Promise.all([
-        supabase
-          .from("user_profiles")
-          .upsert({ user_id: user.id }, { onConflict: "user_id", ignoreDuplicates: false })
-          .select("*")
-          .maybeSingle(),
-        supabase.from("social_accounts").select("*").eq("user_id", user.id),
-      ]);
+
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
       if (!alive) return;
-      if (p.error) console.error("user_profiles upsert error", p.error);
-      setProfile((p.data as UserProfile) ?? EMPTY_PROFILE(user.id));
-      setSocials((s.data as SocialAccount[]) ?? []);
+      if (fetchError) console.error("user_profiles fetch error", fetchError);
+
+      let profileData = existingProfile as UserProfile | null;
+
+      if (!profileData) {
+        const { data: newProfile, error: insertError } = await supabase
+          .from("user_profiles")
+          .insert({ user_id: user.id })
+          .select("*")
+          .maybeSingle();
+        if (insertError) console.error("user_profiles insert error", insertError);
+        profileData = newProfile as UserProfile | null;
+      }
+
+      setProfile(profileData ?? EMPTY_PROFILE(user.id));
+
+      const { data: socialsData } = await supabase
+        .from("social_accounts")
+        .select("*")
+        .eq("user_id", user.id);
+
+      if (!alive) return;
+      setSocials((socialsData as SocialAccount[]) ?? []);
       setLoading(false);
     })();
     return () => {
