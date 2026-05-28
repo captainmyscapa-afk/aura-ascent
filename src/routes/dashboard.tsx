@@ -131,13 +131,18 @@ export default function Dashboard() {
     }
 
     // Upcoming — weekly
-    if (c.upcoming_events && c.upcoming_events.length > 0 && c.upcoming_events_week_start === weekStartIso()) {
-      setEvents(c.upcoming_events as { date: string; title: string }[]);
+    const cachedEv = c.upcoming_events as any;
+    if (
+      cachedEv?.events?.length > 0 &&
+      c.upcoming_events_week_start === weekStartIso() &&
+      cachedEv?.mode === industry.label
+    ) {
+      setEvents(cachedEv.events);
     } else {
       refreshEvents(industry.label);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, industryId, core?.id]);
+  }, [user, industryId, core?.id, industry.label]);
 
   // Toggle a task done — wire streak + execution_score through the hook.
   async function toggle(i: number) {
