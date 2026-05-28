@@ -59,7 +59,7 @@ function SignupPage() {
       navigate({ to: "/login", replace: true });
       return;
     }
-    navigate({ to: "/app", replace: true });
+    navigate({ to: "/onboarding", replace: true });
   };
 
   return (

@@ -4,6 +4,7 @@ import { ArrowRight, ArrowLeft, Check, Sparkles } from "lucide-react";
 import { Logo } from "@/components/aurum/Logo";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
+import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 
 export const Route = createFileRoute("/onboarding")({
   component: Onboarding,
@@ -31,6 +32,7 @@ const ambitions = [
 function Onboarding() {
   const navigate = useNavigate();
   const { industryId, setIndustry, industry } = useIndustry();
+  const { update: updateCore } = useAurumCoreState();
   const [step, setStep] = useState(0);
   const [level, setLevel] = useState<string | null>(null);
   const [amb, setAmb] = useState<string[]>([]);
@@ -38,10 +40,14 @@ function Onboarding() {
 
   const totalSteps = 4;
 
-  function next() {
+  async function next() {
     if (step === totalSteps - 1) {
       setGenerating(true);
-      setTimeout(() => navigate({ to: "/login" }), 2200);
+      await updateCore({
+        active_mode: industryId,
+        current_level: level ?? "beginner"
+      });
+      setTimeout(() => navigate({ to: "/app" }), 2200);
       return;
     }
     setStep((s) => s + 1);

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { useAuth } from "@/hooks/useAuth";
+import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 
 const nav = [
   { to: "/app", label: "Mission Control", icon: LayoutDashboard },
@@ -28,6 +29,7 @@ const nav = [
 export function Sidebar() {
   const { pathname } = useLocation();
   const { session, signOut } = useAuth();
+  const { state: core } = useAurumCoreState();
   const navigate = useNavigate();
   const handleLogout = async () => {
     await signOut();
@@ -79,17 +81,17 @@ export function Sidebar() {
             <span className="text-[10px] tracking-[0.3em] text-muted-foreground">
               MOMENTUM
             </span>
-            <span className="font-mono text-xs text-primary">87</span>
+            <span className="font-mono text-xs text-primary">{core?.streak ?? 0}</span>
           </div>
           <div className="h-1 rounded-full bg-secondary overflow-hidden">
             <div
               className="h-full bg-[var(--gradient-gold)]"
-              style={{ width: "87%" }}
+              style={{ width: `${Math.min(100, (core?.streak ?? 0) * 2)}%` }}
             />
           </div>
           <div className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            <span>12-day streak</span>
+            <span>{`${core?.streak ?? 0}-day streak`}</span>
           </div>
         </div>
         <Link

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { INDUSTRIES } from "./config";
 import type { IndustryConfig, IndustryId } from "./types";
+import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 
 const STORAGE_KEY = "aurum.industry";
 const DEFAULT: IndustryId = "yachts";
@@ -19,6 +20,7 @@ function isIndustry(v: string | null): v is IndustryId {
 
 export function IndustryProvider({ children }: { children: ReactNode }) {
   const [industryId, setIndustryId] = useState<IndustryId>(DEFAULT);
+  const { state: core, update: updateCore } = useAurumCoreState();
 
   // hydrate from localStorage on mount
   useEffect(() => {
@@ -33,12 +35,20 @@ export function IndustryProvider({ children }: { children: ReactNode }) {
     document.documentElement.setAttribute("data-industry", industryId);
   }, [industryId]);
 
+  useEffect(() => {
+    if (!core?.active_mode) return;
+    if (isIndustry(core.active_mode) && core.active_mode !== industryId) {
+      setIndustryId(core.active_mode as IndustryId);
+    }
+  }, [core?.active_mode]);
+
   const setIndustry = useCallback((id: IndustryId) => {
     setIndustryId(id);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY, id);
     }
-  }, []);
+    updateCore({ active_mode: id });
+  }, [updateCore]);
 
   const value = useMemo<Ctx>(
     () => ({ industryId, industry: INDUSTRIES[industryId], setIndustry }),

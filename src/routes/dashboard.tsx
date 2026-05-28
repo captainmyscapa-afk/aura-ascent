@@ -119,20 +119,30 @@ export default function Dashboard() {
     }
 
     // Daily tasks — daily
-    if (c.daily_tasks && c.daily_tasks.length > 0 && c.daily_tasks_date === isoDay()) {
-      setDailyTasks(c.daily_tasks as string[]);
+    const cachedTasks = c.daily_tasks as any;
+    if (
+      cachedTasks?.tasks?.length > 0 &&
+      c.daily_tasks_date === isoDay() &&
+      cachedTasks?.mode === industry.label
+    ) {
+      setDailyTasks(cachedTasks.tasks);
     } else {
       refreshDailyTasks(ctx);
     }
 
     // Upcoming — weekly
-    if (c.upcoming_events && c.upcoming_events.length > 0 && c.upcoming_events_week_start === weekStartIso()) {
-      setEvents(c.upcoming_events as { date: string; title: string }[]);
+    const cachedEv = c.upcoming_events as any;
+    if (
+      cachedEv?.events?.length > 0 &&
+      c.upcoming_events_week_start === weekStartIso() &&
+      cachedEv?.mode === industry.label
+    ) {
+      setEvents(cachedEv.events);
     } else {
       refreshEvents(industry.label);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, industryId, core?.id]);
+  }, [user, industryId, core?.id, industry.label]);
 
   // Toggle a task done — wire streak + execution_score through the hook.
   async function toggle(i: number) {
@@ -190,7 +200,10 @@ export default function Dashboard() {
       const { tasks } = await tasksFn({ data: ctx });
       setDailyTasks(tasks);
       setDone({});
-      await updateCore({ daily_tasks: tasks, daily_tasks_date: isoDay() });
+      await updateCore({
+        daily_tasks: { mode: industry.label, tasks } as any,
+        daily_tasks_date: isoDay()
+      });
     } catch (e) {
       console.error(e);
     } finally {
@@ -204,7 +217,10 @@ export default function Dashboard() {
     try {
       const { events: ev } = await eventsFn({ data: { mode } });
       setEvents(ev);
-      await updateCore({ upcoming_events: ev, upcoming_events_week_start: weekStartIso() });
+      await updateCore({
+        upcoming_events: { mode: industry.label, events: ev } as any,
+        upcoming_events_week_start: weekStartIso()
+      });
     } catch (e) {
       console.error(e);
     } finally {

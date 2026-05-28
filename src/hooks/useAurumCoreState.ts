@@ -38,12 +38,8 @@ export type AurumCoreState = {
 // Map exposed (canonical) field names → legacy DB column names.
 // New names live in the hook; the DB still uses the legacy names.
 const NEW_TO_DB: Record<string, string> = {
-  active_mode: "mode",
-  current_level: "level",
   daily_brief: "today_brief",
   daily_brief_date: "today_brief_date",
-  // `current_focus` in the canonical schema replaces the legacy `goal` column.
-  current_focus: "goal",
 };
 
 // Columns we don't have in the DB — exposed as null.
@@ -54,9 +50,9 @@ function fromRow(row: Record<string, unknown> | null): AurumCoreState | null {
   return {
     id: (row.id as string) ?? "",
     user_id: (row.user_id as string) ?? "",
-    active_mode: (row.mode as string | null) ?? null,
+    active_mode: (row.active_mode as string | null) ?? (row.mode as string | null) ?? null,
     current_phase: null,
-    current_level: (row.level as string | null) ?? null,
+    current_level: (row.current_level as string | null) ?? (row.level as string | null) ?? null,
     streak: (row.streak as number) ?? 0,
     execution_score: (row.execution_score as number) ?? 0,
     daily_brief: (row.today_brief as unknown) ?? null,
@@ -65,7 +61,7 @@ function fromRow(row: Record<string, unknown> | null): AurumCoreState | null {
     daily_tasks_date: (row.daily_tasks_date as string | null) ?? null,
     ai_summary: (row.ai_summary as unknown) ?? null,
     ai_summary_updated_at: (row.ai_summary_updated_at as string | null) ?? null,
-    current_focus: (row.goal as unknown) ?? (row.current_focus as unknown) ?? null,
+    current_focus: (row.current_focus as unknown) ?? (row.goal as unknown) ?? null,
     upcoming_events: (row.upcoming_events as unknown[]) ?? [],
     upcoming_events_week_start:
       (row.upcoming_events_week_start as string | null) ?? null,
@@ -81,6 +77,8 @@ function toDbPatch(patch: Partial<AurumCoreState>): Record<string, unknown> {
     const dbKey = NEW_TO_DB[k] ?? k;
     out[dbKey] = v;
   }
+  if (out["active_mode"] !== undefined) out["mode"] = out["active_mode"];
+  if (out["current_level"] !== undefined) out["level"] = out["current_level"];
   return out;
 }
 
