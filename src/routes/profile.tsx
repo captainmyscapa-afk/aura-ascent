@@ -22,6 +22,7 @@ import { SectionHeading } from "@/components/aurum/SectionHeading";
 import { useAuth } from "@/hooks/useAuth";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useServerFn } from "@tanstack/react-start";
 import {
   generateIdentityAudit,
@@ -58,19 +59,7 @@ type UserProfile = {
   substack_url: string | null;
 };
 
-type CoreState = {
-  user_id: string;
-  mode: string;
-  goal: string;
-  level: string;
-  execution_score: number;
-  streak: number;
-  current_focus: string;
-  ai_summary?: IdentityAudit | null;
-  ai_summary_updated_at?: string | null;
-  today_brief?: TodayBrief | null;
-  today_brief_date?: string | null;
-};
+// Core state is read from useAurumCoreState (single source of truth).
 
 type SocialAccount = {
   id: string;
@@ -141,7 +130,7 @@ function Profile() {
   const { user, loading: authLoading } = useAuth();
   const { industry } = useIndustry();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [core, setCore] = useState<CoreState | null>(null);
+  const { state: core, update: updateCore } = useAurumCoreState();
   const [socials, setSocials] = useState<SocialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
@@ -157,19 +146,17 @@ function Profile() {
     let alive = true;
     (async () => {
       setLoading(true);
-      const [p, c, s] = await Promise.all([
+      const [p, s] = await Promise.all([
         supabase
           .from("user_profiles")
           .upsert({ user_id: user.id }, { onConflict: "user_id", ignoreDuplicates: false })
           .select("*")
           .maybeSingle(),
-        supabase.from("aurum_core_state").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("social_accounts").select("*").eq("user_id", user.id),
       ]);
       if (!alive) return;
       if (p.error) console.error("user_profiles upsert error", p.error);
       setProfile((p.data as UserProfile) ?? EMPTY_PROFILE(user.id));
-      setCore((c.data as CoreState) ?? null);
       setSocials((s.data as SocialAccount[]) ?? []);
       setLoading(false);
     })();
@@ -213,7 +200,7 @@ function Profile() {
   useEffect(() => {
     if (!user || !core) return;
     const today = new Date().toISOString().slice(0, 10);
-    if (core.today_brief && core.today_brief_date === today) return;
+    if (core.daily_brief && core.daily_brief_date === today) return;
     void refreshBrief();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, core?.user_id]);
@@ -222,26 +209,23 @@ function Profile() {
     if (!user || !profile) return;
     setAuditLoading(true);
     try {
+      const focus = typeof core?.current_focus === "string" ? core.current_focus : undefined;
       const { audit } = await runAudit({
         data: {
           name: profile.full_name ?? undefined,
           mode: industry.label,
           profession: profile.current_profession ?? undefined,
-          goal: profile.goal ?? core?.goal,
+          goal: profile.goal ?? focus,
           location: profile.location ?? undefined,
-          level: core?.level,
+          level: core?.current_level ?? undefined,
           streak: core?.streak,
           aurumScore,
         },
       });
-      await supabase
-        .from("aurum_core_state")
-        .update({
-          ai_summary: audit as never,
-          ai_summary_updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", user.id);
-      setCore((c) => (c ? { ...c, ai_summary: audit } : c));
+      await updateCore({
+        ai_summary: audit,
+        ai_summary_updated_at: new Date().toISOString(),
+      });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Audit failed");
     } finally {
@@ -253,27 +237,22 @@ function Profile() {
     if (!user || !profile) return;
     setBriefLoading(true);
     try {
+      const focus = typeof core?.current_focus === "string" ? core.current_focus : undefined;
       const { brief } = await runBrief({
         data: {
           name: profile.full_name ?? undefined,
           mode: industry.label,
           profession: profile.current_profession ?? undefined,
-          goal: profile.goal ?? core?.goal,
+          goal: profile.goal ?? focus,
           location: profile.location ?? undefined,
-          level: core?.level,
+          level: core?.current_level ?? undefined,
         },
       });
       const today = new Date().toISOString().slice(0, 10);
-      await supabase
-        .from("aurum_core_state")
-        .update({
-          today_brief: brief as never,
-          today_brief_date: today,
-        })
-        .eq("user_id", user.id);
-      setCore((c) =>
-        c ? { ...c, today_brief: brief, today_brief_date: today } : c,
-      );
+      await updateCore({
+        daily_brief: brief,
+        daily_brief_date: today,
+      });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Brief failed");
     } finally {
@@ -292,9 +271,14 @@ function Profile() {
       return;
     }
     setProfile(merged);
+    // Mirror goal into core current_focus (single source of truth for AI context)
+    if (updates.goal !== undefined && updates.goal !== null && updates.goal !== "") {
+      void updateCore({ current_focus: updates.goal });
+    }
     toast.success("Identity updated");
     setEditOpen(false);
   }
+
 
   async function connectSocial(platform: string, username: string) {
     if (!user) return;
@@ -345,9 +329,9 @@ function Profile() {
 
   const hasName = !!profile.full_name;
   const displayName = profile.full_name || "Unnamed Operator";
-  const computedTitle = `${titleFor(industry.id, core?.level ?? "initiate")} · ${profile.location || industry.label}`;
-  const audit = core?.ai_summary ?? null;
-  const brief = core?.today_brief ?? null;
+  const computedTitle = `${titleFor(industry.id, core?.current_level ?? "initiate")} · ${profile.location || industry.label}`;
+  const audit = (core?.ai_summary ?? null) as IdentityAudit | null;
+  const brief = (core?.daily_brief ?? null) as TodayBrief | null;
   const phaseProgress = Math.min(
     100,
     Math.round(((core?.execution_score ?? 0) / 100) * 100),
@@ -466,7 +450,7 @@ function Profile() {
             </div>
             <div className="glass rounded-xl p-5">
               <div className="text-[9px] tracking-[0.34em] text-muted-foreground">PHASE</div>
-              <div className="font-serif text-lg mt-1.5 capitalize">{core?.current_focus ?? "Onboarding"}</div>
+              <div className="font-serif text-lg mt-1.5 capitalize">{typeof core?.current_focus === "string" ? core.current_focus : "Onboarding"}</div>
               <div className="mt-3 h-1.5 rounded-full bg-border/60 overflow-hidden">
                 <div
                   className="h-full bg-[var(--gradient-gold)]"

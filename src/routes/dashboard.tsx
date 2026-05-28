@@ -9,6 +9,7 @@ import { INDUSTRY_LIST } from "@/lib/industry/config";
 import type { IndustryId } from "@/lib/industry/types";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { generateRecommendation, generateDailyTasks, generateUpcomingEvents } from "@/lib/identity.functions";
 
 export const Route = createFileRoute("/dashboard")({
@@ -53,27 +54,13 @@ function weekStartIso(d = new Date()) {
   return dt.toISOString().slice(0, 10);
 }
 
-type CoreState = {
-  mode: string;
-  level: string;
-  goal: string;
-  streak: number;
-  current_focus: string;
-  ai_summary: { recommendation?: string } | null;
-  ai_summary_updated_at: string | null;
-  daily_tasks: string[] | null;
-  daily_tasks_date: string | null;
-  upcoming_events: { date: string; title: string }[] | null;
-  upcoming_events_week_start: string | null;
-};
-
 export default function Dashboard() {
   const { industry, industryId, setIndustry } = useIndustry();
   const { session, user } = useAuth();
   const isDemo = !session;
   const now = useNow();
   const [profileName, setProfileName] = useState<string | null>(null);
-  const [core, setCore] = useState<CoreState | null>(null);
+  const { state: core, update: updateCore } = useAurumCoreState();
 
   const [recommendation, setRecommendation] = useState<string | null>(null);
   const [recLoading, setRecLoading] = useState(false);
@@ -85,7 +72,6 @@ export default function Dashboard() {
   const [eventsLoading, setEventsLoading] = useState(false);
 
   const [done, setDone] = useState<Record<number, boolean>>({});
-  const toggle = (i: number) => setDone((d) => ({ ...d, [i]: !d[i] }));
 
   const recFn = useServerFn(generateRecommendation);
   const tasksFn = useServerFn(generateDailyTasks);
@@ -108,54 +94,65 @@ export default function Dashboard() {
     };
   }, [user]);
 
-  // Load core state, refresh AI when stale
+  // React to core state changes — refresh AI when stale
   useEffect(() => {
-    if (!user) return;
-    let alive = true;
-    (async () => {
-      const { data } = await supabase.from("aurum_core_state").select("*").eq("user_id", user.id).maybeSingle();
-      if (!alive) return;
-      const c = (data as unknown as CoreState | null) ?? null;
-      setCore(c);
-
-      const ctx = {
-        mode: industry.label,
-        level: c?.level,
-        goal: c?.goal,
-        streak: c?.streak,
-        phase: industry.phaseLabel,
-      };
-
-      // Recommendation — daily
-      const recStale =
-        !c?.ai_summary?.recommendation ||
-        !c?.ai_summary_updated_at ||
-        Date.now() - new Date(c.ai_summary_updated_at).getTime() > 86_400_000;
-      if (recStale) {
-        refreshRecommendation(ctx);
-      } else {
-        setRecommendation(c.ai_summary?.recommendation ?? null);
-      }
-
-      // Daily tasks — daily
-      if (c?.daily_tasks && c.daily_tasks_date === isoDay()) {
-        setDailyTasks(c.daily_tasks);
-      } else {
-        refreshDailyTasks(ctx);
-      }
-
-      // Upcoming — weekly
-      if (c?.upcoming_events && c.upcoming_events_week_start === weekStartIso()) {
-        setEvents(c.upcoming_events);
-      } else {
-        refreshEvents(industry.label);
-      }
-    })();
-    return () => {
-      alive = false;
+    if (!user || !core) return;
+    const c = core;
+    const summary = c.ai_summary as { recommendation?: string } | null;
+    const ctx = {
+      mode: industry.label,
+      level: c.current_level ?? undefined,
+      goal: typeof c.current_focus === "string" ? c.current_focus : undefined,
+      streak: c.streak,
+      phase: industry.phaseLabel,
     };
+
+    // Recommendation — daily
+    const recStale =
+      !summary?.recommendation ||
+      !c.ai_summary_updated_at ||
+      Date.now() - new Date(c.ai_summary_updated_at).getTime() > 86_400_000;
+    if (recStale) {
+      refreshRecommendation(ctx);
+    } else {
+      setRecommendation(summary?.recommendation ?? null);
+    }
+
+    // Daily tasks — daily
+    if (c.daily_tasks && c.daily_tasks.length > 0 && c.daily_tasks_date === isoDay()) {
+      setDailyTasks(c.daily_tasks as string[]);
+    } else {
+      refreshDailyTasks(ctx);
+    }
+
+    // Upcoming — weekly
+    if (c.upcoming_events && c.upcoming_events.length > 0 && c.upcoming_events_week_start === weekStartIso()) {
+      setEvents(c.upcoming_events as { date: string; title: string }[]);
+    } else {
+      refreshEvents(industry.label);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, industryId]);
+  }, [user, industryId, core?.id]);
+
+  // Toggle a task done — wire streak + execution_score through the hook.
+  async function toggle(i: number) {
+    const wasDone = !!done[i];
+    setDone((d) => ({ ...d, [i]: !d[i] }));
+    if (wasDone || !user) return; // only increment on completion
+    const today = isoDay();
+    const STREAK_KEY = `aurum:lastStreakDate:${user.id}`;
+    const last = typeof window !== "undefined" ? localStorage.getItem(STREAK_KEY) : null;
+    let nextStreak = core?.streak ?? 0;
+    if (last !== today) {
+      const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+      nextStreak = last === yesterday ? nextStreak + 1 : 1;
+      if (typeof window !== "undefined") localStorage.setItem(STREAK_KEY, today);
+    }
+    await updateCore({
+      execution_score: (core?.execution_score ?? 0) + 1,
+      streak: nextStreak,
+    });
+  }
 
   async function refreshRecommendation(ctx: {
     mode: string;
@@ -169,13 +166,10 @@ export default function Dashboard() {
     try {
       const { recommendation: text } = await recFn({ data: ctx });
       setRecommendation(text);
-      await supabase
-        .from("aurum_core_state")
-        .update({
-          ai_summary: { recommendation: text },
-          ai_summary_updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", user.id);
+      await updateCore({
+        ai_summary: { recommendation: text },
+        ai_summary_updated_at: new Date().toISOString(),
+      });
     } catch (e) {
       console.error(e);
     } finally {
@@ -196,10 +190,7 @@ export default function Dashboard() {
       const { tasks } = await tasksFn({ data: ctx });
       setDailyTasks(tasks);
       setDone({});
-      await supabase
-        .from("aurum_core_state")
-        .update({ daily_tasks: tasks, daily_tasks_date: isoDay() })
-        .eq("user_id", user.id);
+      await updateCore({ daily_tasks: tasks, daily_tasks_date: isoDay() });
     } catch (e) {
       console.error(e);
     } finally {
@@ -213,10 +204,7 @@ export default function Dashboard() {
     try {
       const { events: ev } = await eventsFn({ data: { mode } });
       setEvents(ev);
-      await supabase
-        .from("aurum_core_state")
-        .update({ upcoming_events: ev, upcoming_events_week_start: weekStartIso() })
-        .eq("user_id", user.id);
+      await updateCore({ upcoming_events: ev, upcoming_events_week_start: weekStartIso() });
     } catch (e) {
       console.error(e);
     } finally {
