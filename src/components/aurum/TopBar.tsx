@@ -63,7 +63,7 @@ export function TopBar() {
             to="/profile"
             className="hidden sm:flex h-9 w-9 rounded-full bg-[var(--gradient-gold)] items-center justify-center text-[11px] font-medium text-primary-foreground"
           >
-            {initials}
+            {initials ?? "AU"}
           </Link>
         </div>
       </div>
