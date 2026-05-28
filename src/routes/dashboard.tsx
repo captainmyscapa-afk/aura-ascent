@@ -217,7 +217,10 @@ export default function Dashboard() {
     try {
       const { events: ev } = await eventsFn({ data: { mode } });
       setEvents(ev);
-      await updateCore({ upcoming_events: ev, upcoming_events_week_start: weekStartIso() });
+      await updateCore({
+        upcoming_events: { mode: industry.label, events: ev } as any,
+        upcoming_events_week_start: weekStartIso()
+      });
     } catch (e) {
       console.error(e);
     } finally {
