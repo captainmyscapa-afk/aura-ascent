@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export function TopBar() {
   const { user } = useAuth();
-  const [initials, setInitials] = useState("AU");
+  const [initials, setInitials] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
