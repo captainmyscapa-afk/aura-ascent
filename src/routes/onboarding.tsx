@@ -4,6 +4,7 @@ import { ArrowRight, ArrowLeft, Check, Sparkles } from "lucide-react";
 import { Logo } from "@/components/aurum/Logo";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
+import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 
 export const Route = createFileRoute("/onboarding")({
   component: Onboarding,
