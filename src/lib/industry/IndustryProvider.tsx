@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { INDUSTRIES } from "./config";
 import type { IndustryConfig, IndustryId } from "./types";
+import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 
 const STORAGE_KEY = "aurum.industry";
 const DEFAULT: IndustryId = "yachts";
