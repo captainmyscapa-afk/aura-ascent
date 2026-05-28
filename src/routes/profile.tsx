@@ -130,7 +130,7 @@ function Profile() {
   const { user, loading: authLoading } = useAuth();
   const { industry } = useIndustry();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [core, setCore] = useState<CoreState | null>(null);
+  const { state: core, update: updateCore } = useAurumCoreState();
   const [socials, setSocials] = useState<SocialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
@@ -146,19 +146,17 @@ function Profile() {
     let alive = true;
     (async () => {
       setLoading(true);
-      const [p, c, s] = await Promise.all([
+      const [p, s] = await Promise.all([
         supabase
           .from("user_profiles")
           .upsert({ user_id: user.id }, { onConflict: "user_id", ignoreDuplicates: false })
           .select("*")
           .maybeSingle(),
-        supabase.from("aurum_core_state").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("social_accounts").select("*").eq("user_id", user.id),
       ]);
       if (!alive) return;
       if (p.error) console.error("user_profiles upsert error", p.error);
       setProfile((p.data as UserProfile) ?? EMPTY_PROFILE(user.id));
-      setCore((c.data as CoreState) ?? null);
       setSocials((s.data as SocialAccount[]) ?? []);
       setLoading(false);
     })();
