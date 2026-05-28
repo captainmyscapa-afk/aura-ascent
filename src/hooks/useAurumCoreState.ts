@@ -57,14 +57,13 @@ function fromRow(row: Record<string, unknown> | null): AurumCoreState | null {
     execution_score: (row.execution_score as number) ?? 0,
     daily_brief: (row.today_brief as unknown) ?? null,
     daily_brief_date: (row.today_brief_date as string | null) ?? null,
-    daily_tasks: (row.daily_tasks as unknown[]) ?? [],
+    daily_tasks: Array.isArray(row.daily_tasks) ? (row.daily_tasks as unknown[]) : [],
     daily_tasks_date: (row.daily_tasks_date as string | null) ?? null,
     ai_summary: (row.ai_summary as unknown) ?? null,
     ai_summary_updated_at: (row.ai_summary_updated_at as string | null) ?? null,
     current_focus: (row.current_focus as unknown) ?? (row.goal as unknown) ?? null,
     upcoming_events: (row.upcoming_events as unknown[]) ?? [],
-    upcoming_events_week_start:
-      (row.upcoming_events_week_start as string | null) ?? null,
+    upcoming_events_week_start: (row.upcoming_events_week_start as string | null) ?? null,
     updated_at: (row.updated_at as string | null) ?? null,
     last_active: null,
   };
@@ -97,11 +96,7 @@ export function useAurumCoreState() {
     let alive = true;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("aurum_core_state")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const { data, error } = await supabase.from("aurum_core_state").select("*").eq("user_id", user.id).maybeSingle();
       if (!alive) return;
       if (error) setError(error.message);
       setState(fromRow(data as Record<string, unknown> | null));
