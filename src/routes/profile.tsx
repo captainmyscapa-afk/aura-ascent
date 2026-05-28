@@ -22,6 +22,7 @@ import { SectionHeading } from "@/components/aurum/SectionHeading";
 import { useAuth } from "@/hooks/useAuth";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useServerFn } from "@tanstack/react-start";
 import {
   generateIdentityAudit,
