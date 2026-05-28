@@ -62,7 +62,7 @@ function fromRow(row: Record<string, unknown> | null): AurumCoreState | null {
     ai_summary: (row.ai_summary as unknown) ?? null,
     ai_summary_updated_at: (row.ai_summary_updated_at as string | null) ?? null,
     current_focus: (row.current_focus as unknown) ?? (row.goal as unknown) ?? null,
-    upcoming_events: (row.upcoming_events as unknown[]) ?? [],
+    upcoming_events: Array.isArray(row.upcoming_events) ? (row.upcoming_events as unknown[]) : [],
     upcoming_events_week_start: (row.upcoming_events_week_start as string | null) ?? null,
     updated_at: (row.updated_at as string | null) ?? null,
     last_active: null,
