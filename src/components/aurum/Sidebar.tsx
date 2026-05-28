@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { useAuth } from "@/hooks/useAuth";
+import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 
 const nav = [
   { to: "/app", label: "Mission Control", icon: LayoutDashboard },
