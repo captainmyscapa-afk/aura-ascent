@@ -50,9 +50,9 @@ function fromRow(row: Record<string, unknown> | null): AurumCoreState | null {
   return {
     id: (row.id as string) ?? "",
     user_id: (row.user_id as string) ?? "",
-    active_mode: (row.mode as string | null) ?? null,
+    active_mode: (row.active_mode as string | null) ?? (row.mode as string | null) ?? null,
     current_phase: null,
-    current_level: (row.level as string | null) ?? null,
+    current_level: (row.current_level as string | null) ?? (row.level as string | null) ?? null,
     streak: (row.streak as number) ?? 0,
     execution_score: (row.execution_score as number) ?? 0,
     daily_brief: (row.today_brief as unknown) ?? null,
