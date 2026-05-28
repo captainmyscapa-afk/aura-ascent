@@ -190,7 +190,10 @@ export default function Dashboard() {
       const { tasks } = await tasksFn({ data: ctx });
       setDailyTasks(tasks);
       setDone({});
-      await updateCore({ daily_tasks: tasks, daily_tasks_date: isoDay() });
+      await updateCore({
+        daily_tasks: { mode: industry.label, tasks } as any,
+        daily_tasks_date: isoDay()
+      });
     } catch (e) {
       console.error(e);
     } finally {
