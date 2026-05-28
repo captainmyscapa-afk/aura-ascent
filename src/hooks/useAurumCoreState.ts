@@ -113,7 +113,17 @@ export function useAurumCoreState() {
       const dbPatch = toDbPatch(patch);
       if (Object.keys(dbPatch).length === 0) return;
       // Optimistic update
-      setState((s) => (s ? { ...s, ...patch } : s));
+      setState((s) => {
+        if (!s) return s;
+        const safe = { ...patch };
+        if ("daily_tasks" in safe && !Array.isArray(safe.daily_tasks)) {
+          delete safe.daily_tasks;
+        }
+        if ("upcoming_events" in safe && !Array.isArray(safe.upcoming_events)) {
+          delete safe.upcoming_events;
+        }
+        return { ...s, ...safe };
+      });
       const { data, error } = await supabase
         .from("aurum_core_state")
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
