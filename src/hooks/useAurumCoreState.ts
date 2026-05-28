@@ -38,12 +38,8 @@ export type AurumCoreState = {
 // Map exposed (canonical) field names → legacy DB column names.
 // New names live in the hook; the DB still uses the legacy names.
 const NEW_TO_DB: Record<string, string> = {
-  active_mode: "mode",
-  current_level: "level",
   daily_brief: "today_brief",
   daily_brief_date: "today_brief_date",
-  // `current_focus` in the canonical schema replaces the legacy `goal` column.
-  current_focus: "goal",
 };
 
 // Columns we don't have in the DB — exposed as null.
