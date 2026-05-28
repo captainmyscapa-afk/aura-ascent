@@ -31,7 +31,14 @@ import {
   type TodayBrief,
 } from "@/lib/identity.functions";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -170,10 +177,7 @@ function Profile() {
 
       setProfile(profileData ?? EMPTY_PROFILE(user.id));
 
-      const { data: socialsData } = await supabase
-        .from("social_accounts")
-        .select("*")
-        .eq("user_id", user.id);
+      const { data: socialsData } = await supabase.from("social_accounts").select("*").eq("user_id", user.id);
 
       if (!alive) return;
       setSocials((socialsData as SocialAccount[]) ?? []);
@@ -184,46 +188,72 @@ function Profile() {
     };
   }, [user]);
 
-  const completeness = useMemo(
-    () => (profile ? computeCompleteness(profile) : 0),
-    [profile],
-  );
+  const completeness = useMemo(() => (profile ? computeCompleteness(profile) : 0), [profile]);
 
   const scoreBreakdown = useMemo(() => {
     const identityScore = completeness;
     const networkScore = Math.min(100, socials.length * 16);
     const executionScore = core?.execution_score ?? 0;
     const knowledgeScore = Math.min(100, (core?.streak ?? 0) * 5 + 20);
-    const visibilityScore = Math.min(
-      100,
-      socials.filter((s) => s.username).length * 18,
-    );
+    const visibilityScore = Math.min(100, socials.filter((s) => s.username).length * 18);
     return [
-      { key: "knowledge", emoji: "🎓", label: "Knowledge", score: knowledgeScore, hint: "Complete Academy modules", to: "/academy" as const },
-      { key: "network", emoji: "🤝", label: "Network", score: networkScore, hint: "Make connections and introductions", to: "/network" as const },
-      { key: "visibility", emoji: "📢", label: "Visibility", score: visibilityScore, hint: "Publish content and insights", to: "/studio" as const },
-      { key: "execution", emoji: "⚡", label: "Execution", score: executionScore, hint: "Complete daily tasks", to: "/dashboard" as const },
-      { key: "identity", emoji: "👤", label: "Identity", score: identityScore, hint: "Complete your profile", to: "/profile" as const },
+      {
+        key: "knowledge",
+        emoji: "🎓",
+        label: "Knowledge",
+        score: knowledgeScore,
+        hint: "Complete Academy modules",
+        to: "/academy" as const,
+      },
+      {
+        key: "network",
+        emoji: "🤝",
+        label: "Network",
+        score: networkScore,
+        hint: "Make connections and introductions",
+        to: "/network" as const,
+      },
+      {
+        key: "visibility",
+        emoji: "📢",
+        label: "Visibility",
+        score: visibilityScore,
+        hint: "Publish content and insights",
+        to: "/studio" as const,
+      },
+      {
+        key: "execution",
+        emoji: "⚡",
+        label: "Execution",
+        score: executionScore,
+        hint: "Complete daily tasks",
+        to: "/dashboard" as const,
+      },
+      {
+        key: "identity",
+        emoji: "👤",
+        label: "Identity",
+        score: identityScore,
+        hint: "Complete your profile",
+        to: "/profile" as const,
+      },
     ];
   }, [completeness, core, socials]);
 
   const aurumScore = useMemo(
-    () =>
-      Math.round(
-        scoreBreakdown.reduce((acc, b) => acc + b.score, 0) / scoreBreakdown.length,
-      ),
+    () => Math.round(scoreBreakdown.reduce((acc, b) => acc + b.score, 0) / scoreBreakdown.length),
     [scoreBreakdown],
   );
 
   // Auto-run today's brief if missing or stale
   useEffect(() => {
-    if (!user || !core) return;
+    if (!user || !core || !profile) return;
     const today = new Date().toISOString().slice(0, 10);
     if (core.daily_brief && core.daily_brief_date === today) return;
+    if (!profile.full_name && !profile.current_profession) return;
     void refreshBrief();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, core?.user_id]);
-
+  }, [user, core?.user_id, profile?.full_name]);
   async function refreshAudit() {
     if (!user || !profile) return;
     setAuditLoading(true);
@@ -282,9 +312,7 @@ function Profile() {
   async function saveProfile(updates: Partial<UserProfile>) {
     if (!user) return;
     const merged = { ...(profile ?? EMPTY_PROFILE(user.id)), ...updates, user_id: user.id };
-    const { error } = await supabase
-      .from("user_profiles")
-      .upsert(merged as never, { onConflict: "user_id" });
+    const { error } = await supabase.from("user_profiles").upsert(merged as never, { onConflict: "user_id" });
     if (error) {
       toast.error(error.message);
       return;
@@ -298,28 +326,22 @@ function Profile() {
     setEditOpen(false);
   }
 
-
   async function connectSocial(platform: string, username: string) {
     if (!user) return;
-    const { error } = await supabase
-      .from("social_accounts")
-      .upsert(
-        {
-          user_id: user.id,
-          platform,
-          username,
-          connected_at: new Date().toISOString(),
-        } as never,
-        { onConflict: "user_id,platform" },
-      );
+    const { error } = await supabase.from("social_accounts").upsert(
+      {
+        user_id: user.id,
+        platform,
+        username,
+        connected_at: new Date().toISOString(),
+      } as never,
+      { onConflict: "user_id,platform" },
+    );
     if (error) {
       toast.error(error.message);
       return;
     }
-    const { data } = await supabase
-      .from("social_accounts")
-      .select("*")
-      .eq("user_id", user.id);
+    const { data } = await supabase.from("social_accounts").select("*").eq("user_id", user.id);
     setSocials((data as SocialAccount[]) ?? []);
     toast.success(`${platform} connected`);
     setConnectPlatform(null);
@@ -327,11 +349,7 @@ function Profile() {
 
   async function disconnectSocial(platform: string) {
     if (!user) return;
-    await supabase
-      .from("social_accounts")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("platform", platform);
+    await supabase.from("social_accounts").delete().eq("user_id", user.id).eq("platform", platform);
     setSocials((s) => s.filter((x) => x.platform !== platform));
     toast.success(`${platform} disconnected`);
   }
@@ -351,10 +369,7 @@ function Profile() {
   const computedTitle = `${titleFor(industry.id, core?.current_level ?? "initiate")} · ${profile.location || industry.label}`;
   const audit = (core?.ai_summary ?? null) as IdentityAudit | null;
   const brief = (core?.daily_brief ?? null) as TodayBrief | null;
-  const phaseProgress = Math.min(
-    100,
-    Math.round(((core?.execution_score ?? 0) / 100) * 100),
-  );
+  const phaseProgress = Math.min(100, Math.round(((core?.execution_score ?? 0) / 100) * 100));
 
   return (
     <AppShell>
@@ -448,7 +463,9 @@ function Profile() {
             </button>
 
             {!hasName && (
-              <p className="text-xs text-primary/80 mt-3">Start by adding your name and mission to unlock your dossier.</p>
+              <p className="text-xs text-primary/80 mt-3">
+                Start by adding your name and mission to unlock your dossier.
+              </p>
             )}
           </div>
 
@@ -469,7 +486,9 @@ function Profile() {
             </div>
             <div className="glass rounded-xl p-5">
               <div className="text-[9px] tracking-[0.34em] text-muted-foreground">PHASE</div>
-              <div className="font-serif text-lg mt-1.5 capitalize">{typeof core?.current_focus === "string" ? core.current_focus : "Onboarding"}</div>
+              <div className="font-serif text-lg mt-1.5 capitalize">
+                {typeof core?.current_focus === "string" ? core.current_focus : "Onboarding"}
+              </div>
               <div className="mt-3 h-1.5 rounded-full bg-border/60 overflow-hidden">
                 <div
                   className="h-full bg-[var(--gradient-gold)]"
@@ -487,12 +506,7 @@ function Profile() {
         <SectionHeading eyebrow="AURUM SCORE BREAKDOWN" title="What's building your score." />
         <div className="space-y-4 mt-4">
           {scoreBreakdown.map((b, i) => (
-            <Link
-              key={b.key}
-              to={b.to}
-              className="block group"
-              style={{ animationDelay: `${i * 60}ms` }}
-            >
+            <Link key={b.key} to={b.to} className="block group" style={{ animationDelay: `${i * 60}ms` }}>
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-3">
                   <span className="text-lg">{b.emoji}</span>
@@ -539,7 +553,9 @@ function Profile() {
         ) : (
           <div className="mt-6 text-sm text-muted-foreground">
             {auditLoading ? (
-              <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Generating your positioning audit…</span>
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" /> Generating your positioning audit…
+              </span>
             ) : (
               <button onClick={refreshAudit} className="text-primary hover:underline">
                 Generate my positioning audit →
@@ -568,7 +584,10 @@ function Profile() {
             const connected = socials.find((s) => s.platform === p.key);
             const Icon = p.icon;
             return (
-              <div key={p.key} className="rounded-xl border border-border/60 bg-background/40 p-4 flex items-center gap-4">
+              <div
+                key={p.key}
+                className="rounded-xl border border-border/60 bg-background/40 p-4 flex items-center gap-4"
+              >
                 <div className="h-10 w-10 rounded-lg bg-[var(--gradient-card)] flex items-center justify-center">
                   <Icon className="h-5 w-5" />
                 </div>
@@ -610,7 +629,10 @@ function Profile() {
       </div>
 
       {/* SECTION 5 — TODAY'S BRIEF */}
-      <div className="glass rounded-2xl p-6 sm:p-8 mb-6 animate-fade-up relative overflow-hidden" style={{ animationDelay: "320ms" }}>
+      <div
+        className="glass rounded-2xl p-6 sm:p-8 mb-6 animate-fade-up relative overflow-hidden"
+        style={{ animationDelay: "320ms" }}
+      >
         <div className="absolute inset-0 bg-[var(--gradient-gold)] opacity-[0.04] pointer-events-none" />
         <div className="relative">
           <SectionHeading eyebrow="TODAY'S BRIEF" title="Your signal for today." />
@@ -632,9 +654,13 @@ function Profile() {
           ) : (
             <div className="mt-4 text-sm text-muted-foreground">
               {briefLoading ? (
-                <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Drafting today's brief…</span>
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Drafting today's brief…
+                </span>
               ) : (
-                <button onClick={refreshBrief} className="text-primary hover:underline">Generate today's brief →</button>
+                <button onClick={refreshBrief} className="text-primary hover:underline">
+                  Generate today's brief →
+                </button>
               )}
             </div>
           )}
@@ -648,17 +674,8 @@ function Profile() {
         </div>
       </div>
 
-      <EditIdentitySheet
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        profile={profile}
-        onSave={saveProfile}
-      />
-      <ConnectDialog
-        platform={connectPlatform}
-        onClose={() => setConnectPlatform(null)}
-        onConfirm={connectSocial}
-      />
+      <EditIdentitySheet open={editOpen} onClose={() => setEditOpen(false)} profile={profile} onSave={saveProfile} />
+      <ConnectDialog platform={connectPlatform} onClose={() => setConnectPlatform(null)} onConfirm={connectSocial} />
     </AppShell>
   );
 }
@@ -678,8 +695,7 @@ function EditIdentitySheet({
   const [saving, setSaving] = useState(false);
   useEffect(() => setForm(profile), [profile, open]);
 
-  const set = <K extends keyof UserProfile>(k: K, v: UserProfile[K]) =>
-    setForm((f) => ({ ...f, [k]: v }));
+  const set = <K extends keyof UserProfile>(k: K, v: UserProfile[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
@@ -691,35 +707,66 @@ function EditIdentitySheet({
 
         <div className="space-y-4 mt-6">
           <Field label="Full name">
-            <Input value={form.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} placeholder="Alexander Kovac" />
+            <Input
+              value={form.full_name ?? ""}
+              onChange={(e) => set("full_name", e.target.value)}
+              placeholder="Alexander Kovac"
+            />
           </Field>
           <Field label="Current profession">
-            <Input value={form.current_profession ?? ""} onChange={(e) => set("current_profession", e.target.value)} placeholder="Yacht brokerage analyst" />
+            <Input
+              value={form.current_profession ?? ""}
+              onChange={(e) => set("current_profession", e.target.value)}
+              placeholder="Yacht brokerage analyst"
+            />
           </Field>
           <Field label="Location">
             <Input value={form.location ?? ""} onChange={(e) => set("location", e.target.value)} placeholder="Monaco" />
           </Field>
           <Field label="My mission">
-            <Textarea value={form.mission ?? ""} onChange={(e) => set("mission", e.target.value)} placeholder="Break into Monaco yacht brokerage by Q4" rows={3} />
+            <Textarea
+              value={form.mission ?? ""}
+              onChange={(e) => set("mission", e.target.value)}
+              placeholder="Break into Monaco yacht brokerage by Q4"
+              rows={3}
+            />
           </Field>
           <Field label="Goal">
-            <Input value={form.goal ?? ""} onChange={(e) => set("goal", e.target.value)} placeholder="Sign first brokerage mandate" />
+            <Input
+              value={form.goal ?? ""}
+              onChange={(e) => set("goal", e.target.value)}
+              placeholder="Sign first brokerage mandate"
+            />
           </Field>
           <Field label="Photo URL">
-            <Input value={form.photo_url ?? ""} onChange={(e) => set("photo_url", e.target.value)} placeholder="https://…" />
+            <Input
+              value={form.photo_url ?? ""}
+              onChange={(e) => set("photo_url", e.target.value)}
+              placeholder="https://…"
+            />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="LinkedIn URL">
-              <Input value={form.linkedin_url ?? ""} onChange={(e) => set("linkedin_url", e.target.value)} placeholder="https://linkedin.com/in/…" />
+              <Input
+                value={form.linkedin_url ?? ""}
+                onChange={(e) => set("linkedin_url", e.target.value)}
+                placeholder="https://linkedin.com/in/…"
+              />
             </Field>
             <Field label="Instagram URL">
-              <Input value={form.instagram_url ?? ""} onChange={(e) => set("instagram_url", e.target.value)} placeholder="https://instagram.com/…" />
+              <Input
+                value={form.instagram_url ?? ""}
+                onChange={(e) => set("instagram_url", e.target.value)}
+                placeholder="https://instagram.com/…"
+              />
             </Field>
           </div>
         </div>
 
         <div className="mt-8 flex gap-3 justify-end">
-          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
           <Button
             onClick={async () => {
               setSaving(true);
@@ -765,7 +812,8 @@ function ConnectDialog({
         <DialogHeader>
           <DialogTitle className="font-serif text-2xl">Connect {meta?.name}</DialogTitle>
           <DialogDescription>
-            Enter your {meta?.name} handle{platform === "substack" ? " or URL" : ""} — OAuth-based publishing rolls out shortly.
+            Enter your {meta?.name} handle{platform === "substack" ? " or URL" : ""} — OAuth-based publishing rolls out
+            shortly.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
@@ -779,7 +827,9 @@ function ConnectDialog({
           />
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
           <Button onClick={() => value.trim() && onConfirm(platform, value.trim())} disabled={!value.trim()}>
             Connect
           </Button>
