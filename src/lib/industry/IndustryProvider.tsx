@@ -36,19 +36,22 @@ export function IndustryProvider({ children }: { children: ReactNode }) {
   }, [industryId]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
     if (!core?.active_mode) return;
     if (isIndustry(core.active_mode) && core.active_mode !== industryId) {
       setIndustryId(core.active_mode as IndustryId);
     }
   }, [core?.active_mode]);
-
-  const setIndustry = useCallback((id: IndustryId) => {
-    setIndustryId(id);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, id);
-    }
-    updateCore({ active_mode: id });
-  }, [updateCore]);
+  const setIndustry = useCallback(
+    (id: IndustryId) => {
+      setIndustryId(id);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(STORAGE_KEY, id);
+      }
+      updateCore({ active_mode: id });
+    },
+    [updateCore],
+  );
 
   const value = useMemo<Ctx>(
     () => ({ industryId, industry: INDUSTRIES[industryId], setIndustry }),
