@@ -119,8 +119,13 @@ export default function Dashboard() {
     }
 
     // Daily tasks — daily
-    if (c.daily_tasks && c.daily_tasks.length > 0 && c.daily_tasks_date === isoDay()) {
-      setDailyTasks(c.daily_tasks as string[]);
+    const cachedTasks = c.daily_tasks as any;
+    if (
+      cachedTasks?.tasks?.length > 0 &&
+      c.daily_tasks_date === isoDay() &&
+      cachedTasks?.mode === industry.label
+    ) {
+      setDailyTasks(cachedTasks.tasks);
     } else {
       refreshDailyTasks(ctx);
     }
