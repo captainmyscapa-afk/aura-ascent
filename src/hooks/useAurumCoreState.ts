@@ -77,6 +77,8 @@ function toDbPatch(patch: Partial<AurumCoreState>): Record<string, unknown> {
     const dbKey = NEW_TO_DB[k] ?? k;
     out[dbKey] = v;
   }
+  if (out["active_mode"] !== undefined) out["mode"] = out["active_mode"];
+  if (out["current_level"] !== undefined) out["level"] = out["current_level"];
   return out;
 }
 
