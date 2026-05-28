@@ -163,10 +163,10 @@ function Mentor() {
             </div>
             <ul className="text-xs text-foreground/90 space-y-2">
               <li>· {industry.modeLabel} · {industry.phaseLabel}</li>
-              <li>· 12-day execution streak</li>
+              <li>· {`${core?.streak ?? 0}-day execution streak`}</li>
               <li>· 184 relationships (23 Tier-1)</li>
               <li>· Next event: {industry.upcoming[0][1]}</li>
-              <li>· Authority score 42 · trajectory ↑</li>
+              <li>· {`Authority score ${core?.execution_score ?? 0}`}</li>
             </ul>
           </div>
         </aside>
