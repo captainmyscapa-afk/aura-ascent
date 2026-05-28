@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -14,14 +14,13 @@ import {
   Compass,
   Crown,
 } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Logo } from "./Logo";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
+import { useAuth } from "@/hooks/useAuth";
+import { useAurumCoreState } from "@/hooks/useAurumCoreState";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const primaryNav = [
@@ -41,6 +40,37 @@ export function MobileNav() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const { industry, setIndustry } = useIndustry();
+  const { user } = useAuth();
+  const { state: core } = useAurumCoreState();
+  const [initials, setInitials] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("user_profiles")
+      .select("full_name")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const name = (data as { full_name: string | null } | null)?.full_name;
+        if (name) {
+          const parts = name.trim().split(" ").filter(Boolean);
+          const ini = parts
+            .map((p: string) => p[0])
+            .slice(0, 2)
+            .join("")
+            .toUpperCase();
+          setInitials(ini || "AU");
+          const short = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
+          setDisplayName(short);
+        } else {
+          const email = user.email ?? "";
+          setInitials(email.slice(0, 2).toUpperCase() || "AU");
+          setDisplayName(email.split("@")[0]);
+        }
+      });
+  }, [user]);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -56,8 +86,7 @@ export function MobileNav() {
         side="left"
         className="w-[86%] max-w-[340px] p-0 border-r border-border/60 bg-transparent backdrop-blur-2xl [&>button]:hidden"
         style={{
-          background:
-            "linear-gradient(180deg, oklch(0.14 0.01 240 / 92%), oklch(0.11 0.008 240 / 96%))",
+          background: "linear-gradient(180deg, oklch(0.14 0.01 240 / 92%), oklch(0.11 0.008 240 / 96%))",
         }}
       >
         <div className="flex flex-col h-full">
@@ -81,10 +110,10 @@ export function MobileNav() {
               className="flex items-center gap-3 glass rounded-2xl p-3.5 active:scale-[0.99] transition-transform"
             >
               <div className="h-11 w-11 rounded-full bg-[var(--gradient-gold)] flex items-center justify-center text-[12px] font-medium text-primary-foreground shadow-[var(--shadow-gold)]">
-                AK
+                {initials ?? "AU"}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-serif text-[16px] leading-tight truncate">Alexander K.</div>
+                <div className="font-serif text-[16px] leading-tight truncate">{displayName ?? "Operator"}</div>
                 <div className="text-[11px] text-muted-foreground tracking-wide flex items-center gap-1.5">
                   <Crown className="h-3 w-3 text-primary" />
                   Tier · Initiate
@@ -123,15 +152,9 @@ export function MobileNav() {
                         active ? "bg-[var(--gradient-gold)]" : "bg-secondary/60"
                       }`}
                     >
-                      <Icon
-                        className={`h-3.5 w-3.5 ${
-                          active ? "text-primary-foreground" : "text-muted-foreground"
-                        }`}
-                      />
+                      <Icon className={`h-3.5 w-3.5 ${active ? "text-primary-foreground" : "text-muted-foreground"}`} />
                     </span>
-                    <span className="text-[10px] tracking-wide text-foreground/80">
-                      {opt.shortLabel}
-                    </span>
+                    <span className="text-[10px] tracking-wide text-foreground/80">{opt.shortLabel}</span>
                   </button>
                 );
               })}
@@ -140,9 +163,7 @@ export function MobileNav() {
 
           {/* Nav */}
           <nav className="flex-1 overflow-y-auto px-3 pt-2 pb-4">
-            <div className="px-3 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70">
-              ECOSYSTEM
-            </div>
+            <div className="px-3 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70">ECOSYSTEM</div>
             <div className="space-y-1">
               {primaryNav.map(({ to, label, icon: Icon }) => {
                 const active = pathname === to || pathname.startsWith(to + "/");
@@ -159,21 +180,13 @@ export function MobileNav() {
                   >
                     <span
                       className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${
-                        active
-                          ? "bg-[var(--gradient-gold)]"
-                          : "bg-secondary/40 group-hover:bg-secondary/60"
+                        active ? "bg-[var(--gradient-gold)]" : "bg-secondary/40 group-hover:bg-secondary/60"
                       }`}
                     >
-                      <Icon
-                        className={`h-4 w-4 ${
-                          active ? "text-primary-foreground" : "text-muted-foreground"
-                        }`}
-                      />
+                      <Icon className={`h-4 w-4 ${active ? "text-primary-foreground" : "text-muted-foreground"}`} />
                     </span>
                     <span className="tracking-wide flex-1">{label}</span>
-                    {active && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-gold" />
-                    )}
+                    {active && <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-gold" />}
                   </Link>
                 );
               })}
@@ -181,9 +194,7 @@ export function MobileNav() {
 
             <div className="hairline my-5 opacity-50" />
 
-            <div className="px-3 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70">
-              ACCOUNT
-            </div>
+            <div className="px-3 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70">ACCOUNT</div>
             <div className="space-y-1">
               {secondaryNav.map(({ to, label, icon: Icon }) => {
                 const active = pathname === to;
@@ -212,20 +223,18 @@ export function MobileNav() {
           <div className="px-5 pb-6 pt-3 border-t border-border/40">
             <div className="glass rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2.5">
-                <span className="text-[10px] tracking-[0.3em] text-muted-foreground">
-                  MOMENTUM
-                </span>
-                <span className="font-mono text-xs text-primary">87</span>
+                <span className="text-[10px] tracking-[0.3em] text-muted-foreground">MOMENTUM</span>
+                <span className="font-mono text-xs text-primary">{core?.streak ?? 0}</span>
               </div>
               <div className="h-1 rounded-full bg-secondary overflow-hidden">
                 <div
                   className="h-full bg-[var(--gradient-gold)]"
-                  style={{ width: "87%" }}
+                  style={{ width: `${Math.min(100, (core?.streak ?? 0) * 2)}%` }}
                 />
               </div>
               <div className="mt-2.5 flex items-center gap-2 text-[11px] text-muted-foreground">
                 <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                <span>12-day streak · {industry.modeLabel}</span>
+                <span>{`${core?.streak ?? 0}-day streak · ${industry.modeLabel}`}</span>
               </div>
             </div>
           </div>
