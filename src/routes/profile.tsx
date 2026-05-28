@@ -450,7 +450,7 @@ function Profile() {
             </div>
             <div className="glass rounded-xl p-5">
               <div className="text-[9px] tracking-[0.34em] text-muted-foreground">PHASE</div>
-              <div className="font-serif text-lg mt-1.5 capitalize">{core?.current_focus ?? "Onboarding"}</div>
+              <div className="font-serif text-lg mt-1.5 capitalize">{typeof core?.current_focus === "string" ? core.current_focus : "Onboarding"}</div>
               <div className="mt-3 h-1.5 rounded-full bg-border/60 overflow-hidden">
                 <div
                   className="h-full bg-[var(--gradient-gold)]"
