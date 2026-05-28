@@ -5,6 +5,7 @@ import { AppShell } from "@/components/aurum/AppShell";
 import { Sparkles, Send, MessageCircle, Compass, Target, Zap } from "lucide-react";
 import { useIndustry, useIndustrySystemPrompt } from "@/lib/industry/IndustryProvider";
 import { askGemini } from "@/lib/gemini.functions";
+import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 
 export const Route = createFileRoute("/mentor")({
   component: Mentor,
