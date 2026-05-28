@@ -29,6 +29,7 @@ const nav = [
 export function Sidebar() {
   const { pathname } = useLocation();
   const { session, signOut } = useAuth();
+  const { state: core } = useAurumCoreState();
   const navigate = useNavigate();
   const handleLogout = async () => {
     await signOut();
