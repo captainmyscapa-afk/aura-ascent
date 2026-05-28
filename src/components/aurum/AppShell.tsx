@@ -14,7 +14,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="lg:pl-64">
         <TopBar />
         <main
-          key={industryId}
           className="px-4 sm:px-8 lg:px-12 pt-5 lg:pt-6 pb-28 lg:pb-24 animate-fade-up"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 7rem)" }}
         >
