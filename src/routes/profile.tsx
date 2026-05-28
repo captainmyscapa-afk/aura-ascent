@@ -200,7 +200,7 @@ function Profile() {
   useEffect(() => {
     if (!user || !core) return;
     const today = new Date().toISOString().slice(0, 10);
-    if (core.today_brief && core.today_brief_date === today) return;
+    if (core.daily_brief && core.daily_brief_date === today) return;
     void refreshBrief();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, core?.user_id]);
@@ -209,26 +209,23 @@ function Profile() {
     if (!user || !profile) return;
     setAuditLoading(true);
     try {
+      const focus = typeof core?.current_focus === "string" ? core.current_focus : undefined;
       const { audit } = await runAudit({
         data: {
           name: profile.full_name ?? undefined,
           mode: industry.label,
           profession: profile.current_profession ?? undefined,
-          goal: profile.goal ?? core?.goal,
+          goal: profile.goal ?? focus,
           location: profile.location ?? undefined,
-          level: core?.level,
+          level: core?.current_level ?? undefined,
           streak: core?.streak,
           aurumScore,
         },
       });
-      await supabase
-        .from("aurum_core_state")
-        .update({
-          ai_summary: audit as never,
-          ai_summary_updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", user.id);
-      setCore((c) => (c ? { ...c, ai_summary: audit } : c));
+      await updateCore({
+        ai_summary: audit,
+        ai_summary_updated_at: new Date().toISOString(),
+      });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Audit failed");
     } finally {
@@ -240,27 +237,22 @@ function Profile() {
     if (!user || !profile) return;
     setBriefLoading(true);
     try {
+      const focus = typeof core?.current_focus === "string" ? core.current_focus : undefined;
       const { brief } = await runBrief({
         data: {
           name: profile.full_name ?? undefined,
           mode: industry.label,
           profession: profile.current_profession ?? undefined,
-          goal: profile.goal ?? core?.goal,
+          goal: profile.goal ?? focus,
           location: profile.location ?? undefined,
-          level: core?.level,
+          level: core?.current_level ?? undefined,
         },
       });
       const today = new Date().toISOString().slice(0, 10);
-      await supabase
-        .from("aurum_core_state")
-        .update({
-          today_brief: brief as never,
-          today_brief_date: today,
-        })
-        .eq("user_id", user.id);
-      setCore((c) =>
-        c ? { ...c, today_brief: brief, today_brief_date: today } : c,
-      );
+      await updateCore({
+        daily_brief: brief,
+        daily_brief_date: today,
+      });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Brief failed");
     } finally {
@@ -279,9 +271,14 @@ function Profile() {
       return;
     }
     setProfile(merged);
+    // Mirror goal into core current_focus (single source of truth for AI context)
+    if (updates.goal !== undefined && updates.goal !== null && updates.goal !== "") {
+      void updateCore({ current_focus: updates.goal });
+    }
     toast.success("Identity updated");
     setEditOpen(false);
   }
+
 
   async function connectSocial(platform: string, username: string) {
     if (!user) return;
