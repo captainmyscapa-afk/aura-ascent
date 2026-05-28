@@ -55,7 +55,18 @@ function fromRow(row: Record<string, unknown> | null): AurumCoreState | null {
     current_level: (row.current_level as string | null) ?? (row.level as string | null) ?? null,
     streak: (row.streak as number) ?? 0,
     execution_score: (row.execution_score as number) ?? 0,
-    daily_brief: (row.today_brief as unknown) ?? null,
+    daily_brief: (() => {
+      const v = row.today_brief;
+      if (!v) return null;
+      if (typeof v === "string") {
+        try {
+          return JSON.parse(v);
+        } catch {
+          return null;
+        }
+      }
+      return v;
+    })(),
     daily_brief_date: (row.today_brief_date as string | null) ?? null,
     daily_tasks: Array.isArray(row.daily_tasks) ? (row.daily_tasks as unknown[]) : [],
     daily_tasks_date: (row.daily_tasks_date as string | null) ?? null,
