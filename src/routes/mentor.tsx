@@ -15,6 +15,7 @@ const promptIcons = [Target, Compass, Zap, MessageCircle];
 
 function Mentor() {
   const { industry } = useIndustry();
+  const { state: core } = useAurumCoreState();
   const systemPrompt = useIndustrySystemPrompt();
   const ask = useServerFn(askGemini);
   const [input, setInput] = useState("");
