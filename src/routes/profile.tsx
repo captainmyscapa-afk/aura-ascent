@@ -329,9 +329,9 @@ function Profile() {
 
   const hasName = !!profile.full_name;
   const displayName = profile.full_name || "Unnamed Operator";
-  const computedTitle = `${titleFor(industry.id, core?.level ?? "initiate")} · ${profile.location || industry.label}`;
-  const audit = core?.ai_summary ?? null;
-  const brief = core?.today_brief ?? null;
+  const computedTitle = `${titleFor(industry.id, core?.current_level ?? "initiate")} · ${profile.location || industry.label}`;
+  const audit = (core?.ai_summary ?? null) as IdentityAudit | null;
+  const brief = (core?.daily_brief ?? null) as TodayBrief | null;
   const phaseProgress = Math.min(
     100,
     Math.round(((core?.execution_score ?? 0) / 100) * 100),
