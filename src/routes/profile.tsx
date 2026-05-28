@@ -59,19 +59,7 @@ type UserProfile = {
   substack_url: string | null;
 };
 
-type CoreState = {
-  user_id: string;
-  mode: string;
-  goal: string;
-  level: string;
-  execution_score: number;
-  streak: number;
-  current_focus: string;
-  ai_summary?: IdentityAudit | null;
-  ai_summary_updated_at?: string | null;
-  today_brief?: TodayBrief | null;
-  today_brief_date?: string | null;
-};
+// Core state is read from useAurumCoreState (single source of truth).
 
 type SocialAccount = {
   id: string;
