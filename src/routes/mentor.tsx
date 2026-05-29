@@ -6,6 +6,7 @@ import { Sparkles, Send, MessageCircle, Compass, Target, Zap } from "lucide-reac
 import { useIndustry, useIndustrySystemPrompt } from "@/lib/industry/IndustryProvider";
 import { askGemini } from "@/lib/gemini.functions";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 export const Route = createFileRoute("/mentor")({
   component: Mentor,
@@ -16,7 +17,8 @@ const promptIcons = [Target, Compass, Zap, MessageCircle];
 function Mentor() {
   const { industry } = useIndustry();
   const { state: core } = useAurumCoreState();
-  const systemPrompt = useIndustrySystemPrompt();
+  const { profile: userProfile } = useUserProfile();
+  const systemPrompt = useIndustrySystemPrompt(core?.current_level ?? undefined, userProfile?.mentor_tone ?? undefined);
   const ask = useServerFn(askGemini);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
@@ -39,10 +41,7 @@ function Mentor() {
   const send = async () => {
     const text = input.trim();
     if (!text || pending) return;
-    const next: Array<{ r: "ai" | "me"; t: string }> = [
-      ...messages,
-      { r: "me", t: text },
-    ];
+    const next: Array<{ r: "ai" | "me"; t: string }> = [...messages, { r: "me", t: text }];
     setThread(next);
     setInput("");
     setPending(true);
@@ -58,10 +57,7 @@ function Mentor() {
       });
       setThread([...next, { r: "ai", t: reply || "…" }]);
     } catch (e) {
-      setThread([
-        ...next,
-        { r: "ai", t: `⚠️ ${e instanceof Error ? e.message : "Request failed"}` },
-      ]);
+      setThread([...next, { r: "ai", t: `⚠️ ${e instanceof Error ? e.message : "Request failed"}` }]);
     } finally {
       setPending(false);
     }
@@ -93,19 +89,13 @@ function Mentor() {
                 style={{ animationDelay: `${i * 80}ms` }}
               >
                 <div
-                  className={`max-w-[78%] text-[15px] leading-relaxed whitespace-pre-line ${
-                    m.r === "me"
-                      ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-md px-5 py-3"
-                      : "text-foreground"
-                  }`}
+                  className={`max-w-[78%] text-[15px] leading-relaxed whitespace-pre-line ${m.r === "me" ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-md px-5 py-3" : "text-foreground"}`}
                 >
                   {m.t}
                 </div>
               </div>
             ))}
-            {pending && (
-              <div className="text-xs text-muted-foreground italic">AURUM is thinking…</div>
-            )}
+            {pending && <div className="text-xs text-muted-foreground italic">AURUM is thinking…</div>}
           </div>
 
           <div className="border-t border-border/60 p-4">
@@ -135,18 +125,14 @@ function Mentor() {
 
         <aside className="space-y-4 overflow-y-auto">
           <div className="glass rounded-xl p-5">
-            <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-4">
-              QUICK INVOCATIONS
-            </div>
+            <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-4">QUICK INVOCATIONS</div>
             <div className="space-y-2">
               {industry.mentorPrompts.map((t, i) => {
                 const I = promptIcons[i % promptIcons.length];
                 return (
                   <button
                     key={t}
-                    onClick={() => {
-                      setInput(t);
-                    }}
+                    onClick={() => setInput(t)}
                     className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/40 text-left text-sm transition-colors"
                   >
                     <I className="h-4 w-4 text-primary shrink-0" />
@@ -158,11 +144,11 @@ function Mentor() {
           </div>
 
           <div className="glass rounded-xl p-5">
-            <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">
-              CONTEXT LOADED
-            </div>
+            <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">CONTEXT LOADED</div>
             <ul className="text-xs text-foreground/90 space-y-2">
-              <li>· {industry.modeLabel} · {industry.phaseLabel}</li>
+              <li>
+                · {industry.modeLabel} · {industry.phaseLabel}
+              </li>
               <li>· {`${core?.streak ?? 0}-day execution streak`}</li>
               <li>· 184 relationships (23 Tier-1)</li>
               <li>· Next event: {industry.upcoming[0][1]}</li>
