@@ -23,6 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
+import { useUserProfile, type UserProfile } from "@/hooks/useUserProfile";
 import { useServerFn } from "@tanstack/react-start";
 import {
   generateIdentityAudit,
@@ -49,25 +50,6 @@ export const Route = createFileRoute("/profile")({
   component: Profile,
 });
 
-type UserProfile = {
-  id?: string;
-  user_id: string;
-  full_name: string | null;
-  current_profession: string | null;
-  location: string | null;
-  mission: string | null;
-  goal: string | null;
-  photo_url: string | null;
-  linkedin_url: string | null;
-  instagram_url: string | null;
-  tiktok_url: string | null;
-  twitter_url: string | null;
-  youtube_url: string | null;
-  substack_url: string | null;
-};
-
-// Core state is read from useAurumCoreState (single source of truth).
-
 type SocialAccount = {
   id: string;
   user_id: string;
@@ -84,22 +66,6 @@ const PLATFORMS = [
   { key: "youtube", name: "YouTube", icon: Youtube },
   { key: "substack", name: "Substack", icon: FileText },
 ] as const;
-
-const EMPTY_PROFILE = (uid: string): UserProfile => ({
-  user_id: uid,
-  full_name: null,
-  current_profession: null,
-  location: null,
-  mission: null,
-  goal: null,
-  photo_url: null,
-  linkedin_url: null,
-  instagram_url: null,
-  tiktok_url: null,
-  twitter_url: null,
-  youtube_url: null,
-  substack_url: null,
-});
 
 function titleFor(mode: string, level: string) {
   const m = mode?.[0]?.toUpperCase() + mode?.slice(1);
@@ -136,10 +102,10 @@ function computeCompleteness(p: UserProfile) {
 function Profile() {
   const { user, loading: authLoading } = useAuth();
   const { industry } = useIndustry();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const { profile, loading, update: updateProfile } = useUserProfile();
   const { state: core, update: updateCore } = useAurumCoreState();
   const [socials, setSocials] = useState<SocialAccount[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [socialsLoading, setSocialsLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [auditLoading, setAuditLoading] = useState(false);
   const [briefLoading, setBriefLoading] = useState(false);
@@ -151,38 +117,15 @@ function Profile() {
   useEffect(() => {
     if (!user) return;
     let alive = true;
-    (async () => {
-      setLoading(true);
-
-      const { data: existingProfile, error: fetchError } = await supabase
-        .from("user_profiles")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!alive) return;
-      if (fetchError) console.error("user_profiles fetch error", fetchError);
-
-      let profileData = existingProfile as UserProfile | null;
-
-      if (!profileData) {
-        const { data: newProfile, error: insertError } = await supabase
-          .from("user_profiles")
-          .insert({ user_id: user.id })
-          .select("*")
-          .maybeSingle();
-        if (insertError) console.error("user_profiles insert error", insertError);
-        profileData = newProfile as UserProfile | null;
-      }
-
-      setProfile(profileData ?? EMPTY_PROFILE(user.id));
-
-      const { data: socialsData } = await supabase.from("social_accounts").select("*").eq("user_id", user.id);
-
-      if (!alive) return;
-      setSocials((socialsData as SocialAccount[]) ?? []);
-      setLoading(false);
-    })();
+    supabase
+      .from("social_accounts")
+      .select("*")
+      .eq("user_id", user.id)
+      .then(({ data }) => {
+        if (!alive) return;
+        setSocials((data as SocialAccount[]) ?? []);
+        setSocialsLoading(false);
+      });
     return () => {
       alive = false;
     };
@@ -245,15 +188,16 @@ function Profile() {
     [scoreBreakdown],
   );
 
-  // Auto-run today's brief if missing or stale
   useEffect(() => {
     if (!user || !core || !profile) return;
+    if (profile.auto_daily_brief === false) return;
     const today = new Date().toISOString().slice(0, 10);
     if (core.daily_brief && core.daily_brief_date === today) return;
     if (!profile.full_name && !profile.current_profession) return;
     void refreshBrief();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, core?.user_id, profile?.full_name]);
+
   async function refreshAudit() {
     if (!user || !profile) return;
     setAuditLoading(true);
@@ -271,10 +215,7 @@ function Profile() {
           aurumScore,
         },
       });
-      await updateCore({
-        ai_summary: audit,
-        ai_summary_updated_at: new Date().toISOString(),
-      });
+      await updateCore({ ai_summary: audit, ai_summary_updated_at: new Date().toISOString() });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Audit failed");
     } finally {
@@ -298,10 +239,7 @@ function Profile() {
         },
       });
       const today = new Date().toISOString().slice(0, 10);
-      await updateCore({
-        daily_brief: brief,
-        daily_brief_date: today,
-      });
+      await updateCore({ daily_brief: brief, daily_brief_date: today });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Brief failed");
     } finally {
@@ -311,14 +249,7 @@ function Profile() {
 
   async function saveProfile(updates: Partial<UserProfile>) {
     if (!user) return;
-    const merged = { ...(profile ?? EMPTY_PROFILE(user.id)), ...updates, user_id: user.id };
-    const { error } = await supabase.from("user_profiles").upsert(merged as never, { onConflict: "user_id" });
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    setProfile(merged);
-    // Mirror goal into core current_focus (single source of truth for AI context)
+    await updateProfile(updates);
     if (updates.goal !== undefined && updates.goal !== null && updates.goal !== "") {
       void updateCore({ current_focus: updates.goal });
     }
@@ -328,15 +259,11 @@ function Profile() {
 
   async function connectSocial(platform: string, username: string) {
     if (!user) return;
-    const { error } = await supabase.from("social_accounts").upsert(
-      {
-        user_id: user.id,
-        platform,
-        username,
-        connected_at: new Date().toISOString(),
-      } as never,
-      { onConflict: "user_id,platform" },
-    );
+    const { error } = await supabase
+      .from("social_accounts")
+      .upsert({ user_id: user.id, platform, username, connected_at: new Date().toISOString() } as never, {
+        onConflict: "user_id,platform",
+      });
     if (error) {
       toast.error(error.message);
       return;
@@ -373,17 +300,14 @@ function Profile() {
 
   return (
     <AppShell>
-      {/* SECTION 1 — DOSSIER */}
       <div
         className="glass rounded-2xl overflow-hidden mb-10 animate-fade-up relative"
         style={{ animationDelay: "0ms" }}
       >
         <div className="h-32 bg-[var(--gradient-gold)] opacity-70" />
         <div className="px-6 sm:px-10 pb-10 -mt-16 grid lg:grid-cols-[1fr_360px] gap-8">
-          {/* LEFT */}
           <div>
             <div className="relative inline-block">
-              {/* progress ring */}
               <svg className="absolute inset-0 -m-1.5 h-[108px] w-[108px]" viewBox="0 0 108 108">
                 <circle cx="54" cy="54" r="50" stroke="hsl(var(--border))" strokeWidth="3" fill="none" />
                 <circle
@@ -407,14 +331,12 @@ function Profile() {
               </svg>
               <div className="h-24 w-24 rounded-full bg-background border-4 border-background flex items-center justify-center font-serif text-3xl text-gold-gradient bg-[var(--gradient-card)] overflow-hidden">
                 {profile.photo_url ? (
-                  // eslint-disable-next-line jsx-a11y/img-redundant-alt
                   <img src={profile.photo_url} alt="Profile photo" className="h-full w-full object-cover" />
                 ) : (
                   initials(profile.full_name)
                 )}
               </div>
             </div>
-
             <div className="mt-5 flex items-center gap-3 flex-wrap">
               <h1 className="font-serif text-3xl sm:text-4xl">{displayName}</h1>
               <span className="text-[10px] tracking-[0.3em] px-3 py-1 rounded-full ring-1 ring-primary/40 text-primary uppercase">
@@ -422,7 +344,6 @@ function Profile() {
               </span>
             </div>
             <p className="text-muted-foreground text-sm mt-1.5">{computedTitle}</p>
-
             <div className="flex items-center gap-4 mt-4 text-muted-foreground text-sm">
               {profile.location && (
                 <span className="inline-flex items-center gap-1.5">
@@ -440,7 +361,6 @@ function Profile() {
                 </a>
               )}
             </div>
-
             <div className="mt-6 rounded-xl border border-border/60 bg-background/40 p-4 max-w-2xl">
               <div className="text-[9px] tracking-[0.34em] text-muted-foreground mb-1.5">MY MISSION</div>
               {profile.mission ? (
@@ -454,22 +374,18 @@ function Profile() {
                 </button>
               )}
             </div>
-
             <button
               onClick={() => setEditOpen(true)}
               className="mt-6 inline-flex items-center gap-2 text-xs glass rounded-full px-4 py-2 tracking-[0.2em] hover:ring-gold transition-all"
             >
               <Pencil className="h-3 w-3" /> EDIT IDENTITY
             </button>
-
             {!hasName && (
               <p className="text-xs text-primary/80 mt-3">
                 Start by adding your name and mission to unlock your dossier.
               </p>
             )}
           </div>
-
-          {/* RIGHT — STATS */}
           <div className="flex flex-col gap-3">
             <div className="glass rounded-xl p-5">
               <div className="text-[9px] tracking-[0.34em] text-muted-foreground">AURUM SCORE</div>
@@ -501,7 +417,6 @@ function Profile() {
         </div>
       </div>
 
-      {/* SECTION 2 — SCORE BREAKDOWN */}
       <div className="glass rounded-2xl p-6 sm:p-8 mb-10 animate-fade-up" style={{ animationDelay: "80ms" }}>
         <SectionHeading eyebrow="AURUM SCORE BREAKDOWN" title="What's building your score." />
         <div className="space-y-4 mt-4">
@@ -526,13 +441,11 @@ function Profile() {
         </div>
       </div>
 
-      {/* SECTION 3 — AI AUDIT */}
       <div className="glass rounded-2xl p-6 sm:p-8 mb-10 animate-fade-up relative" style={{ animationDelay: "160ms" }}>
         <div className="flex items-start justify-between gap-4">
           <SectionHeading eyebrow="AI POSITIONING AUDIT" title="AURUM's read on you." />
           <Sparkles className="h-5 w-5 text-primary/70" />
         </div>
-
         {audit ? (
           <div className="space-y-5 mt-4">
             {(audit?.actions ?? []).map((a) => (
@@ -563,7 +476,6 @@ function Profile() {
             )}
           </div>
         )}
-
         <button
           onClick={refreshAudit}
           disabled={auditLoading}
@@ -573,7 +485,6 @@ function Profile() {
         </button>
       </div>
 
-      {/* SECTION 4 — SOCIAL ACCOUNTS */}
       <div className="glass rounded-2xl p-6 sm:p-8 mb-10 animate-fade-up" style={{ animationDelay: "240ms" }}>
         <SectionHeading eyebrow="CONNECTED ACCOUNTS" title="Your publishing network." />
         <p className="text-sm text-muted-foreground -mt-2 mb-1">
@@ -628,7 +539,6 @@ function Profile() {
         </div>
       </div>
 
-      {/* SECTION 5 — TODAY'S BRIEF */}
       <div
         className="glass rounded-2xl p-6 sm:p-8 mb-6 animate-fade-up relative overflow-hidden"
         style={{ animationDelay: "320ms" }}
@@ -694,7 +604,6 @@ function EditIdentitySheet({
   const [form, setForm] = useState(profile);
   const [saving, setSaving] = useState(false);
   useEffect(() => setForm(profile), [profile, open]);
-
   const set = <K extends keyof UserProfile>(k: K, v: UserProfile[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   return (
@@ -704,7 +613,6 @@ function EditIdentitySheet({
           <SheetTitle className="font-serif text-2xl">Edit identity</SheetTitle>
           <SheetDescription>Your dossier shapes every recommendation AURUM makes.</SheetDescription>
         </SheetHeader>
-
         <div className="space-y-4 mt-6">
           <Field label="Full name">
             <Input
@@ -762,7 +670,6 @@ function EditIdentitySheet({
             </Field>
           </div>
         </div>
-
         <div className="mt-8 flex gap-3 justify-end">
           <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
@@ -775,8 +682,7 @@ function EditIdentitySheet({
             }}
             disabled={saving}
           >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-            Save
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}Save
           </Button>
         </div>
       </SheetContent>
