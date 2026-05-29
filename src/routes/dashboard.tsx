@@ -291,9 +291,10 @@ export default function Dashboard() {
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
                 to="/mentor"
-                className="inline-flex items-center gap-2 bg-[var(--gradient-gold)] text-primary-foreground rounded-full px-5 py-2.5 text-sm shadow-[var(--shadow-gold)]"
+                className="inline-flex items-center gap-2 text-primary-foreground rounded-full px-5 py-2.5 text-sm shadow-[var(--shadow-gold)]"
+                style={{ background: "var(--gradient-gold)" }}
               >
-                <Sparkles className="h-4 w-4" /> Speak with AURUM
+                <Sparkles className="h-4 w-4 text-primary-foreground" /> Speak with AURUM
               </Link>
               <Link
                 to="/intelligence"
