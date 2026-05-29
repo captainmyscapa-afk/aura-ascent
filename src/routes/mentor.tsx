@@ -24,17 +24,12 @@ function Mentor() {
   const [pending, setPending] = useState(false);
   const [thread, setThread] = useState<Array<{ r: "ai" | "me"; t: string }> | null>(null);
 
-  const seed: Array<{ r: "ai" | "me"; t: string }> = [
-    { r: "ai", t: industry.mentorOpener },
-    {
-      r: "me",
-      t: "It was good. They invited me to discuss further but I'm nervous I won't hold my own with senior players.",
-    },
-    {
-      r: "ai",
-      t: `Understandable — and a sign you're entering the right room. Three things will neutralize that anxiety in ${industry.label.toLowerCase()}:\n\n1. Memorize three current ${industry.terms.market.toLowerCase()} data points so you contribute, not just receive.\n2. Prepare two questions only an insider would ask — I'll draft them.\n3. Dress register: matte tones, restraint, one expensive detail. Avoid logos.\n\nWant me to build your full preparation brief now?`,
-    },
-  ];
+  const userName = userProfile?.full_name?.split(" ")[0] ?? "Operator";
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
+  const opener = `Good ${greeting}, ${userName}. I'm your AURUM ${industry.mentorPersona.replace("AURUM · ", "")} — here to help you break into ${industry.label.toLowerCase()} at the highest level. What's your most pressing challenge right now?`;
+
+  const seed: Array<{ r: "ai" | "me"; t: string }> = [{ r: "ai", t: opener }];
 
   const messages = thread ?? seed;
 
@@ -68,7 +63,10 @@ function Mentor() {
       <div className="grid lg:grid-cols-[1fr_320px] gap-6 h-[calc(100vh-7rem)]">
         <div className="glass rounded-xl flex flex-col overflow-hidden">
           <div className="flex items-center gap-3 px-6 py-5 border-b border-border/60">
-            <div className="h-10 w-10 rounded-full bg-[var(--gradient-gold)] flex items-center justify-center">
+            <div
+              className="h-10 w-10 rounded-full flex items-center justify-center"
+              style={{ background: "var(--gradient-gold)" }}
+            >
               <Sparkles className="h-4 w-4 text-primary-foreground" />
             </div>
             <div>
@@ -115,7 +113,8 @@ function Mentor() {
               <button
                 onClick={() => void send()}
                 disabled={pending}
-                className="h-9 w-9 rounded-full bg-[var(--gradient-gold)] flex items-center justify-center text-primary-foreground disabled:opacity-50"
+                className="h-9 w-9 rounded-full flex items-center justify-center text-primary-foreground disabled:opacity-50"
+                style={{ background: "var(--gradient-gold)" }}
               >
                 <Send className="h-4 w-4" />
               </button>
