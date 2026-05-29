@@ -142,12 +142,27 @@ function Intelligence() {
                     <span>{e.description}</span>
                   </div>
                 )}
-                {e.url && (
-                  <div className="mt-3 flex items-center gap-1 text-[11px] tracking-[0.2em] uppercase text-primary/80">
-                    Read brief
-                    <ArrowUpRight className="h-3 w-3" />
-                  </div>
-                )}
+                <div className="mt-3 flex items-center justify-between">
+                  {e.url ? (
+                    <div className="flex items-center gap-1 text-[11px] tracking-[0.2em] uppercase text-primary/80">
+                      Read brief
+                      <ArrowUpRight className="h-3 w-3" />
+                    </div>
+                  ) : (
+                    <span />
+                  )}
+                  <button
+                    onClick={(evt) => {
+                      evt.preventDefault();
+                      evt.stopPropagation();
+                      navigate({ to: "/studio", search: { intel: e.id } });
+                    }}
+                    className="flex items-center gap-1 text-[11px] tracking-[0.2em] uppercase text-primary/80 hover:text-primary transition-colors"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    Generate content
+                  </button>
+                </div>
               </div>
             );
             return (
