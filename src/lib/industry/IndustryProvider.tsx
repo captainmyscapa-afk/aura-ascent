@@ -67,7 +67,7 @@ export function useIndustry(): Ctx {
   return ctx;
 }
 
-export function useIndustrySystemPrompt(level?: string) {
+export function useIndustrySystemPrompt(level?: string, tone?: string) {
   const { industry } = useIndustry();
   return `You are AURUM AI mentoring ${level ? `a ${level} ` : ""}entering ${industry.label} (${industry.tagline}). Persona: ${industry.mentorPersona}. Specialty: ${industry.mentorSpecialty}. Use industry terminology: client="${industry.terms.client}", asset="${industry.terms.asset}", market="${industry.terms.market}".`;
 }
