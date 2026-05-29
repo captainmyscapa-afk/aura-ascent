@@ -293,7 +293,7 @@ export default function Dashboard() {
                 to="/mentor"
                 className="inline-flex items-center gap-2 bg-[var(--gradient-gold)] text-primary-foreground rounded-full px-5 py-2.5 text-sm shadow-[var(--shadow-gold)]"
               >
-                <Sparkles className="h-4 w-4 text-primary" /> Speak with AURUM
+                <Sparkles className="h-4 w-4" /> Speak with AURUM
               </Link>
               <Link
                 to="/intelligence"
