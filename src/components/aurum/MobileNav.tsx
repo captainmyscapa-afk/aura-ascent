@@ -13,6 +13,7 @@ import {
   X,
   Compass,
   Crown,
+  CalendarDays,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Logo } from "./Logo";
@@ -29,6 +30,7 @@ const primaryNav = [
   { to: "/intelligence", label: "Intelligence", icon: Radio },
   { to: "/mentor", label: "AI Mentor", icon: Sparkles },
   { to: "/studio", label: "Content Studio", icon: Video },
+  { to: "/calendar", label: "Event Calendar", icon: CalendarDays },
 ] as const;
 
 const secondaryNav = [
@@ -90,7 +92,6 @@ export function MobileNav() {
         }}
       >
         <div className="flex flex-col h-full">
-          {/* Header */}
           <div className="flex items-center justify-between px-6 pt-6 pb-5">
             <Logo />
             <button
@@ -102,14 +103,16 @@ export function MobileNav() {
             </button>
           </div>
 
-          {/* Identity card */}
           <div className="px-5 pb-4">
             <Link
               to="/profile"
               onClick={() => setOpen(false)}
               className="flex items-center gap-3 glass rounded-2xl p-3.5 active:scale-[0.99] transition-transform"
             >
-              <div className="h-11 w-11 rounded-full bg-[var(--gradient-gold)] flex items-center justify-center text-[12px] font-medium text-primary-foreground shadow-[var(--shadow-gold)]">
+              <div
+                className="h-11 w-11 rounded-full flex items-center justify-center text-[12px] font-medium text-primary-foreground shadow-[var(--shadow-gold)]"
+                style={{ background: "var(--gradient-gold)" }}
+              >
                 {initials ?? "AU"}
               </div>
               <div className="flex-1 min-w-0">
@@ -122,7 +125,6 @@ export function MobileNav() {
             </Link>
           </div>
 
-          {/* Industry switcher */}
           <div className="px-5 pb-3">
             <div className="px-2 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70 flex items-center gap-2">
               <Compass className="h-3 w-3" />
@@ -149,8 +151,9 @@ export function MobileNav() {
                   >
                     <span
                       className={`h-7 w-7 rounded-full flex items-center justify-center ${
-                        active ? "bg-[var(--gradient-gold)]" : "bg-secondary/60"
+                        active ? "" : "bg-secondary/60"
                       }`}
+                      style={active ? { background: "var(--gradient-gold)" } : {}}
                     >
                       <Icon className={`h-3.5 w-3.5 ${active ? "text-primary-foreground" : "text-muted-foreground"}`} />
                     </span>
@@ -161,7 +164,6 @@ export function MobileNav() {
             </div>
           </div>
 
-          {/* Nav */}
           <nav className="flex-1 overflow-y-auto px-3 pt-2 pb-4">
             <div className="px-3 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70">ECOSYSTEM</div>
             <div className="space-y-1">
@@ -180,8 +182,9 @@ export function MobileNav() {
                   >
                     <span
                       className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${
-                        active ? "bg-[var(--gradient-gold)]" : "bg-secondary/40 group-hover:bg-secondary/60"
+                        active ? "" : "bg-secondary/40 group-hover:bg-secondary/60"
                       }`}
+                      style={active ? { background: "var(--gradient-gold)" } : {}}
                     >
                       <Icon className={`h-4 w-4 ${active ? "text-primary-foreground" : "text-muted-foreground"}`} />
                     </span>
@@ -219,7 +222,6 @@ export function MobileNav() {
             </div>
           </nav>
 
-          {/* Footer momentum */}
           <div className="px-5 pb-6 pt-3 border-t border-border/40">
             <div className="glass rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2.5">
