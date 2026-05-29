@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
-import { Sparkles, Send, MessageCircle, Compass, Target, Zap } from "lucide-react";
+import { Sparkles, Send, MessageCircle, Compass, Target, Zap, RefreshCw } from "lucide-react";
 import { useIndustry, useIndustrySystemPrompt } from "@/lib/industry/IndustryProvider";
 import { askGemini } from "@/lib/gemini.functions";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
@@ -23,6 +23,7 @@ function Mentor() {
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [thread, setThread] = useState<Array<{ r: "ai" | "me"; t: string }> | null>(null);
+  const [prompts, setPrompts] = useState<string[]>([...industry.mentorPrompts]);
 
   const userName = userProfile?.full_name?.split(" ")[0] ?? "Operator";
   const hour = new Date().getHours();
@@ -124,9 +125,18 @@ function Mentor() {
 
         <aside className="space-y-4 overflow-y-auto">
           <div className="glass rounded-xl p-5">
-            <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-4">QUICK INVOCATIONS</div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-[10px] tracking-[0.34em] text-muted-foreground">QUICK INVOCATIONS</div>
+              <button
+                onClick={() => setPrompts([...industry.mentorPrompts].sort(() => Math.random() - 0.5))}
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="Refresh prompts"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </button>
+            </div>
             <div className="space-y-2">
-              {industry.mentorPrompts.map((t, i) => {
+              {prompts.map((t, i) => {
                 const I = promptIcons[i % promptIcons.length];
                 return (
                   <button
