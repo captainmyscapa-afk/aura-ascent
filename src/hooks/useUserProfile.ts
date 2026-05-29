@@ -81,9 +81,9 @@ export function useUserProfile() {
           .insert({ user_id: user.id })
           .select("*")
           .maybeSingle();
-        setProfile((inserted as UserProfile) ?? EMPTY_PROFILE(user.id));
+        setProfile((inserted as unknown as UserProfile) ?? EMPTY_PROFILE(user.id));
       } else {
-        setProfile(data as UserProfile);
+        setProfile(data as unknown as UserProfile);
       }
       setLoading(false);
     })();
