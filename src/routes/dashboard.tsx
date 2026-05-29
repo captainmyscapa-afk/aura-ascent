@@ -10,6 +10,7 @@ import type { IndustryId } from "@/lib/industry/types";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { generateRecommendation, generateDailyTasks, generateUpcomingEvents } from "@/lib/identity.functions";
 
 export const Route = createFileRoute("/dashboard")({
@@ -61,6 +62,7 @@ export default function Dashboard() {
   const now = useNow();
   const [profileName, setProfileName] = useState<string | null>(null);
   const { state: core, update: updateCore } = useAurumCoreState();
+  const { profile: userProfile } = useUserProfile();
 
   const [recommendation, setRecommendation] = useState<string | null>(null);
   const [recLoading, setRecLoading] = useState(false);
@@ -102,9 +104,9 @@ export default function Dashboard() {
       goal: typeof c.current_focus === "string" ? c.current_focus : undefined,
       streak: c.streak,
       phase: industry.phaseLabel,
+      taskCount: userProfile?.daily_task_count ?? 5,
     };
 
-    // Recommendation — daily + mode-aware
     const recStale =
       !summary?.recommendation ||
       !c.ai_summary_updated_at ||
@@ -116,7 +118,6 @@ export default function Dashboard() {
       setRecommendation(summary?.recommendation ?? null);
     }
 
-    // Daily tasks — daily + mode-aware
     const cachedTasks = c.daily_tasks as any;
     if (cachedTasks?.tasks?.length > 0 && c.daily_tasks_date === isoDay() && cachedTasks?.mode === industry.label) {
       setDailyTasks(cachedTasks.tasks);
@@ -124,7 +125,6 @@ export default function Dashboard() {
       refreshDailyTasks(ctx);
     }
 
-    // Upcoming — weekly + mode-aware
     const cachedEv = c.upcoming_events as any;
     if (
       cachedEv?.events?.length > 0 &&
@@ -186,6 +186,7 @@ export default function Dashboard() {
     goal?: string;
     streak?: number;
     phase?: string;
+    taskCount?: number;
   }) {
     if (!user) return;
     setTasksLoading(true);
@@ -231,11 +232,7 @@ export default function Dashboard() {
 
   const dayName = now.toLocaleDateString("en-US", { weekday: "long" });
   const dateLong = now.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-  const timeStr = now.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 
   const hubs = INDUSTRY_LIST.map((m) => ({
     ...m,
@@ -283,7 +280,6 @@ export default function Dashboard() {
               </div>
               <div className="font-mono text-xs tracking-[0.3em] text-muted-foreground lg:hidden">{timeStr}</div>
             </div>
-
             <h1 className="font-serif text-[34px] sm:text-[52px] leading-[1.05] tracking-tight">
               Good {now.getHours() < 12 ? "morning" : now.getHours() < 18 ? "afternoon" : "evening"},
               <br />
@@ -291,9 +287,7 @@ export default function Dashboard() {
                 {profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Operator"}.
               </span>
             </h1>
-
             <p className="mt-5 max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed">{welcome}</p>
-
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
                 to="/mentor"
@@ -309,13 +303,11 @@ export default function Dashboard() {
               </Link>
             </div>
           </div>
-
           <aside className="hidden lg:flex flex-col gap-3 items-end">
             <div className="font-mono text-xs tracking-[0.3em] text-muted-foreground">{timeStr}</div>
             <GlobalTimeHub compact />
           </aside>
         </div>
-
         <div className="mt-8 lg:hidden">
           <GlobalTimeHub compact />
         </div>
@@ -336,21 +328,15 @@ export default function Dashboard() {
                   <button
                     key={i}
                     onClick={() => toggle(i)}
-                    className={`group w-full text-left flex items-center gap-4 px-4 py-3.5 rounded-lg transition-all ${
-                      isDone ? "bg-secondary/20" : "hover:bg-secondary/40"
-                    }`}
+                    className={`group w-full text-left flex items-center gap-4 px-4 py-3.5 rounded-lg transition-all ${isDone ? "bg-secondary/20" : "hover:bg-secondary/40"}`}
                   >
                     <div
-                      className={`h-5 w-5 rounded-full flex items-center justify-center border transition-colors ${
-                        isDone ? "bg-primary border-primary" : "border-border/70 group-hover:border-primary/60"
-                      }`}
+                      className={`h-5 w-5 rounded-full flex items-center justify-center border transition-colors ${isDone ? "bg-primary border-primary" : "border-border/70 group-hover:border-primary/60"}`}
                     >
                       {isDone && <Check className="h-3 w-3 text-primary-foreground" />}
                     </div>
                     <div
-                      className={`flex-1 text-[15px] leading-snug ${
-                        isDone ? "text-muted-foreground/70 line-through" : "text-foreground"
-                      }`}
+                      className={`flex-1 text-[15px] leading-snug ${isDone ? "text-muted-foreground/70 line-through" : "text-foreground"}`}
                     >
                       {t}
                     </div>
@@ -380,9 +366,7 @@ export default function Dashboard() {
                     key={m.id}
                     to="/academy"
                     search={{ track: trackSlug }}
-                    className={`group relative aspect-[4/5] rounded-xl overflow-hidden border transition-all text-left block ${
-                      m.active ? "border-primary/60 ring-1 ring-primary/30" : "border-border/60 hover:border-primary/40"
-                    }`}
+                    className={`group relative aspect-[4/5] rounded-xl overflow-hidden border transition-all text-left block ${m.active ? "border-primary/60 ring-1 ring-primary/30" : "border-border/60 hover:border-primary/40"}`}
                   >
                     <img
                       src={m.ambientImage}
@@ -487,9 +471,7 @@ export default function Dashboard() {
                     className={`h-1.5 w-full rounded-full ${i <= 1 ? "bg-[var(--gradient-gold)]" : "bg-border/40"}`}
                   />
                   <div
-                    className={`mt-2 text-[9px] tracking-wider uppercase ${
-                      i <= 1 ? "text-foreground/80" : "text-muted-foreground/60"
-                    }`}
+                    className={`mt-2 text-[9px] tracking-wider uppercase ${i <= 1 ? "text-foreground/80" : "text-muted-foreground/60"}`}
                   >
                     {tier}
                   </div>
