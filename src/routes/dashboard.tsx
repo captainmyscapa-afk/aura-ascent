@@ -419,7 +419,10 @@ export default function Dashboard() {
               {recLoading && <RefreshCw className="h-3 w-3 text-primary/60 animate-spin ml-auto" />}
             </div>
             <p className="font-serif text-[20px] leading-snug">"{recommendation || industry.aiRecommendation}"</p>
-            <button className="mt-5 w-full text-sm rounded-full py-2.5 bg-[var(--gradient-gold)] text-primary-foreground shadow-[var(--shadow-gold)]">
+            <button
+              className="mt-5 w-full text-sm rounded-full py-2.5 text-primary-foreground shadow-[var(--shadow-gold)]"
+              style={{ background: "var(--gradient-gold)" }}
+            >
               Generate outreach
             </button>
           </Card>
