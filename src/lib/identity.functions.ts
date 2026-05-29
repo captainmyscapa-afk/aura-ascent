@@ -28,8 +28,7 @@ const auditTool = {
   type: "function",
   function: {
     name: "emit_positioning_audit",
-    description:
-      "Return 3 personalised, cinematic positioning actions for the operator.",
+    description: "Return 3 personalised, cinematic positioning actions for the operator.",
     parameters: {
       type: "object",
       properties: {
@@ -79,22 +78,18 @@ const briefTool = {
 async function callGateway(body: unknown) {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
-  const res = await fetch(
-    "https://ai.gateway.lovable.dev/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(body),
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
     },
-  );
+    body: JSON.stringify(body),
+  });
   if (!res.ok) {
     const errText = await res.text();
     if (res.status === 429) throw new Error("Rate limit reached. Try again shortly.");
-    if (res.status === 402)
-      throw new Error("AI credits exhausted. Add credits in workspace settings.");
+    if (res.status === 402) throw new Error("AI credits exhausted. Add credits in workspace settings.");
     throw new Error(`AI gateway error ${res.status}: ${errText}`);
   }
   return (await res.json()) as {
@@ -119,9 +114,7 @@ export const generateIdentityAudit = createServerFn({ method: "POST" })
       data.level ? `LEVEL: ${data.level}` : null,
       data.goal ? `GOAL: ${data.goal}` : null,
       typeof data.streak === "number" ? `STREAK: ${data.streak} days` : null,
-      typeof data.aurumScore === "number"
-        ? `AURUM SCORE: ${data.aurumScore}`
-        : null,
+      typeof data.aurumScore === "number" ? `AURUM SCORE: ${data.aurumScore}` : null,
       `Return EXACTLY 3 actions, one with each label: HIGH IMPACT, COMPOUNDING, QUICK WIN. Each headline must be specific to this person's mode + level + location.`,
     ]
       .filter(Boolean)
@@ -139,8 +132,7 @@ export const generateIdentityAudit = createServerFn({ method: "POST" })
         function: { name: "emit_positioning_audit" },
       },
     });
-    const argStr =
-      json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+    const argStr = json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
     if (!argStr) throw new Error("AI did not return a structured audit.");
     const parsed = JSON.parse(argStr) as IdentityAudit;
     return { audit: parsed };
@@ -173,8 +165,7 @@ export const generateTodayBrief = createServerFn({ method: "POST" })
         function: { name: "emit_today_brief" },
       },
     });
-    const argStr =
-      json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+    const argStr = json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
     if (!argStr) throw new Error("AI did not return a structured brief.");
     const parsed = JSON.parse(argStr) as TodayBrief;
     return { brief: parsed };
@@ -189,6 +180,7 @@ type DashInput = {
   goal?: string;
   streak?: number;
   location?: string;
+  taskCount?: number;
 };
 
 const dailyTasksTool = {
@@ -290,8 +282,7 @@ export const generateDailyTasks = createServerFn({ method: "POST" })
       tools: [dailyTasksTool],
       tool_choice: { type: "function", function: { name: "emit_daily_tasks" } },
     });
-    const argStr =
-      json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+    const argStr = json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
     if (!argStr) throw new Error("AI did not return daily tasks.");
     const parsed = JSON.parse(argStr) as { tasks: string[] };
     return { tasks: parsed.tasks };
@@ -314,8 +305,7 @@ export const generateUpcomingEvents = createServerFn({ method: "POST" })
         function: { name: "emit_upcoming_events" },
       },
     });
-    const argStr =
-      json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+    const argStr = json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
     if (!argStr) throw new Error("AI did not return events.");
     const parsed = JSON.parse(argStr) as {
       events: { date: string; title: string }[];
