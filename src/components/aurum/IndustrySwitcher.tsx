@@ -59,7 +59,10 @@ export function IndustrySwitcher({ compact = false }: { compact?: boolean }) {
                   active ? "bg-secondary/60" : "hover:bg-secondary/40"
                 }`}
               >
-                <span className="h-8 w-8 rounded-md bg-[var(--gradient-gold)] flex items-center justify-center shrink-0">
+                <span
+                  className="h-8 w-8 rounded-md flex items-center justify-center shrink-0"
+                  style={{ background: "var(--gradient-gold)" }}
+                >
                   <Icon className="h-4 w-4 text-primary-foreground" />
                 </span>
                 <div className="flex-1 min-w-0">
