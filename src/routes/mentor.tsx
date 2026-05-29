@@ -27,8 +27,8 @@ function Mentor() {
   const seed: Array<{ r: "ai" | "me"; t: string }> = [
 {
   r: "ai",
-  t: `How can I help you, ${user?.first_name || "friend"}, today?`,
-},;
+  t: "How can I help you today?",
+},
 
   const messages = thread ?? seed;
 
