@@ -49,7 +49,7 @@ function isoDay(d = new Date()) {
 function weekStartIso(d = new Date()) {
   const dt = new Date(d);
   const day = dt.getUTCDay();
-  const diff = (day + 6) % 7; // Monday as start
+  const diff = (day + 6) % 7;
   dt.setUTCDate(dt.getUTCDate() - diff);
   return dt.toISOString().slice(0, 10);
 }
@@ -70,14 +70,12 @@ export default function Dashboard() {
     (industry.upcoming ?? []).map(([d, t]) => ({ date: d, title: t })),
   );
   const [eventsLoading, setEventsLoading] = useState(false);
-
   const [done, setDone] = useState<Record<number, boolean>>({});
 
   const recFn = useServerFn(generateRecommendation);
   const tasksFn = useServerFn(generateDailyTasks);
   const eventsFn = useServerFn(generateUpcomingEvents);
 
-  // Load profile name
   useEffect(() => {
     if (!user) return;
     let alive = true;
@@ -94,11 +92,10 @@ export default function Dashboard() {
     };
   }, [user]);
 
-  // React to core state changes — refresh AI when stale
   useEffect(() => {
     if (!user || !core) return;
     const c = core;
-    const summary = c.ai_summary as { recommendation?: string } | null;
+    const summary = c.ai_summary as { recommendation?: string; mode?: string } | null;
     const ctx = {
       mode: industry.label,
       level: c.current_level ?? undefined,
@@ -107,30 +104,27 @@ export default function Dashboard() {
       phase: industry.phaseLabel,
     };
 
-    // Recommendation — daily
+    // Recommendation — daily + mode-aware
     const recStale =
       !summary?.recommendation ||
       !c.ai_summary_updated_at ||
-      Date.now() - new Date(c.ai_summary_updated_at).getTime() > 86_400_000;
+      Date.now() - new Date(c.ai_summary_updated_at).getTime() > 86_400_000 ||
+      summary?.mode !== industry.label;
     if (recStale) {
       refreshRecommendation(ctx);
     } else {
       setRecommendation(summary?.recommendation ?? null);
     }
 
-    // Daily tasks — daily
+    // Daily tasks — daily + mode-aware
     const cachedTasks = c.daily_tasks as any;
-    if (
-      cachedTasks?.tasks?.length > 0 &&
-      c.daily_tasks_date === isoDay() &&
-      cachedTasks?.mode === industry.label
-    ) {
+    if (cachedTasks?.tasks?.length > 0 && c.daily_tasks_date === isoDay() && cachedTasks?.mode === industry.label) {
       setDailyTasks(cachedTasks.tasks);
     } else {
       refreshDailyTasks(ctx);
     }
 
-    // Upcoming — weekly
+    // Upcoming — weekly + mode-aware
     const cachedEv = c.upcoming_events as any;
     if (
       cachedEv?.events?.length > 0 &&
@@ -144,11 +138,10 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, industryId, core?.id, industry.label]);
 
-  // Toggle a task done — wire streak + execution_score through the hook.
   async function toggle(i: number) {
     const wasDone = !!done[i];
     setDone((d) => ({ ...d, [i]: !d[i] }));
-    if (wasDone || !user) return; // only increment on completion
+    if (wasDone || !user) return;
     const today = isoDay();
     const STREAK_KEY = `aurum:lastStreakDate:${user.id}`;
     const last = typeof window !== "undefined" ? localStorage.getItem(STREAK_KEY) : null;
@@ -177,7 +170,7 @@ export default function Dashboard() {
       const { recommendation: text } = await recFn({ data: ctx });
       setRecommendation(text);
       await updateCore({
-        ai_summary: { recommendation: text },
+        ai_summary: { recommendation: text, mode: industry.label },
         ai_summary_updated_at: new Date().toISOString(),
       });
     } catch (e) {
@@ -202,7 +195,7 @@ export default function Dashboard() {
       setDone({});
       await updateCore({
         daily_tasks: { mode: industry.label, tasks } as any,
-        daily_tasks_date: isoDay()
+        daily_tasks_date: isoDay(),
       });
     } catch (e) {
       console.error(e);
@@ -219,7 +212,7 @@ export default function Dashboard() {
       setEvents(ev);
       await updateCore({
         upcoming_events: { mode: industry.label, events: ev } as any,
-        upcoming_events_week_start: weekStartIso()
+        upcoming_events_week_start: weekStartIso(),
       });
     } catch (e) {
       console.error(e);
@@ -281,7 +274,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ───────────── HEADER ───────────── */}
       <header className="mb-12 sm:mb-16 animate-fade-up">
         <div className="grid lg:grid-cols-[1fr_320px] gap-8 lg:gap-10 items-start">
           <div>
