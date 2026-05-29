@@ -269,7 +269,7 @@ export const generateDailyTasks = createServerFn({ method: "POST" })
       data.phase ? `PHASE: ${data.phase}` : null,
       data.goal ? `GOAL: ${data.goal}` : null,
       typeof data.streak === "number" ? `STREAK: ${data.streak} days` : null,
-      `Generate exactly 5 specific daily tasks for someone breaking into the ${data.mode} industry at ${data.level ?? "beginner"} level. Tasks should cover: networking, content, learning, outreach and relationship building.`,
+      `Generate exactly ${data.taskCount ?? 5} specific daily tasks for someone breaking into the ${data.mode} industry at ${data.level ?? "beginner"} level. Tasks should cover: networking, content, learning, outreach and relationship building.`,
     ]
       .filter(Boolean)
       .join("\n");
