@@ -24,7 +24,10 @@ export function IndustrySwitcher({ compact = false }: { compact?: boolean }) {
         onClick={() => setOpen((o) => !o)}
         className="inline-flex items-center gap-2 glass rounded-full pl-2.5 pr-3 py-1.5 text-xs text-foreground hover:ring-gold transition-all"
       >
-        <span className="h-6 w-6 rounded-full bg-[var(--gradient-gold)] flex items-center justify-center">
+        <span
+          className="h-6 w-6 rounded-full flex items-center justify-center"
+          style={{ background: "var(--gradient-gold)" }}
+        >
           <ActiveIcon className="lucide lucide-sailboat h-3.5 w-3.5 text-primary-foreground text-[#9c885e]" />
         </span>
         {!compact && (
@@ -38,9 +41,7 @@ export function IndustrySwitcher({ compact = false }: { compact?: boolean }) {
 
       {open && (
         <div className="absolute right-0 mt-2 w-72 glass-strong rounded-xl p-2 z-50 animate-fade-up shadow-[var(--shadow-elegant)]">
-          <div className="px-3 py-2 text-[10px] tracking-[0.32em] text-muted-foreground">
-            INDUSTRY ECOSYSTEM
-          </div>
+          <div className="px-3 py-2 text-[10px] tracking-[0.32em] text-muted-foreground">INDUSTRY ECOSYSTEM</div>
           {INDUSTRY_LIST.map((opt) => {
             const Icon = opt.icon;
             const active = opt.id === industry.id;
