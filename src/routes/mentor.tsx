@@ -25,10 +25,16 @@ function Mentor() {
   const [thread, setThread] = useState<Array<{ r: "ai" | "me"; t: string }> | null>(null);
 
   const seed: Array<{ r: "ai" | "me"; t: string }> = [
-{
-  r: "ai",
-  t: `How can I help you, ${user?.first_name || "friend"}, today?`,
-},;
+    { r: "ai", t: industry.mentorOpener },
+    {
+      r: "me",
+      t: "It was good. They invited me to discuss further but I'm nervous I won't hold my own with senior players.",
+    },
+    {
+      r: "ai",
+      t: `Understandable — and a sign you're entering the right room. Three things will neutralize that anxiety in ${industry.label.toLowerCase()}:\n\n1. Memorize three current ${industry.terms.market.toLowerCase()} data points so you contribute, not just receive.\n2. Prepare two questions only an insider would ask — I'll draft them.\n3. Dress register: matte tones, restraint, one expensive detail. Avoid logos.\n\nWant me to build your full preparation brief now?`,
+    },
+  ];
 
   const messages = thread ?? seed;
 
