@@ -96,7 +96,8 @@ export function useUserProfile() {
       setProfile((p) => (p ? { ...p, ...patch } : p));
       const { error } = await supabase
         .from("user_profiles")
-        .upsert({ ...patch, user_id: user.id }, { onConflict: "user_id" });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .upsert({ ...patch, user_id: user.id } as any, { onConflict: "user_id" });
       if (error) setError(error.message);
     },
     [user]
