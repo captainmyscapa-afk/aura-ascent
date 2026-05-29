@@ -10,6 +10,7 @@ import {
   User2,
   Settings,
   LogOut,
+  CalendarDays,
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,6 +24,7 @@ const nav = [
   { to: "/tutor", label: "AI Tutor", icon: BookOpen },
   { to: "/network", label: "Network", icon: Users },
   { to: "/studio", label: "Content Studio", icon: Video },
+  { to: "/calendar", label: "Event Calendar", icon: CalendarDays },
   { to: "/profile", label: "Identity", icon: User2 },
 ] as const;
 
@@ -36,7 +38,6 @@ export function Sidebar() {
     navigate({ to: "/login", replace: true });
   };
 
-
   return (
     <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col glass-strong border-r border-border/60 z-30">
       <div className="px-6 pt-7 pb-8">
@@ -46,9 +47,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 px-3 space-y-1">
-        <div className="px-3 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70">
-          ECOSYSTEM
-        </div>
+        <div className="px-3 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70">ECOSYSTEM</div>
         {nav.map(({ to, label, icon: Icon }) => {
           const active = pathname === to || pathname.startsWith(to + "/");
           return (
@@ -67,9 +66,7 @@ export function Sidebar() {
                 }`}
               />
               <span className="tracking-wide">{label}</span>
-              {active && (
-                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary animate-pulse-gold" />
-              )}
+              {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary animate-pulse-gold" />}
             </Link>
           );
         })}
@@ -78,9 +75,7 @@ export function Sidebar() {
       <div className="p-4 border-t border-border/60">
         <div className="glass rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] tracking-[0.3em] text-muted-foreground">
-              MOMENTUM
-            </span>
+            <span className="text-[10px] tracking-[0.3em] text-muted-foreground">MOMENTUM</span>
             <span className="font-mono text-xs text-primary">{core?.streak ?? 0}</span>
           </div>
           <div className="h-1 rounded-full bg-secondary overflow-hidden">
