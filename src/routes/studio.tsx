@@ -3,18 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
 import { SectionHeading } from "@/components/aurum/SectionHeading";
-import {
-  Sparkles,
-  Wand2,
-  Radio,
-  Video,
-  ImageIcon,
-  Hash,
-  Copy,
-  Check,
-  Send,
-  Loader2,
-} from "lucide-react";
+import { Sparkles, Wand2, Radio, Video, ImageIcon, Hash, Copy, Check, Send, Loader2 } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { generateStudioContent, type StudioContentPlan } from "@/lib/studio.functions";
@@ -133,8 +122,7 @@ function Studio() {
     setTimeout(() => setCopied(null), 1500);
   };
 
-  const canRun =
-    mode === "intelligence" ? intel.length > 0 : idea.trim().length > 2;
+  const canRun = mode === "intelligence" ? intel.length > 0 : idea.trim().length > 2;
 
   return (
     <AppShell>
@@ -146,8 +134,8 @@ function Studio() {
           Viral content, <span className="italic text-gold-gradient">on demand.</span>
         </h1>
         <p className="mt-3 text-muted-foreground max-w-2xl text-sm">
-          AURUM's AI creative director crafts post-ready content for the {industry.label.toLowerCase()} world —
-          hooks, scripts, captions, hashtags and cinematic visual prompts. Optimized per platform. Ready in under 30 seconds.
+          AURUM's AI creative director crafts post-ready content for the {industry.label.toLowerCase()} world — hooks,
+          scripts, captions, hashtags and cinematic visual prompts. Optimized per platform. Ready in under 30 seconds.
         </p>
       </div>
 
@@ -201,9 +189,7 @@ function Studio() {
                         key={e.id}
                         onClick={() => toggleIntel(e.id)}
                         className={`w-full text-left p-3 rounded-lg border transition-all ${
-                          on
-                            ? "border-primary/60 bg-primary/5"
-                            : "border-border hover:border-primary/30"
+                          on ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/30"
                         }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
@@ -232,7 +218,9 @@ function Studio() {
 
           {/* Goal */}
           <div className="glass rounded-xl p-5">
-            <Label>GOAL <span className="text-muted-foreground/60 normal-case tracking-normal">(optional)</span></Label>
+            <Label>
+              GOAL <span className="text-muted-foreground/60 normal-case tracking-normal">(optional)</span>
+            </Label>
             <input
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
@@ -306,7 +294,8 @@ function Studio() {
           <button
             onClick={() => void run()}
             disabled={!canRun || pending}
-            className="w-full h-12 rounded-xl bg-[var(--gradient-gold)] text-primary-foreground font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-all hover:shadow-[var(--shadow-gold)]"
+            className="w-full h-12 rounded-xl text-primary-foreground font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-all hover:shadow-[var(--shadow-gold)]"
+            style={{ background: "var(--gradient-gold)" }}
           >
             {pending ? (
               <>
@@ -321,11 +310,7 @@ function Studio() {
             )}
           </button>
 
-          {error && (
-            <div className="text-xs text-destructive border border-destructive/40 rounded-lg p-3">
-              {error}
-            </div>
-          )}
+          {error && <div className="text-xs text-destructive border border-destructive/40 rounded-lg p-3">{error}</div>}
         </div>
 
         {/* RIGHT — Output */}
@@ -335,8 +320,8 @@ function Studio() {
               <Sparkles className="h-6 w-6 text-primary/80 mx-auto mb-4" />
               <div className="font-serif text-xl mb-2">Your content will appear here</div>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                Title, viral hook, platform captions, full script, hashtags and a cinematic visual prompt —
-                all tuned to {industry.modeLabel}.
+                Title, viral hook, platform captions, full script, hashtags and a cinematic visual prompt — all tuned to{" "}
+                {industry.modeLabel}.
               </p>
             </div>
           )}
@@ -378,11 +363,7 @@ function Studio() {
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3 uppercase">
-      {children}
-    </div>
-  );
+  return <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3 uppercase">{children}</div>;
 }
 
 function ModeTab({
@@ -439,28 +420,10 @@ function PlanOutput({
       <div className="glass rounded-xl p-5">
         <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-4">PLATFORM VERSIONS</div>
         <div className="space-y-4">
-          <PlatformBlock
-            label="Instagram"
-            text={plan.platforms.instagram}
-            id="ig"
-            copied={copied}
-            onCopy={onCopy}
-          />
-          <PlatformBlock
-            label="TikTok"
-            text={plan.platforms.tiktok}
-            id="tt"
-            copied={copied}
-            onCopy={onCopy}
-          />
+          <PlatformBlock label="Instagram" text={plan.platforms.instagram} id="ig" copied={copied} onCopy={onCopy} />
+          <PlatformBlock label="TikTok" text={plan.platforms.tiktok} id="tt" copied={copied} onCopy={onCopy} />
           {plan.platforms.linkedin && (
-            <PlatformBlock
-              label="LinkedIn"
-              text={plan.platforms.linkedin}
-              id="li"
-              copied={copied}
-              onCopy={onCopy}
-            />
+            <PlatformBlock label="LinkedIn" text={plan.platforms.linkedin} id="li" copied={copied} onCopy={onCopy} />
           )}
         </div>
       </div>
@@ -480,9 +443,6 @@ function PlanOutput({
         </ol>
       </div>
 
-
-
-
       {/* Hashtags */}
       <div className="glass rounded-xl p-5">
         <div className="flex items-center justify-between mb-3">
@@ -497,10 +457,7 @@ function PlanOutput({
         </div>
         <div className="flex flex-wrap gap-1.5">
           {plan.hashtags.map((h) => (
-            <span
-              key={h}
-              className="text-[11px] px-2 py-1 rounded-full border border-border text-muted-foreground"
-            >
+            <span key={h} className="text-[11px] px-2 py-1 rounded-full border border-border text-muted-foreground">
               {h.startsWith("#") ? h : `#${h}`}
             </span>
           ))}
@@ -545,15 +502,7 @@ function PlatformBlock({
   );
 }
 
-function CopyBtn({
-  id,
-  copied,
-  onClick,
-}: {
-  id: string;
-  copied: string | null;
-  onClick: () => void;
-}) {
+function CopyBtn({ id, copied, onClick }: { id: string; copied: string | null; onClick: () => void }) {
   const isCopied = copied === id;
   return (
     <button
