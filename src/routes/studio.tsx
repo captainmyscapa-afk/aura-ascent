@@ -47,7 +47,7 @@ function Studio() {
       const { data } = await (supabase.from("live_intelligence") as any)
         .select("id,title,source,category,description")
         .order("created_at", { ascending: false })
-        .limit(8);
+        .limit(500);
       setIntel((data as IntelEntry[]) || []);
     })();
   }, []);
