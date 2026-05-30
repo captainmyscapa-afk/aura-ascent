@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { generateRecommendation, generateDailyTasks, generateUpcomingEvents } from "@/lib/identity.functions";
+import { generateRecommendation, generateDailyTasks } from "@/lib/identity.functions";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
