@@ -45,7 +45,7 @@ function Studio() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-  const { intel: preselectedIntel } = Route.useSearch();
+  const { intel: preselectedIntel, idea: preselectedIdea } = Route.useSearch();
 
   useEffect(() => {
     if (preselectedIntel && intel.length > 0) {
