@@ -1155,28 +1155,93 @@ function CalendarPage() {
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
-              {monthEvents.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No events this month</p>
-              ) : (
-                <div className="space-y-2">
-                  {monthEvents.map((e) => (
-                    <button
-                      key={e.id}
-                      onClick={() => setSelectedEvent(e)}
-                      className={`w-full text-left p-3 rounded-lg border transition-all ${selectedEvent?.id === e.id ? "border-primary/60 bg-primary/10" : "border-border hover:border-primary/30"}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className={`w-1.5 h-1.5 rounded-full ${INDUSTRY_DOT[e.industry]}`} />
-                        <span className="text-xs font-medium truncate">{e.title}</span>
-                      </div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5 pl-3.5">
-                        {formatDateShort(e.startDate)}
-                        {e.startDate !== e.endDate && ` - ${formatDateShort(e.endDate)}`}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="grid grid-cols-7 mb-1">
+                {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
+                  <div key={i} className="text-center text-[10px] text-muted-foreground/50 py-1">
+                    {d}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-px">
+                {(() => {
+                  const firstDay = new Date(viewYear, viewMonth, 1);
+                  const lastDay = new Date(viewYear, viewMonth + 1, 0);
+                  const startDow = (firstDay.getDay() + 6) % 7;
+                  const todayStr = new Date().toISOString().slice(0, 10);
+                  const cells: React.ReactNode[] = [];
+                  for (let i = 0; i < startDow; i++) {
+                    const d = new Date(viewYear, viewMonth, 1 - (startDow - i));
+                    cells.push(
+                      <div key={`prev-${i}`} className="min-h-[52px] p-0.5 opacity-20">
+                        <div className="text-[10px] text-right text-muted-foreground">{d.getDate()}</div>
+                      </div>,
+                    );
+                  }
+                  for (let day = 1; day <= lastDay.getDate(); day++) {
+                    const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                    const isToday = dateStr === todayStr;
+                    const dayEvents = EVENTS.filter((e) => {
+                      if (filter !== "all" && e.industry !== filter) return false;
+                      return e.startDate <= dateStr && e.endDate >= dateStr;
+                    });
+                    cells.push(
+                      <div
+                        key={day}
+                        className={`min-h-[52px] p-0.5 rounded transition-all ${isToday ? "bg-primary/10 ring-1 ring-primary/40" : "hover:bg-secondary/20"} ${dayEvents.length > 0 ? "cursor-pointer" : ""}`}
+                        onClick={() => dayEvents.length > 0 && setSelectedEvent(dayEvents[0])}
+                      >
+                        <div
+                          className={`text-[10px] text-right mb-0.5 ${isToday ? "text-primary font-bold" : "text-muted-foreground/60"}`}
+                        >
+                          {day}
+                        </div>
+                        <div className="space-y-0.5">
+                          {dayEvents.slice(0, 2).map((e) => (
+                            <div
+                              key={e.id}
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                setSelectedEvent(e);
+                              }}
+                              className={`text-[8px] leading-tight px-0.5 py-0.5 rounded truncate cursor-pointer ${
+                                e.industry === "yachts"
+                                  ? "bg-blue-400/20 text-blue-300"
+                                  : e.industry === "villas"
+                                    ? "bg-emerald-400/20 text-emerald-300"
+                                    : e.industry === "jets"
+                                      ? "bg-violet-400/20 text-violet-300"
+                                      : "bg-orange-400/20 text-orange-300"
+                              } ${selectedEvent?.id === e.id ? "ring-1 ring-white/20" : ""}`}
+                            >
+                              {e.title.split(" ").slice(0, 2).join(" ")}
+                            </div>
+                          ))}
+                          {dayEvents.length > 2 && (
+                            <div className="text-[8px] text-muted-foreground/50">+{dayEvents.length - 2}</div>
+                          )}
+                        </div>
+                      </div>,
+                    );
+                  }
+                  const remaining = cells.length % 7 === 0 ? 0 : 7 - (cells.length % 7);
+                  for (let i = 1; i <= remaining; i++) {
+                    cells.push(
+                      <div key={`next-${i}`} className="min-h-[52px] p-0.5 opacity-20">
+                        <div className="text-[10px] text-right text-muted-foreground">{i}</div>
+                      </div>,
+                    );
+                  }
+                  return cells;
+                })()}
+              </div>
+              <div className="mt-3 pt-3 border-t border-border/40 flex items-center gap-3 flex-wrap">
+                {(["yachts", "villas", "jets", "cars"] as const).map((ind) => (
+                  <div key={ind} className="flex items-center gap-1">
+                    <span className={`h-1.5 w-1.5 rounded-full ${INDUSTRY_DOT[ind]}`} />
+                    <span className="text-[10px] text-muted-foreground capitalize">{ind}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Selected event detail */}
