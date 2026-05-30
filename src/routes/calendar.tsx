@@ -1290,6 +1290,9 @@ function CalendarPage() {
                 <div className="flex flex-wrap gap-2 pt-2">
                   <Link
                     to="/studio"
+                    search={{
+                      idea: `${selectedEvent.title} — ${selectedEvent.location} — ${formatDate(selectedEvent.startDate)}${selectedEvent.startDate !== selectedEvent.endDate ? ` to ${formatDate(selectedEvent.endDate)}` : ""}. ${selectedEvent.description}`,
+                    }}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
