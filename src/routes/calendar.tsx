@@ -966,14 +966,6 @@ function formatDateShort(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function getMonth(dateStr: string): number {
-  return new Date(dateStr).getMonth();
-}
-
-function getYear(dateStr: string): number {
-  return new Date(dateStr).getFullYear();
-}
-
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function CalendarPage() {
@@ -1032,15 +1024,11 @@ function CalendarPage() {
       cells.push(
         <div
           key={day}
-          className={`min-h-[56px] p-1 rounded-lg transition-all ${
-            isToday ? "bg-primary/10 ring-1 ring-primary/40" : "hover:bg-secondary/20"
-          } ${dayEvents.length > 0 ? "cursor-pointer" : ""}`}
+          className={`min-h-[56px] p-1 rounded-lg transition-all ${isToday ? "bg-primary/10 ring-1 ring-primary/40" : "hover:bg-secondary/20"} ${dayEvents.length > 0 ? "cursor-pointer" : ""}`}
           onClick={() => dayEvents.length > 0 && setSelectedEvent(dayEvents[0])}
         >
           <div
-            className={`text-[11px] text-right pr-0.5 mb-0.5 font-mono leading-none ${
-              isToday ? "text-primary font-bold" : "text-muted-foreground/70"
-            }`}
+            className={`text-[11px] text-right pr-0.5 mb-0.5 font-mono leading-none ${isToday ? "text-primary font-bold" : "text-muted-foreground/70"}`}
           >
             {day}
           </div>
@@ -1052,7 +1040,7 @@ function CalendarPage() {
                   ev.stopPropagation();
                   setSelectedEvent(e);
                 }}
-                className={`text-[9px] leading-tight px-1 py-0.5 rounded truncate cursor-pointer transition-opacity hover:opacity-80 ${
+                className={`text-[9px] leading-tight px-1 py-0.5 rounded truncate cursor-pointer hover:opacity-80 ${
                   e.industry === "yachts"
                     ? "bg-blue-400/20 text-blue-300"
                     : e.industry === "villas"
@@ -1101,9 +1089,7 @@ function CalendarPage() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-4 py-1.5 rounded-full border text-xs tracking-[0.2em] uppercase transition-all ${
-              filter === f ? INDUSTRY_COLORS[f] : "border-border text-muted-foreground hover:border-primary/40"
-            }`}
+            className={`px-4 py-1.5 rounded-full border text-xs tracking-[0.2em] uppercase transition-all ${filter === f ? INDUSTRY_COLORS[f] : "border-border text-muted-foreground hover:border-primary/40"}`}
           >
             {f === "all" ? "All industries" : f}
           </button>
@@ -1111,7 +1097,6 @@ function CalendarPage() {
       </div>
 
       <div className="grid lg:grid-cols-[1fr_380px] gap-6">
-        {/* LEFT — Event list */}
         <div className="space-y-8">
           {upcoming.length > 0 && (
             <div>
@@ -1183,7 +1168,6 @@ function CalendarPage() {
               </div>
             </div>
           )}
-
           {past.length > 0 && (
             <div>
               <div className="text-[10px] tracking-[0.34em] text-muted-foreground/60 mb-4">PAST</div>
@@ -1204,9 +1188,7 @@ function CalendarPage() {
           )}
         </div>
 
-        {/* RIGHT — Grid calendar + detail */}
         <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
-          {/* Grid calendar */}
           <div className="glass rounded-xl p-4">
             <div className="flex items-center justify-between mb-4">
               <button
@@ -1225,8 +1207,6 @@ function CalendarPage() {
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
-
-            {/* Day headers */}
             <div className="grid grid-cols-7 mb-1">
               {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
                 <div key={i} className="text-center text-[10px] tracking-[0.15em] text-muted-foreground/50 py-1">
@@ -1234,11 +1214,7 @@ function CalendarPage() {
                 </div>
               ))}
             </div>
-
-            {/* Day cells */}
             <div className="grid grid-cols-7 gap-px">{renderGrid()}</div>
-
-            {/* Legend */}
             <div className="mt-3 pt-3 border-t border-border/40 flex items-center gap-3 flex-wrap">
               {(["yachts", "villas", "jets", "cars"] as const).map((ind) => (
                 <div key={ind} className="flex items-center gap-1">
@@ -1249,7 +1225,6 @@ function CalendarPage() {
             </div>
           </div>
 
-          {/* Event detail */}
           {selectedEvent ? (
             <div className="glass rounded-xl p-5 animate-fade-up">
               <div
@@ -1258,7 +1233,7 @@ function CalendarPage() {
                 {selectedEvent.industry === "all" ? "ALL" : selectedEvent.industry.toUpperCase()}
               </div>
               <div className="font-serif text-xl leading-tight mb-1">{selectedEvent.title}</div>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground mb-4 flex-wrap">
+              <div className="flex items-center gap-3 text-xs text-muted-foreground mb-4">
                 <span className="flex items-center gap-1">
                   <MapPin className="h-3 w-3" />
                   {selectedEvent.location}
@@ -1314,7 +1289,7 @@ function CalendarPage() {
               <CalendarIcon className="h-6 w-6 text-primary/60 mx-auto mb-3" />
               <div className="font-serif text-lg mb-1">Select an event</div>
               <p className="text-xs text-muted-foreground">
-                Click any event on the calendar or in the list to see details and create content.
+                Click any event to see details, content prep timing and create posts.
               </p>
             </div>
           )}
