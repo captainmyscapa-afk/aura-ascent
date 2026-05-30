@@ -55,6 +55,13 @@ function Studio() {
   }, [preselectedIntel, intel.length]);
 
   useEffect(() => {
+    if (preselectedIdea) {
+      setMode("assisted");
+      setIdea(preselectedIdea);
+    }
+  }, [preselectedIdea]);
+
+  useEffect(() => {
     (async () => {
       const { data } = await (supabase.from("live_intelligence") as any)
         .select("id,title,source,category,description")
