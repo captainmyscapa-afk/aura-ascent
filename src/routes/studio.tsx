@@ -12,6 +12,7 @@ export const Route = createFileRoute("/studio")({
   component: Studio,
   validateSearch: (search: Record<string, unknown>) => ({
     intel: search.intel as string | undefined,
+    idea: search.idea as string | undefined,
   }),
 });
 
