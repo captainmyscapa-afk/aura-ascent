@@ -35,6 +35,730 @@ const INDUSTRY_TO_TRACK: Record<IndustryId, string> = {
   cars: "automotive",
 };
 
+type CalendarEvent = {
+  id: string;
+  title: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  industry: IndustryId;
+  contentPrepWeeks: number;
+};
+
+const CALENDAR_EVENTS: CalendarEvent[] = [
+  {
+    id: "boot-dusseldorf-2027",
+    title: "boot Düsseldorf",
+    location: "Düsseldorf, Germany",
+    startDate: "2027-01-23",
+    endDate: "2027-02-01",
+    industry: "yachts",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "miami-boat-2027",
+    title: "Miami International Boat Show",
+    location: "Miami Beach, USA",
+    startDate: "2027-02-11",
+    endDate: "2027-02-17",
+    industry: "yachts",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "dubai-boat-2027",
+    title: "Dubai International Boat Show",
+    location: "Dubai Marina, UAE",
+    startDate: "2027-03-04",
+    endDate: "2027-03-08",
+    industry: "yachts",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "palm-beach-2027",
+    title: "Palm Beach International Boat Show",
+    location: "Palm Beach, USA",
+    startDate: "2027-03-25",
+    endDate: "2027-03-28",
+    industry: "yachts",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "myba-2026",
+    title: "MYBA Charter Show",
+    location: "Sanremo, Italy",
+    startDate: "2026-04-27",
+    endDate: "2026-04-30",
+    industry: "yachts",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "palma-boat-2026",
+    title: "Palma International Boat Show",
+    location: "Palma de Mallorca, Spain",
+    startDate: "2026-04-29",
+    endDate: "2026-05-02",
+    industry: "yachts",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "medys-2026",
+    title: "Mediterranean Yacht Show",
+    location: "Nafplio, Greece",
+    startDate: "2026-05-02",
+    endDate: "2026-05-06",
+    industry: "yachts",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "world-superyacht-awards-2026",
+    title: "World Superyacht Awards",
+    location: "Venice, Italy",
+    startDate: "2026-05-01",
+    endDate: "2026-05-02",
+    industry: "yachts",
+    contentPrepWeeks: 2,
+  },
+  {
+    id: "venice-boat-2026",
+    title: "Venice Boat Show",
+    location: "Venice, Italy",
+    startDate: "2026-05-01",
+    endDate: "2026-05-03",
+    industry: "yachts",
+    contentPrepWeeks: 2,
+  },
+  {
+    id: "tyba-2026",
+    title: "TYBA Charter Show",
+    location: "Gocek Marina, Turkey",
+    startDate: "2026-05-07",
+    endDate: "2026-05-11",
+    industry: "yachts",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "superyacht-design-fest-2026",
+    title: "Superyacht Design Festival",
+    location: "Kitzbuhel, Austria",
+    startDate: "2026-06-15",
+    endDate: "2026-06-17",
+    industry: "yachts",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "newport-charter-2026",
+    title: "Newport Charter Yacht Show",
+    location: "Newport, USA",
+    startDate: "2026-06-22",
+    endDate: "2026-06-25",
+    industry: "yachts",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "cyf-2026",
+    title: "Cannes Yachting Festival",
+    location: "Cannes, France",
+    startDate: "2026-09-08",
+    endDate: "2026-09-13",
+    industry: "yachts",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "mys-2026",
+    title: "Monaco Yacht Show",
+    location: "Port Hercule, Monaco",
+    startDate: "2026-09-23",
+    endDate: "2026-09-26",
+    industry: "yachts",
+    contentPrepWeeks: 6,
+  },
+  {
+    id: "croya-2026",
+    title: "CROYA Charter Show",
+    location: "Antibes, France",
+    startDate: "2026-10-05",
+    endDate: "2026-10-07",
+    industry: "yachts",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "flibs-2026",
+    title: "Fort Lauderdale Boat Show",
+    location: "Fort Lauderdale, USA",
+    startDate: "2026-10-28",
+    endDate: "2026-11-01",
+    industry: "yachts",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "usvi-charter-2026",
+    title: "USVI Charter Yacht Show",
+    location: "St Thomas, USVI",
+    startDate: "2026-11-05",
+    endDate: "2026-11-08",
+    industry: "yachts",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "metstrade-2026",
+    title: "Metstrade",
+    location: "Amsterdam, Netherlands",
+    startDate: "2026-11-17",
+    endDate: "2026-11-19",
+    industry: "yachts",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "explorer-summit-2026",
+    title: "Explorer Yachts Summit",
+    location: "Amsterdam, Netherlands",
+    startDate: "2026-11-16",
+    endDate: "2026-11-16",
+    industry: "yachts",
+    contentPrepWeeks: 2,
+  },
+  {
+    id: "antigua-charter-2026",
+    title: "Antigua Charter Yacht Show",
+    location: "Antigua, Caribbean",
+    startDate: "2026-12-04",
+    endDate: "2026-12-09",
+    industry: "yachts",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "rise-expo-2027",
+    title: "RISE Expo Dubai",
+    location: "Dubai, UAE",
+    startDate: "2027-01-13",
+    endDate: "2027-01-15",
+    industry: "villas",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "mipim-2027",
+    title: "MIPIM",
+    location: "Cannes, France",
+    startDate: "2027-03-15",
+    endDate: "2027-03-19",
+    industry: "villas",
+    contentPrepWeeks: 6,
+  },
+  {
+    id: "knight-frank-2026",
+    title: "Knight Frank Wealth Report Launch",
+    location: "London, UK",
+    startDate: "2026-03-04",
+    endDate: "2026-03-04",
+    industry: "villas",
+    contentPrepWeeks: 1,
+  },
+  {
+    id: "sothebys-realty-2026",
+    title: "Sotheby's International Realty Summit",
+    location: "Miami, USA",
+    startDate: "2026-03-10",
+    endDate: "2026-03-12",
+    industry: "villas",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "gulf-re-awards-2026",
+    title: "Gulf Real Estate Awards",
+    location: "Dubai, UAE",
+    startDate: "2026-04-15",
+    endDate: "2026-04-16",
+    industry: "villas",
+    contentPrepWeeks: 2,
+  },
+  {
+    id: "milken-2026",
+    title: "Milken Institute Global Conference",
+    location: "Beverly Hills, USA",
+    startDate: "2026-05-04",
+    endDate: "2026-05-07",
+    industry: "villas",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "christies-re-2026",
+    title: "Christie's International Real Estate Summit",
+    location: "New York, USA",
+    startDate: "2026-05-05",
+    endDate: "2026-05-06",
+    industry: "villas",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "cannes-lions-2026",
+    title: "Cannes Lions",
+    location: "Cannes, France",
+    startDate: "2026-06-22",
+    endDate: "2026-06-26",
+    industry: "villas",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "inman-luxury-2026",
+    title: "Inman Luxury Connect",
+    location: "San Diego, USA",
+    startDate: "2026-07-27",
+    endDate: "2026-07-28",
+    industry: "villas",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "rics-2026",
+    title: "RICS World Built Environment Forum",
+    location: "London, UK",
+    startDate: "2026-09-14",
+    endDate: "2026-09-15",
+    industry: "villas",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "palexpo-2026",
+    title: "Salon International de l'Immobilier",
+    location: "Geneva, Switzerland",
+    startDate: "2026-09-24",
+    endDate: "2026-09-27",
+    industry: "villas",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "expo-real-2026",
+    title: "Expo Real Munich",
+    location: "Munich, Germany",
+    startDate: "2026-10-05",
+    endDate: "2026-10-07",
+    industry: "villas",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "uli-2026",
+    title: "ULI Fall Meeting",
+    location: "Las Vegas, USA",
+    startDate: "2026-10-19",
+    endDate: "2026-10-22",
+    industry: "villas",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "world-luxury-expo-2026",
+    title: "World Luxury Expo",
+    location: "Abu Dhabi, UAE",
+    startDate: "2026-10-20",
+    endDate: "2026-10-22",
+    industry: "villas",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "cityscape-dubai-2026",
+    title: "Cityscape Dubai",
+    location: "Dubai, UAE",
+    startDate: "2026-11-10",
+    endDate: "2026-11-12",
+    industry: "villas",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "monaco-property-2026",
+    title: "Monaco Property Days",
+    location: "Monaco",
+    startDate: "2026-11-14",
+    endDate: "2026-11-15",
+    industry: "villas",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "sime-miami-2026",
+    title: "SIME Miami",
+    location: "Miami, USA",
+    startDate: "2026-11-18",
+    endDate: "2026-11-20",
+    industry: "villas",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "iltm-2026",
+    title: "ILTM Cannes",
+    location: "Cannes, France",
+    startDate: "2026-11-30",
+    endDate: "2026-12-03",
+    industry: "villas",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "leading-re-2027",
+    title: "LeadingRE Luxury Summit",
+    location: "Las Vegas, USA",
+    startDate: "2027-03-22",
+    endDate: "2027-03-24",
+    industry: "villas",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "dubai-property-2027",
+    title: "Dubai Luxury Property Show",
+    location: "Dubai, UAE",
+    startDate: "2027-02-20",
+    endDate: "2027-02-22",
+    industry: "villas",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "nac-2026",
+    title: "NAFA Aviation Forum",
+    location: "Miami, USA",
+    startDate: "2026-02-10",
+    endDate: "2026-02-12",
+    industry: "jets",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "asian-biz-av-2026",
+    title: "Asian Business Aviation Conference",
+    location: "Shanghai, China",
+    startDate: "2026-03-24",
+    endDate: "2026-03-26",
+    industry: "jets",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "avbuyer-2026",
+    title: "AvBuyer Aircraft Summit",
+    location: "London, UK",
+    startDate: "2026-03-17",
+    endDate: "2026-03-18",
+    industry: "jets",
+    contentPrepWeeks: 2,
+  },
+  {
+    id: "aero-2026",
+    title: "AERO Friedrichshafen",
+    location: "Friedrichshafen, Germany",
+    startDate: "2026-04-15",
+    endDate: "2026-04-18",
+    industry: "jets",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "canbiz-2026",
+    title: "CANBIZ Cannes",
+    location: "Cannes, France",
+    startDate: "2026-04-07",
+    endDate: "2026-04-09",
+    industry: "jets",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "corporate-jet-investor-2026",
+    title: "Corporate Jet Investor",
+    location: "New York, USA",
+    startDate: "2026-04-28",
+    endDate: "2026-04-29",
+    industry: "jets",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "ebace-2026",
+    title: "EBACE Geneva",
+    location: "Geneva, Switzerland",
+    startDate: "2026-05-19",
+    endDate: "2026-05-21",
+    industry: "jets",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "cahf-2026",
+    title: "Corporate Aviation Hospitality Forum",
+    location: "Monaco",
+    startDate: "2026-06-04",
+    endDate: "2026-06-05",
+    industry: "jets",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "baa-2026",
+    title: "BBGA Forum",
+    location: "London, UK",
+    startDate: "2026-06-09",
+    endDate: "2026-06-10",
+    industry: "jets",
+    contentPrepWeeks: 2,
+  },
+  {
+    id: "farnborough-2026",
+    title: "Farnborough Airshow",
+    location: "Farnborough, UK",
+    startDate: "2026-07-20",
+    endDate: "2026-07-26",
+    industry: "jets",
+    contentPrepWeeks: 5,
+  },
+  {
+    id: "aviation-festival-2026",
+    title: "Aviation Festival",
+    location: "Amsterdam, Netherlands",
+    startDate: "2026-09-08",
+    endDate: "2026-09-09",
+    industry: "jets",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "jetexpo-2026",
+    title: "JetExpo",
+    location: "Moscow, Russia",
+    startDate: "2026-09-10",
+    endDate: "2026-09-12",
+    industry: "jets",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "wjet-2026",
+    title: "World Jet Forum",
+    location: "Geneva, Switzerland",
+    startDate: "2026-10-06",
+    endDate: "2026-10-07",
+    industry: "jets",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "rotorcraft-2026",
+    title: "Rotorcraft Pro Summit",
+    location: "Las Vegas, USA",
+    startDate: "2026-10-19",
+    endDate: "2026-10-19",
+    industry: "jets",
+    contentPrepWeeks: 2,
+  },
+  {
+    id: "nbaa-2026",
+    title: "NBAA-BACE",
+    location: "Las Vegas, USA",
+    startDate: "2026-10-20",
+    endDate: "2026-10-22",
+    industry: "jets",
+    contentPrepWeeks: 6,
+  },
+  {
+    id: "charter-broker-2026",
+    title: "Air Charter Association Summit",
+    location: "London, UK",
+    startDate: "2026-11-03",
+    endDate: "2026-11-04",
+    industry: "jets",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "mebaa-2026",
+    title: "MEBAA Show",
+    location: "Dubai, UAE",
+    startDate: "2026-12-08",
+    endDate: "2026-12-10",
+    industry: "jets",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "heli-expo-2027",
+    title: "HAI Heli-Expo",
+    location: "Dallas, USA",
+    startDate: "2027-03-06",
+    endDate: "2027-03-09",
+    industry: "jets",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "dubai-airshow-2027",
+    title: "Dubai Airshow",
+    location: "Dubai, UAE",
+    startDate: "2027-11-17",
+    endDate: "2027-11-21",
+    industry: "jets",
+    contentPrepWeeks: 6,
+  },
+  {
+    id: "retromobile-2027",
+    title: "Retromobile",
+    location: "Paris, France",
+    startDate: "2027-02-03",
+    endDate: "2027-02-08",
+    industry: "cars",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "amelia-island-2026",
+    title: "Amelia Island Concours",
+    location: "Amelia Island, USA",
+    startDate: "2026-03-05",
+    endDate: "2026-03-08",
+    industry: "cars",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "goodwood-members-2026",
+    title: "Goodwood Members' Meeting",
+    location: "Goodwood, UK",
+    startDate: "2026-04-18",
+    endDate: "2026-04-19",
+    industry: "cars",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "top-marques-2026",
+    title: "Top Marques Monaco",
+    location: "Monaco",
+    startDate: "2026-05-06",
+    endDate: "2026-05-10",
+    industry: "cars",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "villa-deste-2026",
+    title: "Concorso d'Eleganza Villa d'Este",
+    location: "Lake Como, Italy",
+    startDate: "2026-05-15",
+    endDate: "2026-05-17",
+    industry: "cars",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "rm-monaco-2026",
+    title: "RM Sotheby's Monaco",
+    location: "Monaco",
+    startDate: "2026-05-20",
+    endDate: "2026-05-21",
+    industry: "cars",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "le-mans-classic-2026",
+    title: "Le Mans Classic",
+    location: "Le Mans, France",
+    startDate: "2026-07-03",
+    endDate: "2026-07-06",
+    industry: "cars",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "goodwood-fos-2026",
+    title: "Goodwood Festival of Speed",
+    location: "Goodwood, UK",
+    startDate: "2026-07-09",
+    endDate: "2026-07-12",
+    industry: "cars",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "rm-monterey-2026",
+    title: "RM Sotheby's Monterey",
+    location: "Pebble Beach, USA",
+    startDate: "2026-08-12",
+    endDate: "2026-08-12",
+    industry: "cars",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "quail-2026",
+    title: "The Quail Motorsports Gathering",
+    location: "Carmel, USA",
+    startDate: "2026-08-14",
+    endDate: "2026-08-14",
+    industry: "cars",
+    contentPrepWeeks: 4,
+  },
+  {
+    id: "pebble-beach-2026",
+    title: "Pebble Beach Concours",
+    location: "Pebble Beach, USA",
+    startDate: "2026-08-16",
+    endDate: "2026-08-16",
+    industry: "cars",
+    contentPrepWeeks: 6,
+  },
+  {
+    id: "concorso-italiano-2026",
+    title: "Concorso Italiano",
+    location: "Monterey, USA",
+    startDate: "2026-08-15",
+    endDate: "2026-08-15",
+    industry: "cars",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "salon-prive-2026",
+    title: "Salon Prive",
+    location: "Blenheim Palace, UK",
+    startDate: "2026-09-02",
+    endDate: "2026-09-05",
+    industry: "cars",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "goodwood-revival-2026",
+    title: "Goodwood Revival",
+    location: "Goodwood, UK",
+    startDate: "2026-09-18",
+    endDate: "2026-09-20",
+    industry: "cars",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "paris-motor-2026",
+    title: "Paris Motor Show",
+    location: "Paris, France",
+    startDate: "2026-10-15",
+    endDate: "2026-10-25",
+    industry: "cars",
+    contentPrepWeeks: 5,
+  },
+  {
+    id: "rm-london-2026",
+    title: "RM Sotheby's London",
+    location: "London, UK",
+    startDate: "2026-10-31",
+    endDate: "2026-10-31",
+    industry: "cars",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "bonhams-scottsdale-2027",
+    title: "Bonhams Scottsdale Auction",
+    location: "Scottsdale, USA",
+    startDate: "2027-01-16",
+    endDate: "2027-01-16",
+    industry: "cars",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "cavallino-2027",
+    title: "Cavallino Classic",
+    location: "Palm Beach, USA",
+    startDate: "2027-01-22",
+    endDate: "2027-01-26",
+    industry: "cars",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "artcurial-2027",
+    title: "Artcurial Retromobile Auction",
+    location: "Paris, France",
+    startDate: "2027-02-05",
+    endDate: "2027-02-06",
+    industry: "cars",
+    contentPrepWeeks: 3,
+  },
+  {
+    id: "ice-st-moritz-2027",
+    title: "The I.C.E. St. Moritz",
+    location: "St. Moritz, Switzerland",
+    startDate: "2027-02-14",
+    endDate: "2027-02-14",
+    industry: "cars",
+    contentPrepWeeks: 3,
+  },
+];
+
 function useNow() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -68,15 +792,21 @@ export default function Dashboard() {
   const [recLoading, setRecLoading] = useState(false);
   const [dailyTasks, setDailyTasks] = useState<string[]>(industry.dailyObjectives);
   const [tasksLoading, setTasksLoading] = useState(false);
-  const [events, setEvents] = useState<{ date: string; title: string }[]>(
-    (industry.upcoming ?? []).map(([d, t]) => ({ date: d, title: t })),
-  );
-  const [eventsLoading, setEventsLoading] = useState(false);
   const [done, setDone] = useState<Record<number, boolean>>({});
 
   const recFn = useServerFn(generateRecommendation);
   const tasksFn = useServerFn(generateDailyTasks);
-  const eventsFn = useServerFn(generateUpcomingEvents);
+
+  const todayStr = isoDay();
+  const upcomingEvents = CALENDAR_EVENTS.filter((e) => e.industry === industryId && e.endDate >= todayStr)
+    .sort((a, b) => a.startDate.localeCompare(b.startDate))
+    .slice(0, 5)
+    .map((e) => ({
+      id: e.id,
+      date: new Date(e.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      title: e.title,
+      daysUntil: Math.ceil((new Date(e.startDate).getTime() - new Date(todayStr).getTime()) / 86_400_000),
+    }));
 
   useEffect(() => {
     if (!user) return;
@@ -123,17 +853,6 @@ export default function Dashboard() {
       setDailyTasks(cachedTasks.tasks);
     } else {
       refreshDailyTasks(ctx);
-    }
-
-    const cachedEv = c.upcoming_events as any;
-    if (
-      cachedEv?.events?.length > 0 &&
-      c.upcoming_events_week_start === weekStartIso() &&
-      cachedEv?.mode === industry.label
-    ) {
-      setEvents(cachedEv.events);
-    } else {
-      refreshEvents(industry.label);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, industryId, core?.id, industry.label]);
@@ -202,23 +921,6 @@ export default function Dashboard() {
       console.error(e);
     } finally {
       setTasksLoading(false);
-    }
-  }
-
-  async function refreshEvents(mode: string) {
-    if (!user) return;
-    setEventsLoading(true);
-    try {
-      const { events: ev } = await eventsFn({ data: { mode } });
-      setEvents(ev);
-      await updateCore({
-        upcoming_events: { mode: industry.label, events: ev } as any,
-        upcoming_events_week_start: weekStartIso(),
-      });
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setEventsLoading(false);
     }
   }
 
@@ -433,22 +1135,29 @@ export default function Dashboard() {
                 <Calendar className="h-4 w-4 text-primary" />
                 <div className="text-[10px] tracking-[0.34em] text-foreground">UPCOMING</div>
               </div>
-              <span className="text-[10px] tracking-[0.3em] text-muted-foreground">
-                {eventsLoading ? "…" : events.length}
-              </span>
+              <Link
+                to="/calendar"
+                className="text-[10px] tracking-[0.3em] text-muted-foreground hover:text-primary transition-colors"
+              >
+                {upcomingEvents.length} · View all
+              </Link>
             </div>
             <div className="space-y-4">
-              {events.map((ev) => (
-                <div key={ev.title} className="group flex items-start gap-4 cursor-pointer">
+              {upcomingEvents.map((ev) => (
+                <Link key={ev.id} to="/calendar" className="group flex items-start gap-4 cursor-pointer">
                   <div className="shrink-0 w-12">
                     <div className="font-mono text-[10px] tracking-widest text-primary/80 uppercase">{ev.date}</div>
+                    {ev.daysUntil <= 14 && <div className="text-[9px] text-primary/60 mt-0.5">{ev.daysUntil}d</div>}
                   </div>
                   <div className="flex-1 text-[14px] leading-snug text-foreground/90 group-hover:text-primary transition-colors">
                     {ev.title}
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
+                </Link>
               ))}
+              {upcomingEvents.length === 0 && (
+                <div className="text-xs text-muted-foreground italic">No upcoming events found.</div>
+              )}
             </div>
           </Card>
 
