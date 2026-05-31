@@ -163,12 +163,19 @@ function Studio() {
     }
   };
 
-  const downloadImage = () => {
+  const downloadImage = async () => {
     if (!imageUrl) return;
-    const a = document.createElement("a");
-    a.href = imageUrl;
-    a.download = `aurum-visual-${Date.now()}.jpg`;
-    a.click();
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `aurum-visual-${Date.now()}.jpg`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      window.open(imageUrl, "_blank");
+    }
   };
 
   const copy = async (key: string, text: string) => {
