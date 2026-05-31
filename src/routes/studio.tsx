@@ -3,23 +3,9 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
 import { SectionHeading } from "@/components/aurum/SectionHeading";
-import {
-  Sparkles,
-  Wand2,
-  Radio,
-  ImageIcon,
-  Hash,
-  Copy,
-  Check,
-  Send,
-  Loader2,
-  Download,
-  History,
-  X,
-} from "lucide-react";
+import { Sparkles, Wand2, Radio, ImageIcon, Hash, Copy, Check, Send, Loader2, Download } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { generateStudioContent, type StudioContentPlan } from "@/lib/studio.functions";
 
 export const Route = createFileRoute("/studio")({
@@ -41,26 +27,8 @@ type IntelEntry = {
   description: string | null;
 };
 
-type HistoryEntry = {
-  id: string;
-  industry: string;
-  mode: string;
-  idea: string | null;
-  goal: string | null;
-  title: string | null;
-  viral_hook: string | null;
-  instagram_caption: string | null;
-  tiktok_caption: string | null;
-  linkedin_caption: string | null;
-  hashtags: string[] | null;
-  visual_prompt: string | null;
-  image_url: string | null;
-  created_at: string;
-};
-
 function Studio() {
   const { industry, industryId } = useIndustry();
-  const { user } = useAuth();
   const generate = useServerFn(generateStudioContent);
 
   const [mode, setMode] = useState<Mode>("assisted");
@@ -81,10 +49,6 @@ function Studio() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
-
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
-  const [lastSavedId, setLastSavedId] = useState<string | null>(null);
 
   const { intel: preselectedIntel, idea: preselectedIdea } = Route.useSearch();
 
@@ -113,84 +77,6 @@ function Studio() {
     })();
   }, []);
 
-  useEffect(() => {
-    if (user) loadHistory();
-  }, [user, industryId]);
-
-  const loadHistory = async () => {
-    if (!user) return;
-    const { data } = await (supabase.from("user_content_history") as any)
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("industry", industryId)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    setHistory((data as HistoryEntry[]) || []);
-  };
-
-  const saveToHistory = async (result: StudioContentPlan) => {
-    if (!user) return;
-    const { data } = await (supabase.from("user_content_history") as any)
-      .insert({
-        user_id: user.id,
-        industry: industryId,
-        mode,
-        idea: idea || null,
-        goal: goal || null,
-        title: result.title,
-        viral_hook: result.viralHook,
-        instagram_caption: result.platforms.instagram,
-        tiktok_caption: result.platforms.tiktok,
-        linkedin_caption: result.platforms.linkedin || null,
-        hashtags: result.hashtags,
-        visual_prompt: result.visualPrompt,
-        image_url: null,
-      })
-      .select("id")
-      .single();
-    if (data?.id) setLastSavedId(data.id);
-    loadHistory();
-  };
-
-  const updateMemory = async (result: StudioContentPlan) => {
-    if (!user) return;
-    const topics = history
-      .map((h) => h.title)
-      .filter(Boolean)
-      .slice(0, 10) as string[];
-    if (result.title) topics.unshift(result.title);
-    await (supabase.from("user_memory") as any).upsert(
-      {
-        user_id: user.id,
-        industry: industryId,
-        content_topics: topics.slice(0, 10),
-        mentor_context: `User has created content about: ${topics.slice(0, 5).join(", ")}. Latest: "${result.title}". Goal: "${goal || "not specified"}".`,
-        last_updated: new Date().toISOString(),
-      },
-      { onConflict: "user_id" },
-    );
-  };
-
-  const loadFromHistory = (entry: HistoryEntry) => {
-    setIdea(entry.idea || "");
-    setGoal(entry.goal || "");
-    setImageUrl(entry.image_url || null);
-    setLastSavedId(entry.id);
-    setPlan({
-      title: entry.title || "",
-      viralHook: entry.viral_hook || "",
-      platforms: {
-        instagram: entry.instagram_caption || "",
-        tiktok: entry.tiktok_caption || "",
-        linkedin: entry.linkedin_caption || undefined,
-      },
-      script: [],
-      hashtags: entry.hashtags || [],
-      visualPrompt: entry.visual_prompt || "",
-    });
-    setShowHistory(false);
-  };
-
   const toggleIntel = (id: string) => {
     setSelectedIntel((prev) => {
       const next = new Set(prev);
@@ -206,7 +92,6 @@ function Studio() {
     setPlan(null);
     setImageUrl(null);
     setImageError(false);
-    setLastSavedId(null);
     setPending(true);
 
     if (format === "reel" || format === "video") {
@@ -251,8 +136,6 @@ function Studio() {
       });
 
       setPlan(result);
-      await saveToHistory(result);
-      await updateMemory(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generation failed");
     } finally {
@@ -273,10 +156,6 @@ function Studio() {
         img.src = url;
       });
       setImageUrl(url);
-      if (lastSavedId) {
-        await (supabase.from("user_content_history") as any).update({ image_url: url }).eq("id", lastSavedId);
-        loadHistory();
-      }
     } catch {
       setImageError(true);
     } finally {
@@ -313,67 +192,14 @@ function Studio() {
         <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">
           CONTENT STUDIO · {industry.modeLabel.toUpperCase()}
         </div>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="font-serif text-4xl sm:text-5xl">
-              Viral content, <span className="italic text-gold-gradient">on demand.</span>
-            </h1>
-            <p className="mt-3 text-muted-foreground max-w-2xl text-sm">
-              AURUM's AI creative director crafts post-ready content for the {industry.label.toLowerCase()} world —
-              hooks, scripts, captions, hashtags, cinematic visuals. Optimized per platform. Ready in under 30 seconds.
-            </p>
-          </div>
-          {history.length > 0 && (
-            <button
-              onClick={() => setShowHistory(!showHistory)}
-              className="shrink-0 flex items-center gap-2 glass rounded-xl px-4 py-2 text-xs tracking-[0.2em] uppercase text-muted-foreground hover:text-primary transition-colors"
-            >
-              <History className="h-4 w-4" />
-              History ({history.length})
-            </button>
-          )}
-        </div>
+        <h1 className="font-serif text-4xl sm:text-5xl">
+          Viral content, <span className="italic text-gold-gradient">on demand.</span>
+        </h1>
+        <p className="mt-3 text-muted-foreground max-w-2xl text-sm">
+          AURUM's AI creative director crafts post-ready content for the {industry.label.toLowerCase()} world — hooks,
+          scripts, captions, hashtags, cinematic visuals. Optimized per platform. Ready in under 30 seconds.
+        </p>
       </div>
-
-      {showHistory && (
-        <div className="glass rounded-xl p-5 mb-6 animate-fade-up">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-[10px] tracking-[0.34em] text-primary/80">
-              CONTENT HISTORY · {industry.label.toUpperCase()}
-            </div>
-            <button
-              onClick={() => setShowHistory(false)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-            {history.map((entry) => (
-              <button
-                key={entry.id}
-                onClick={() => loadFromHistory(entry)}
-                className="w-full text-left p-3 rounded-lg border border-border hover:border-primary/40 transition-all"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-serif truncate">{entry.title || "Untitled"}</div>
-                    {entry.idea && (
-                      <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{entry.idea}</div>
-                    )}
-                  </div>
-                  <div className="shrink-0 text-[10px] text-muted-foreground font-mono">
-                    {new Date(entry.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                  </div>
-                </div>
-                {entry.image_url && (
-                  <img src={entry.image_url} alt="" className="mt-2 h-12 w-20 object-cover rounded" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="grid lg:grid-cols-[1fr_1fr] gap-6">
         <div className="space-y-5">
@@ -661,21 +487,19 @@ function PlanOutput({
         </div>
       </div>
 
-      {plan.script.length > 0 && (
-        <div className="glass rounded-xl p-5">
-          <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-3">CONTENT SCRIPT</div>
-          <ol className="space-y-2">
-            {plan.script.map((s, i) => (
-              <li key={i} className="flex gap-3 text-sm">
-                <span className="text-primary/80 font-mono text-xs pt-0.5 shrink-0">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span className="leading-relaxed">{s}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
+      <div className="glass rounded-xl p-5">
+        <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-3">CONTENT SCRIPT</div>
+        <ol className="space-y-2">
+          {plan.script.map((s, i) => (
+            <li key={i} className="flex gap-3 text-sm">
+              <span className="text-primary/80 font-mono text-xs pt-0.5 shrink-0">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="leading-relaxed">{s}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
 
       <div className="glass rounded-xl p-5">
         <div className="flex items-center justify-between mb-3">
