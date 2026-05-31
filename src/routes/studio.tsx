@@ -148,14 +148,15 @@ function Studio() {
     setImageError(false);
     setImageUrl(null);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-image", {
-        body: { prompt: visualPrompt },
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(visualPrompt + ", luxury lifestyle, cinematic, editorial photography, high end, 4K")}?width=1024&height=1024&nologo=true&enhance=true&model=flux`;
+      await new Promise<void>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("Failed to load"));
+        img.src = url;
       });
-      if (error || !data?.imageBase64) throw new Error(error?.message || "No image returned");
-      const url = `data:${data.mimeType || "image/jpeg"};base64,${data.imageBase64}`;
       setImageUrl(url);
-    } catch (e) {
-      console.error("Image generation error:", e);
+    } catch {
       setImageError(true);
     } finally {
       setImageLoading(false);
