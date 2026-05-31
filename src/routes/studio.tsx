@@ -148,14 +148,19 @@ function Studio() {
     setImageError(false);
     setImageUrl(null);
     try {
-      const session = await supabase.auth.getSession();
-const { data, error } = await supabase.functions.invoke("generate-image", {
-  body: JSON.stringify({ prompt: visualPrompt }),
-  headers: {
-    Authorization: `Bearer ${session.data.session?.access_token ?? ""}`,
-    "Content-Type": "application/json",
-  },
-});
+      const { data, error } = await supabase.functions.invoke("generate-image", {
+        body: { prompt: visualPrompt },
+      });
+      if (error || !data?.imageBase64) throw new Error(error?.message || "No image returned");
+      const url = `data:${data.mimeType || "image/jpeg"};base64,${data.imageBase64}`;
+      setImageUrl(url);
+    } catch (e) {
+      console.error("Image generation error:", e);
+      setImageError(true);
+    } finally {
+      setImageLoading(false);
+    }
+  };
 
   const downloadImage = () => {
     if (!imageUrl) return;
@@ -189,7 +194,6 @@ const { data, error } = await supabase.functions.invoke("generate-image", {
       </div>
 
       <div className="grid lg:grid-cols-[1fr_1fr] gap-6">
-        {/* LEFT — Input */}
         <div className="space-y-5">
           <div className="glass rounded-xl p-1.5 grid grid-cols-2 gap-1.5">
             <ModeTab
@@ -235,9 +239,7 @@ const { data, error } = await supabase.functions.invoke("generate-image", {
                       <button
                         key={e.id}
                         onClick={() => toggleIntel(e.id)}
-                        className={`w-full text-left p-3 rounded-lg border transition-all ${
-                          on ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/30"
-                        }`}
+                        className={`w-full text-left p-3 rounded-lg border transition-all ${on ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/30"}`}
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[9px] tracking-[0.3em] text-primary/80 px-1.5 py-0.5 border border-primary/30 rounded uppercase">
@@ -283,11 +285,7 @@ const { data, error } = await supabase.functions.invoke("generate-image", {
                   <button
                     key={f}
                     onClick={() => setFormat(f)}
-                    className={`text-xs uppercase tracking-[0.2em] py-2 rounded-lg border transition-all ${
-                      format === f
-                        ? "border-primary/60 bg-primary/10 text-foreground"
-                        : "border-border text-muted-foreground hover:border-primary/30"
-                    }`}
+                    className={`text-xs uppercase tracking-[0.2em] py-2 rounded-lg border transition-all ${format === f ? "border-primary/60 bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:border-primary/30"}`}
                   >
                     {f}
                   </button>
@@ -303,11 +301,7 @@ const { data, error } = await supabase.functions.invoke("generate-image", {
                     <button
                       key={d}
                       onClick={() => setVideoDuration(d)}
-                      className={`text-xs py-2 rounded-lg border transition-all ${
-                        videoDuration === d
-                          ? "border-primary/60 bg-primary/10"
-                          : "border-border text-muted-foreground hover:border-primary/30"
-                      }`}
+                      className={`text-xs py-2 rounded-lg border transition-all ${videoDuration === d ? "border-primary/60 bg-primary/10" : "border-border text-muted-foreground hover:border-primary/30"}`}
                     >
                       {d}s
                     </button>
@@ -323,11 +317,7 @@ const { data, error } = await supabase.functions.invoke("generate-image", {
                   <button
                     key={l}
                     onClick={() => setUserLevel(l)}
-                    className={`text-xs uppercase tracking-[0.2em] py-2 rounded-lg border transition-all ${
-                      userLevel === l
-                        ? "border-primary/60 bg-primary/10"
-                        : "border-border text-muted-foreground hover:border-primary/30"
-                    }`}
+                    className={`text-xs uppercase tracking-[0.2em] py-2 rounded-lg border transition-all ${userLevel === l ? "border-primary/60 bg-primary/10" : "border-border text-muted-foreground hover:border-primary/30"}`}
                   >
                     {l}
                   </button>
@@ -358,7 +348,6 @@ const { data, error } = await supabase.functions.invoke("generate-image", {
           {error && <div className="text-xs text-destructive border border-destructive/40 rounded-lg p-3">{error}</div>}
         </div>
 
-        {/* RIGHT — Output */}
         <div className="lg:sticky lg:top-6 lg:self-start space-y-4">
           {!plan && !pending && (
             <div className="glass rounded-xl p-10 text-center">
@@ -438,9 +427,7 @@ function ModeTab({
   return (
     <button
       onClick={onClick}
-      className={`rounded-lg p-3 text-left transition-all ${
-        active ? "bg-primary/10 ring-1 ring-primary/40" : "hover:bg-foreground/5"
-      }`}
+      className={`rounded-lg p-3 text-left transition-all ${active ? "bg-primary/10 ring-1 ring-primary/40" : "hover:bg-foreground/5"}`}
     >
       <Icon className={`h-4 w-4 mb-1.5 ${active ? "text-primary" : "text-muted-foreground"}`} />
       <div className="text-sm font-medium leading-tight">{label}</div>
@@ -470,7 +457,6 @@ function PlanOutput({
 }) {
   return (
     <div className="space-y-4 animate-fade-up">
-      {/* Title + hook */}
       <div className="glass rounded-xl p-5 ring-gold">
         <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">TITLE</div>
         <div className="font-serif text-2xl leading-tight">{plan.title}</div>
@@ -482,7 +468,6 @@ function PlanOutput({
         </div>
       </div>
 
-      {/* Platforms */}
       <div className="glass rounded-xl p-5">
         <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-4">PLATFORM VERSIONS</div>
         <div className="space-y-4">
@@ -494,7 +479,6 @@ function PlanOutput({
         </div>
       </div>
 
-      {/* Script */}
       <div className="glass rounded-xl p-5">
         <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-3">CONTENT SCRIPT</div>
         <ol className="space-y-2">
@@ -509,7 +493,6 @@ function PlanOutput({
         </ol>
       </div>
 
-      {/* Hashtags */}
       <div className="glass rounded-xl p-5">
         <div className="flex items-center justify-between mb-3">
           <div className="text-[10px] tracking-[0.34em] text-primary/80 flex items-center gap-2">
@@ -530,7 +513,6 @@ function PlanOutput({
         </div>
       </div>
 
-      {/* Visual prompt + image generation */}
       <div className="glass rounded-xl p-5">
         <div className="flex items-center justify-between mb-3">
           <div className="text-[10px] tracking-[0.34em] text-primary/80 flex items-center gap-2">
@@ -540,18 +522,15 @@ function PlanOutput({
         </div>
         <div className="text-sm leading-relaxed text-foreground/90 italic mb-4">{plan.visualPrompt}</div>
 
-        {/* Generate image button */}
         {!imageUrl && !imageLoading && (
           <button
             onClick={onGenerateImage}
             className="w-full h-10 rounded-xl border border-primary/40 text-primary text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary/10 transition-all"
           >
-            <ImageIcon className="h-4 w-4" />
-            Generate image
+            <ImageIcon className="h-4 w-4" /> Generate image
           </button>
         )}
 
-        {/* Loading state */}
         {imageLoading && (
           <div className="w-full h-64 rounded-xl border border-border/40 flex flex-col items-center justify-center gap-3 bg-secondary/10">
             <Loader2 className="h-6 w-6 text-primary animate-spin" />
@@ -559,7 +538,6 @@ function PlanOutput({
           </div>
         )}
 
-        {/* Error state */}
         {imageError && !imageLoading && (
           <div className="w-full rounded-xl border border-destructive/40 p-4 text-center">
             <div className="text-xs text-destructive mb-2">Image generation failed. Try again.</div>
@@ -569,27 +547,22 @@ function PlanOutput({
           </div>
         )}
 
-        {/* Generated image */}
         {imageUrl && !imageLoading && (
           <div className="space-y-3">
-            <div className="relative rounded-xl overflow-hidden">
-              <img src={imageUrl} alt="Generated visual" className="w-full rounded-xl" />
-            </div>
+            <img src={imageUrl} alt="Generated visual" className="w-full rounded-xl" />
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={onDownloadImage}
                 className="h-10 rounded-xl text-primary-foreground text-sm font-medium flex items-center justify-center gap-2"
                 style={{ background: "var(--gradient-gold)" }}
               >
-                <Download className="h-4 w-4" />
-                Download
+                <Download className="h-4 w-4" /> Download
               </button>
               <button
                 onClick={onGenerateImage}
                 className="h-10 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 flex items-center justify-center gap-2 transition-all"
               >
-                <ImageIcon className="h-4 w-4" />
-                Regenerate
+                <ImageIcon className="h-4 w-4" /> Regenerate
               </button>
             </div>
           </div>
