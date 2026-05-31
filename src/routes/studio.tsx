@@ -148,19 +148,14 @@ function Studio() {
     setImageError(false);
     setImageUrl(null);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-image", {
-        body: { prompt: visualPrompt },
-      });
-      if (error || !data?.imageBase64) throw new Error(error?.message || "No image returned");
-      const url = `data:${data.mimeType || "image/jpeg"};base64,${data.imageBase64}`;
-      setImageUrl(url);
-    } catch (e) {
-      console.error("Image generation error:", e);
-      setImageError(true);
-    } finally {
-      setImageLoading(false);
-    }
-  };
+      const session = await supabase.auth.getSession();
+const { data, error } = await supabase.functions.invoke("generate-image", {
+  body: JSON.stringify({ prompt: visualPrompt }),
+  headers: {
+    Authorization: `Bearer ${session.data.session?.access_token ?? ""}`,
+    "Content-Type": "application/json",
+  },
+});
 
   const downloadImage = () => {
     if (!imageUrl) return;
