@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
 import { SectionHeading } from "@/components/aurum/SectionHeading";
-import { Sparkles, Wand2, Radio, Video, ImageIcon, Hash, Copy, Check, Send, Loader2 } from "lucide-react";
+import { Sparkles, Wand2, Radio, ImageIcon, Hash, Copy, Check, Send, Loader2, Download } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { generateStudioContent, type StudioContentPlan } from "@/lib/studio.functions";
@@ -45,6 +45,11 @@ function Studio() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
   const { intel: preselectedIntel, idea: preselectedIdea } = Route.useSearch();
 
   useEffect(() => {
@@ -58,6 +63,7 @@ function Studio() {
     if (preselectedIdea) {
       setMode("assisted");
       setIdea(preselectedIdea);
+      setGoal("Create content to build authority and visibility before this event");
     }
   }, [preselectedIdea]);
 
@@ -84,6 +90,8 @@ function Studio() {
     if (pending) return;
     setError(null);
     setPlan(null);
+    setImageUrl(null);
+    setImageError(false);
     setPending(true);
 
     if (format === "reel" || format === "video") {
@@ -135,6 +143,38 @@ function Studio() {
     }
   };
 
+  const generateImage = async (visualPrompt: string) => {
+    setImageLoading(true);
+    setImageError(false);
+    setImageUrl(null);
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(visualPrompt + ", luxury lifestyle, cinematic, editorial, high quality, 4k")}&width=1024&height=1024&nologo=true&enhance=true`;
+    const img = new Image();
+    img.onload = () => {
+      setImageUrl(url);
+      setImageLoading(false);
+    };
+    img.onerror = () => {
+      setImageError(true);
+      setImageLoading(false);
+    };
+    img.src = url;
+  };
+
+  const downloadImage = async () => {
+    if (!imageUrl) return;
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `aurum-visual-${Date.now()}.jpg`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      window.open(imageUrl, "_blank");
+    }
+  };
+
   const copy = async (key: string, text: string) => {
     await navigator.clipboard.writeText(text);
     setCopied(key);
@@ -154,14 +194,13 @@ function Studio() {
         </h1>
         <p className="mt-3 text-muted-foreground max-w-2xl text-sm">
           AURUM's AI creative director crafts post-ready content for the {industry.label.toLowerCase()} world — hooks,
-          scripts, captions, hashtags and cinematic visual prompts. Optimized per platform. Ready in under 30 seconds.
+          scripts, captions, hashtags, cinematic visuals. Optimized per platform. Ready in under 30 seconds.
         </p>
       </div>
 
       <div className="grid lg:grid-cols-[1fr_1fr] gap-6">
         {/* LEFT — Input */}
         <div className="space-y-5">
-          {/* Mode toggle */}
           <div className="glass rounded-xl p-1.5 grid grid-cols-2 gap-1.5">
             <ModeTab
               active={mode === "assisted"}
@@ -179,7 +218,6 @@ function Studio() {
             />
           </div>
 
-          {/* Input area */}
           <div className="glass rounded-xl p-5">
             {mode === "assisted" ? (
               <>
@@ -235,7 +273,6 @@ function Studio() {
             )}
           </div>
 
-          {/* Goal */}
           <div className="glass rounded-xl p-5">
             <Label>
               GOAL <span className="text-muted-foreground/60 normal-case tracking-normal">(optional)</span>
@@ -248,7 +285,6 @@ function Studio() {
             />
           </div>
 
-          {/* Format + level */}
           <div className="glass rounded-xl p-5 space-y-4">
             <div>
               <Label>FORMAT</Label>
@@ -339,8 +375,8 @@ function Studio() {
               <Sparkles className="h-6 w-6 text-primary/80 mx-auto mb-4" />
               <div className="font-serif text-xl mb-2">Your content will appear here</div>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                Title, viral hook, platform captions, full script, hashtags and a cinematic visual prompt — all tuned to{" "}
-                {industry.modeLabel}.
+                Title, viral hook, platform captions, full script, hashtags, visual prompt and AI-generated image — all
+                tuned to {industry.modeLabel}.
               </p>
             </div>
           )}
@@ -355,7 +391,18 @@ function Studio() {
             </div>
           )}
 
-          {plan && <PlanOutput plan={plan} copied={copied} onCopy={copy} />}
+          {plan && (
+            <PlanOutput
+              plan={plan}
+              copied={copied}
+              onCopy={copy}
+              imageUrl={imageUrl}
+              imageLoading={imageLoading}
+              imageError={imageError}
+              onGenerateImage={() => generateImage(plan.visualPrompt)}
+              onDownloadImage={downloadImage}
+            />
+          )}
         </div>
       </div>
 
@@ -416,10 +463,20 @@ function PlanOutput({
   plan,
   copied,
   onCopy,
+  imageUrl,
+  imageLoading,
+  imageError,
+  onGenerateImage,
+  onDownloadImage,
 }: {
   plan: StudioContentPlan;
   copied: string | null;
   onCopy: (k: string, t: string) => void;
+  imageUrl: string | null;
+  imageLoading: boolean;
+  imageError: boolean;
+  onGenerateImage: () => void;
+  onDownloadImage: () => void;
 }) {
   return (
     <div className="space-y-4 animate-fade-up">
@@ -483,7 +540,7 @@ function PlanOutput({
         </div>
       </div>
 
-      {/* Visual prompt */}
+      {/* Visual prompt + image generation */}
       <div className="glass rounded-xl p-5">
         <div className="flex items-center justify-between mb-3">
           <div className="text-[10px] tracking-[0.34em] text-primary/80 flex items-center gap-2">
@@ -491,7 +548,62 @@ function PlanOutput({
           </div>
           <CopyBtn id="vis" copied={copied} onClick={() => onCopy("vis", plan.visualPrompt)} />
         </div>
-        <div className="text-sm leading-relaxed text-foreground/90 italic">{plan.visualPrompt}</div>
+        <div className="text-sm leading-relaxed text-foreground/90 italic mb-4">{plan.visualPrompt}</div>
+
+        {/* Generate image button */}
+        {!imageUrl && !imageLoading && (
+          <button
+            onClick={onGenerateImage}
+            className="w-full h-10 rounded-xl border border-primary/40 text-primary text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary/10 transition-all"
+          >
+            <ImageIcon className="h-4 w-4" />
+            Generate image
+          </button>
+        )}
+
+        {/* Loading state */}
+        {imageLoading && (
+          <div className="w-full h-64 rounded-xl border border-border/40 flex flex-col items-center justify-center gap-3 bg-secondary/10">
+            <Loader2 className="h-6 w-6 text-primary animate-spin" />
+            <div className="text-xs text-muted-foreground">Generating your visual…</div>
+          </div>
+        )}
+
+        {/* Error state */}
+        {imageError && !imageLoading && (
+          <div className="w-full rounded-xl border border-destructive/40 p-4 text-center">
+            <div className="text-xs text-destructive mb-2">Image generation failed. Try again.</div>
+            <button onClick={onGenerateImage} className="text-xs text-primary hover:underline">
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Generated image */}
+        {imageUrl && !imageLoading && (
+          <div className="space-y-3">
+            <div className="relative rounded-xl overflow-hidden">
+              <img src={imageUrl} alt="Generated visual" className="w-full rounded-xl" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={onDownloadImage}
+                className="h-10 rounded-xl text-primary-foreground text-sm font-medium flex items-center justify-center gap-2"
+                style={{ background: "var(--gradient-gold)" }}
+              >
+                <Download className="h-4 w-4" />
+                Download
+              </button>
+              <button
+                onClick={onGenerateImage}
+                className="h-10 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 flex items-center justify-center gap-2 transition-all"
+              >
+                <ImageIcon className="h-4 w-4" />
+                Regenerate
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
