@@ -147,17 +147,19 @@ function Studio() {
     setImageLoading(true);
     setImageError(false);
     setImageUrl(null);
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(visualPrompt + ", luxury lifestyle, cinematic, editorial, high quality, 4k")}&width=1024&height=1024&nologo=true&enhance=true`;
-    const img = new Image();
-    img.onload = () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-image", {
+        body: { prompt: visualPrompt },
+      });
+      if (error || !data?.imageBase64) throw new Error(error?.message || "No image returned");
+      const url = `data:${data.mimeType || "image/jpeg"};base64,${data.imageBase64}`;
       setImageUrl(url);
-      setImageLoading(false);
-    };
-    img.onerror = () => {
+    } catch (e) {
+      console.error("Image generation error:", e);
       setImageError(true);
+    } finally {
       setImageLoading(false);
-    };
-    img.src = url;
+    }
   };
 
   const downloadImage = async () => {
