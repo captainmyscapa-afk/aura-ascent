@@ -76,29 +76,97 @@ const briefTool = {
 };
 
 async function callGateway(body: unknown) {
-  const apiKey = process.env.LOVABLE_API_KEY;
-  if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
+
+  const { messages, tools, tool_choice } = body as any;
+
+  const contents = messages
+    .filter((m: any) => m.role !== "system")
+    .map((m: any) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
+
+  const systemMsg = messages.find((m: any) => m.role === "system");
+  const geminiBody: Record<string, unknown> = { contents };
+
+  if (systemMsg) {
+    geminiBody.systemInstruction = { parts: [{ text: systemMsg.content }] };
+  }
+
+  if (tools?.length) {
+    geminiBody.tools = [{
+      functionDeclarations: tools.map((t: any) => {
+        const cleanParams = JSON.parse(JSON.stringify(t.function.parameters));
+        function stripAdditional(obj: any) {
+          if (obj && typeof obj === "object") {
+            delete obj.additionalProperties;
+            for (const v of Object.values(obj)) stripAdditional(v);
+          }
+        }
+        stripAdditional(cleanParams);
+        return {
+          name: t.function.name,
+          description: t.function.description,
+          parameters: cleanParams,
+        };
+      }),
+    }];
+  }
+
+  if (tool_choice?.function?.name) {
+    geminiBody.toolConfig = {
+      functionCallingConfig: {
+        mode: "ANY",
+        allowedFunctionNames: [tool_choice.function.name],
+      },
+    };
+  }
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(geminiBody),
     },
-    body: JSON.stringify(body),
-  });
+  );
+
   if (!res.ok) {
     const errText = await res.text();
     if (res.status === 429) throw new Error("Rate limit reached. Try again shortly.");
-    if (res.status === 402) throw new Error("AI credits exhausted. Add credits in workspace settings.");
-    throw new Error(`AI gateway error ${res.status}: ${errText}`);
+    if (res.status === 403) throw new Error("Invalid Gemini API key.");
+    throw new Error(`Gemini API error ${res.status}: ${errText}`);
   }
-  return (await res.json()) as {
-    choices?: Array<{
-      message?: {
-        content?: string;
-        tool_calls?: Array<{ function?: { arguments?: string } }>;
-      };
-    }>;
+
+  const json = (await res.json()) as any;
+  const candidate = json.candidates?.[0];
+  const part = candidate?.content?.parts?.[0];
+
+  if (part?.functionCall) {
+    return {
+      choices: [{
+        message: {
+          content: null,
+          tool_calls: [{
+            function: {
+              name: part.functionCall.name,
+              arguments: JSON.stringify(part.functionCall.args ?? {}),
+            },
+          }],
+        },
+      }],
+    };
+  }
+
+  return {
+    choices: [{
+      message: {
+        content: part?.text ?? "",
+        tool_calls: undefined as any,
+      },
+    }],
   };
 }
 
@@ -248,6 +316,7 @@ export const generateRecommendation = createServerFn({ method: "POST" })
     ]
       .filter(Boolean)
       .join("\n");
+
     const json = await callGateway({
       model: "google/gemini-2.5-flash",
       messages: [
@@ -273,6 +342,7 @@ export const generateDailyTasks = createServerFn({ method: "POST" })
     ]
       .filter(Boolean)
       .join("\n");
+
     const json = await callGateway({
       model: "google/gemini-2.5-flash",
       messages: [
@@ -293,6 +363,7 @@ export const generateUpcomingEvents = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const system = `You are AURUM — list real, well-known upcoming industry events. Use real event names like Monaco Yacht Show, MIPIM, Geneva Motor Show, NBAA-BACE, EBACE, Cannes Yachting Festival, Pebble Beach Concours, Fort Lauderdale Boat Show. Always invoke emit_upcoming_events.`;
     const user = `List 3 upcoming real industry events relevant to the ${data.mode} industry in the next 3 months. Use short uppercase date format (e.g. "OCT 24").`;
+
     const json = await callGateway({
       model: "google/gemini-2.5-flash",
       messages: [
