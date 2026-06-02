@@ -870,6 +870,15 @@ export default function Dashboard() {
       nextStreak = last === yesterday ? nextStreak + 1 : 1;
       if (typeof window !== "undefined") localStorage.setItem(STREAK_KEY, today);
     }
+    // Write to aurum_tasks table
+    await (supabase as any).from("aurum_tasks").insert({
+      user_id: user.id,
+      title: dailyTasks[i],
+      status: "completed",
+      priority: "medium",
+      source: "daily_ritual",
+    });
+    // Update core state
     await updateCore({
       execution_score: (core?.execution_score ?? 0) + 1,
       streak: nextStreak,
