@@ -10,7 +10,6 @@ import {
   User2,
   Settings,
   LogOut,
-  CalendarDays,
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,7 +23,6 @@ const nav = [
   { to: "/tutor", label: "AI Tutor", icon: BookOpen },
   { to: "/network", label: "Network", icon: Users },
   { to: "/studio", label: "Content Studio", icon: Video },
-  { to: "/calendar", label: "Event Calendar", icon: CalendarDays },
   { to: "/profile", label: "Identity", icon: User2 },
 ] as const;
 
