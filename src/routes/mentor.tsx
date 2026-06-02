@@ -38,6 +38,7 @@ function Mentor() {
   const ask = useServerFn(askGemini);
   const genTitle = useServerFn(generateConversationTitle);
   const { conversations, loading: convsLoading, createConversation, updateConversation } = useMentorConversations();
+  const mentorConversations = conversations.filter((c) => !c.industry.endsWith("-tutor"));
 
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
@@ -159,11 +160,11 @@ function Mentor() {
             New conversation
           </button>
 
-          {!convsLoading && conversations.length > 0 && (
+          {!convsLoading && mentorConversations.length > 0 && (
             <div className="glass rounded-xl p-5">
               <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">RECENT CONVERSATIONS</div>
               <div className="space-y-2">
-                {conversations.map((conv) => (
+                {mentorConversations.map((conv) => (
                   <button key={conv.id} onClick={() => loadConversation(conv)} className={"w-full flex flex-col gap-1 p-3 rounded-lg border text-left text-sm transition-colors " + (activeConvId === conv.id ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/40")}>
                     <span className="font-medium leading-tight line-clamp-2">{conv.title}</span>
                     <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
