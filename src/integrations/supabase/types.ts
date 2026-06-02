@@ -4,340 +4,431 @@ export type Json =
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[]
+  | Json[];
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   public: {
     Tables: {
+      aurum_content: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          mode: string | null;
+          platform: string | null;
+          type: string | null;
+          hook: string | null;
+          script: string | null;
+          caption: string | null;
+          visual_prompt: string | null;
+          viral_score: number | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          mode?: string | null;
+          platform?: string | null;
+          type?: string | null;
+          hook?: string | null;
+          script?: string | null;
+          caption?: string | null;
+          visual_prompt?: string | null;
+          viral_score?: number | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          mode?: string | null;
+          platform?: string | null;
+          type?: string | null;
+          hook?: string | null;
+          script?: string | null;
+          caption?: string | null;
+          visual_prompt?: string | null;
+          viral_score?: number | null;
+          created_at?: string | null;
+        };
+      };
       aurum_core_state: {
         Row: {
-          ai_summary: Json | null
-          ai_summary_updated_at: string | null
-          created_at: string
-          current_focus: string
-          daily_tasks: Json | null
-          daily_tasks_date: string | null
-          execution_score: number
-          goal: string
-          id: string
-          level: string
-          mode: string
-          streak: number
-          today_brief: Json | null
-          today_brief_date: string | null
-          upcoming_events: Json | null
-          upcoming_events_week_start: string | null
-          updated_at: string
-          user_id: string
-        }
+          id: string;
+          user_id: string | null;
+          mode: string | null;
+          goal: string | null;
+          level: string | null;
+          streak: number | null;
+          execution_score: number | null;
+          current_focus: Json | null;
+          ai_summary: string | null;
+          last_active: string | null;
+          updated_at: string | null;
+          ai_brief: string | null;
+          ai_brief_date: string | null;
+          upcoming_events: Json | null;
+          active_mode: string | null;
+          current_phase: string | null;
+          current_level: string | null;
+          daily_tasks_date: string | null;
+          ai_summary_updated_at: string | null;
+          upcoming_events_week_start: string | null;
+          daily_tasks: Json | null;
+          today_brief: string | null;
+          today_brief_date: string | null;
+        };
         Insert: {
-          ai_summary?: Json | null
-          ai_summary_updated_at?: string | null
-          created_at?: string
-          current_focus?: string
-          daily_tasks?: Json | null
-          daily_tasks_date?: string | null
-          execution_score?: number
-          goal?: string
-          id?: string
-          level?: string
-          mode?: string
-          streak?: number
-          today_brief?: Json | null
-          today_brief_date?: string | null
-          upcoming_events?: Json | null
-          upcoming_events_week_start?: string | null
-          updated_at?: string
-          user_id: string
-        }
+          id?: string;
+          user_id?: string | null;
+          mode?: string | null;
+          goal?: string | null;
+          level?: string | null;
+          streak?: number | null;
+          execution_score?: number | null;
+          current_focus?: Json | null;
+          ai_summary?: string | null;
+          last_active?: string | null;
+          updated_at?: string | null;
+          ai_brief?: string | null;
+          ai_brief_date?: string | null;
+          upcoming_events?: Json | null;
+          active_mode?: string | null;
+          current_phase?: string | null;
+          current_level?: string | null;
+          daily_tasks_date?: string | null;
+          ai_summary_updated_at?: string | null;
+          upcoming_events_week_start?: string | null;
+          daily_tasks?: Json | null;
+          today_brief?: string | null;
+          today_brief_date?: string | null;
+        };
         Update: {
-          ai_summary?: Json | null
-          ai_summary_updated_at?: string | null
-          created_at?: string
-          current_focus?: string
-          daily_tasks?: Json | null
-          daily_tasks_date?: string | null
-          execution_score?: number
-          goal?: string
-          id?: string
-          level?: string
-          mode?: string
-          streak?: number
-          today_brief?: Json | null
-          today_brief_date?: string | null
-          upcoming_events?: Json | null
-          upcoming_events_week_start?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
+          id?: string;
+          user_id?: string | null;
+          mode?: string | null;
+          goal?: string | null;
+          level?: string | null;
+          streak?: number | null;
+          execution_score?: number | null;
+          current_focus?: Json | null;
+          ai_summary?: string | null;
+          last_active?: string | null;
+          updated_at?: string | null;
+          ai_brief?: string | null;
+          ai_brief_date?: string | null;
+          upcoming_events?: Json | null;
+          active_mode?: string | null;
+          current_phase?: string | null;
+          current_level?: string | null;
+          daily_tasks_date?: string | null;
+          ai_summary_updated_at?: string | null;
+          upcoming_events_week_start?: string | null;
+          daily_tasks?: Json | null;
+          today_brief?: string | null;
+          today_brief_date?: string | null;
+        };
+      };
+      aurum_tasks: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          title: string | null;
+          description: string | null;
+          status: string | null;
+          priority: string | null;
+          source: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          title?: string | null;
+          description?: string | null;
+          status?: string | null;
+          priority?: string | null;
+          source?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          title?: string | null;
+          description?: string | null;
+          status?: string | null;
+          priority?: string | null;
+          source?: string | null;
+          created_at?: string | null;
+        };
+      };
       live_intelligence: {
         Row: {
-          category: string | null
-          created_at: string
-          description: string | null
-          id: string
-          published_at: string
-          source: string
-          title: string
-          url: string | null
-        }
+          id: number;
+          created_at: string;
+          title: string | null;
+          description: string | null;
+          category: string | null;
+          source: string | null;
+          image: string | null;
+          url: string | null;
+          tag: string | null;
+          action: string | null;
+          content_angle: string | null;
+          published_at: string | null;
+        };
         Insert: {
-          category?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          published_at?: string
-          source: string
-          title: string
-          url?: string | null
-        }
+          id?: number;
+          created_at?: string;
+          title?: string | null;
+          description?: string | null;
+          category?: string | null;
+          source?: string | null;
+          image?: string | null;
+          url?: string | null;
+          tag?: string | null;
+          action?: string | null;
+          content_angle?: string | null;
+          published_at?: string | null;
+        };
         Update: {
-          category?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          published_at?: string
-          source?: string
-          title?: string
-          url?: string | null
-        }
-        Relationships: []
-      }
+          id?: number;
+          created_at?: string;
+          title?: string | null;
+          description?: string | null;
+          category?: string | null;
+          source?: string | null;
+          image?: string | null;
+          url?: string | null;
+          tag?: string | null;
+          action?: string | null;
+          content_angle?: string | null;
+          published_at?: string | null;
+        };
+      };
+      mentor_conversations: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          messages: Json;
+          industry: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title?: string;
+          messages?: Json;
+          industry: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string;
+          messages?: Json;
+          industry?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       social_accounts: {
         Row: {
-          access_token: string | null
-          connected_at: string
-          created_at: string
-          id: string
-          platform: string
-          refresh_token: string | null
-          updated_at: string
-          user_id: string
-          username: string | null
-        }
+          id: string;
+          user_id: string | null;
+          platform: string;
+          access_token: string | null;
+          refresh_token: string | null;
+          username: string | null;
+          connected_at: string | null;
+        };
         Insert: {
-          access_token?: string | null
-          connected_at?: string
-          created_at?: string
-          id?: string
-          platform: string
-          refresh_token?: string | null
-          updated_at?: string
-          user_id: string
-          username?: string | null
-        }
+          id?: string;
+          user_id?: string | null;
+          platform: string;
+          access_token?: string | null;
+          refresh_token?: string | null;
+          username?: string | null;
+          connected_at?: string | null;
+        };
         Update: {
-          access_token?: string | null
-          connected_at?: string
-          created_at?: string
-          id?: string
-          platform?: string
-          refresh_token?: string | null
-          updated_at?: string
-          user_id?: string
-          username?: string | null
-        }
-        Relationships: []
-      }
+          id?: string;
+          user_id?: string | null;
+          platform?: string;
+          access_token?: string | null;
+          refresh_token?: string | null;
+          username?: string | null;
+          connected_at?: string | null;
+        };
+      };
+      user_content_history: {
+        Row: {
+          id: string;
+          user_id: string;
+          industry: string;
+          mode: string;
+          idea: string | null;
+          goal: string | null;
+          title: string | null;
+          viral_hook: string | null;
+          instagram_caption: string | null;
+          tiktok_caption: string | null;
+          linkedin_caption: string | null;
+          hashtags: string[] | null;
+          visual_prompt: string | null;
+          image_url: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          industry: string;
+          mode: string;
+          idea?: string | null;
+          goal?: string | null;
+          title?: string | null;
+          viral_hook?: string | null;
+          instagram_caption?: string | null;
+          tiktok_caption?: string | null;
+          linkedin_caption?: string | null;
+          hashtags?: string[] | null;
+          visual_prompt?: string | null;
+          image_url?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          industry?: string;
+          mode?: string;
+          idea?: string | null;
+          goal?: string | null;
+          title?: string | null;
+          viral_hook?: string | null;
+          instagram_caption?: string | null;
+          tiktok_caption?: string | null;
+          linkedin_caption?: string | null;
+          hashtags?: string[] | null;
+          visual_prompt?: string | null;
+          image_url?: string | null;
+          created_at?: string | null;
+        };
+      };
+      user_memory: {
+        Row: {
+          id: string;
+          user_id: string;
+          industry: string | null;
+          goals: string | null;
+          background: string | null;
+          content_topics: string[] | null;
+          mentor_context: string | null;
+          last_updated: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          industry?: string | null;
+          goals?: string | null;
+          background?: string | null;
+          content_topics?: string[] | null;
+          mentor_context?: string | null;
+          last_updated?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          industry?: string | null;
+          goals?: string | null;
+          background?: string | null;
+          content_topics?: string[] | null;
+          mentor_context?: string | null;
+          last_updated?: string | null;
+        };
+      };
       user_profiles: {
         Row: {
-          created_at: string
-          current_profession: string | null
-          full_name: string | null
-          goal: string | null
-          id: string
-          instagram_url: string | null
-          linkedin_url: string | null
-          location: string | null
-          mission: string | null
-          photo_url: string | null
-          substack_url: string | null
-          tiktok_url: string | null
-          twitter_url: string | null
-          updated_at: string
-          user_id: string
-          youtube_url: string | null
-        }
+          id: string;
+          user_id: string | null;
+          full_name: string | null;
+          current_profession: string | null;
+          location: string | null;
+          linkedin_url: string | null;
+          instagram_url: string | null;
+          tiktok_url: string | null;
+          twitter_url: string | null;
+          youtube_url: string | null;
+          substack_url: string | null;
+          goal: string | null;
+          photo_url: string | null;
+          created_at: string | null;
+          mission: string | null;
+          updated_at: string | null;
+          mentor_tone: string | null;
+          daily_task_count: number | null;
+          ai_response_style: string | null;
+          content_tone: string | null;
+          preferred_platforms: string | null;
+          auto_daily_brief: boolean | null;
+        };
         Insert: {
-          created_at?: string
-          current_profession?: string | null
-          full_name?: string | null
-          goal?: string | null
-          id?: string
-          instagram_url?: string | null
-          linkedin_url?: string | null
-          location?: string | null
-          mission?: string | null
-          photo_url?: string | null
-          substack_url?: string | null
-          tiktok_url?: string | null
-          twitter_url?: string | null
-          updated_at?: string
-          user_id: string
-          youtube_url?: string | null
-        }
+          id?: string;
+          user_id?: string | null;
+          full_name?: string | null;
+          current_profession?: string | null;
+          location?: string | null;
+          linkedin_url?: string | null;
+          instagram_url?: string | null;
+          tiktok_url?: string | null;
+          twitter_url?: string | null;
+          youtube_url?: string | null;
+          substack_url?: string | null;
+          goal?: string | null;
+          photo_url?: string | null;
+          created_at?: string | null;
+          mission?: string | null;
+          updated_at?: string | null;
+          mentor_tone?: string | null;
+          daily_task_count?: number | null;
+          ai_response_style?: string | null;
+          content_tone?: string | null;
+          preferred_platforms?: string | null;
+          auto_daily_brief?: boolean | null;
+        };
         Update: {
-          created_at?: string
-          current_profession?: string | null
-          full_name?: string | null
-          goal?: string | null
-          id?: string
-          instagram_url?: string | null
-          linkedin_url?: string | null
-          location?: string | null
-          mission?: string | null
-          photo_url?: string | null
-          substack_url?: string | null
-          tiktok_url?: string | null
-          twitter_url?: string | null
-          updated_at?: string
-          user_id?: string
-          youtube_url?: string | null
-        }
-        Relationships: []
-      }
-    }
+          id?: string;
+          user_id?: string | null;
+          full_name?: string | null;
+          current_profession?: string | null;
+          location?: string | null;
+          linkedin_url?: string | null;
+          instagram_url?: string | null;
+          tiktok_url?: string | null;
+          twitter_url?: string | null;
+          youtube_url?: string | null;
+          substack_url?: string | null;
+          goal?: string | null;
+          photo_url?: string | null;
+          created_at?: string | null;
+          mission?: string | null;
+          updated_at?: string | null;
+          mentor_tone?: string | null;
+          daily_task_count?: number | null;
+          ai_response_style?: string | null;
+          content_tone?: string | null;
+          preferred_platforms?: string | null;
+          auto_daily_brief?: boolean | null;
+        };
+      };
+    };
     Views: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Functions: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
-
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
-
-export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
-
-export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
-
-export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
-
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  public: {
-    Enums: {},
-  },
-} as const
+      [_ in never]: never;
+    };
+  };
+};
