@@ -490,7 +490,7 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <aside className="space-y-6 lg:space-y-8 pt-6">
+        <aside className="space-y-6 lg:space-y-8 pt-0">
           <Card accent>
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="h-4 w-4 text-primary" />
