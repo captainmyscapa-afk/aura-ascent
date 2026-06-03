@@ -393,7 +393,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid lg:grid-cols-3 gap-6 lg:gap-8 items-start">
         <section className="lg:col-span-2 space-y-6 lg:space-y-8">
           <Card>
             <CardHeader
@@ -490,7 +490,7 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <aside className="space-y-6 lg:space-y-8">
+        <aside className="space-y-6 lg:space-y-8 pt-6">
           <Card accent>
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="h-4 w-4 text-primary" />
