@@ -165,7 +165,7 @@ export default function Dashboard() {
   const [tasksLoading, setTasksLoading] = useState(false);
   const [done, setDone] = useState<Record<number, boolean>>({});
 
-  const [calFilter, setCalFilter] = React.useState<string>(industryId);
+  const [calFilter, setCalFilter] = React.useState<string>("all");
   const [selectedEvent, setSelectedEvent] = React.useState<CalendarEvent | null>(null);
   const calToday = new Date();
   const [viewMonth, setViewMonth] = React.useState(calToday.getMonth());
@@ -393,7 +393,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid lg:grid-cols-3 gap-6 lg:gap-8 items-start">
         <section className="lg:col-span-2 space-y-6 lg:space-y-8">
           <Card>
             <CardHeader
@@ -491,65 +491,20 @@ export default function Dashboard() {
         </section>
 
         <aside className="space-y-6 lg:space-y-8">
-          <Card accent>
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <div className="text-[10px] tracking-[0.34em] text-primary/80">AURUM RECOMMENDS</div>
-              {recLoading && <RefreshCw className="h-3 w-3 text-primary/60 animate-spin ml-auto" />}
-            </div>
-            <p className="font-serif text-[20px] leading-snug">"{recommendation || industry.aiRecommendation}"</p>
-            <button
-              className="mt-5 w-full text-sm rounded-full py-2.5 text-primary-foreground shadow-[var(--shadow-gold)]"
-              style={{ background: "var(--gradient-gold)" }}
-            >
-              Generate outreach
-            </button>
-          </Card>
-
-          <Card>
-            <div className="flex items-center gap-2 mb-5">
-              <Compass className="h-4 w-4 text-primary" />
-              <div className="text-[10px] tracking-[0.34em] text-foreground">PROGRESSION</div>
-            </div>
-            <div className="font-serif text-2xl">Initiate II</div>
-            <div className="text-[12px] text-muted-foreground mt-1">Phase 02 · {industry.modeLabel}</div>
-            <div className="mt-5">
-              <div className="flex items-center justify-between text-[10px] tracking-[0.3em] text-muted-foreground mb-2">
-                <span>NEXT TIER</span>
-                <span>67%</span>
-              </div>
-              <div className="h-1 w-full bg-border/40 rounded-full overflow-hidden">
-                <div className="h-full bg-[var(--gradient-gold)] rounded-full" style={{ width: "67%" }} />
-              </div>
-            </div>
-            <div className="mt-6 grid grid-cols-5 gap-1.5">
-              {["Initiate", "Operator", "Insider", "Counsel", "Aurum"].map((tier, i) => (
-                <div key={tier} className="text-center">
-                  <div
-                    className={`h-1.5 w-full rounded-full ${i <= 1 ? "bg-[var(--gradient-gold)]" : "bg-border/40"}`}
-                  />
-                  <div
-                    className={`mt-2 text-[9px] tracking-wider uppercase ${i <= 1 ? "text-foreground/80" : "text-muted-foreground/60"}`}
-                  >
-                    {tier}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </aside>
-      </div>
-
-      {/* Event Calendar */}
-      <div className="mt-10 space-y-6">
-        <div className="flex flex-wrap gap-2">
-          {(["all", "yachts", "villas", "jets", "cars"] as const).map((f) => (
-            <button key={f} onClick={() => setCalFilter(f)} className={"px-4 py-1.5 rounded-full border text-xs tracking-[0.2em] uppercase transition-all " + (calFilter === f ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
-              {f === "all" ? "All industries" : f}
-            </button>
-          ))}
+      <div className="space-y-6">
+        <div className="flex flex-col items-center gap-2">
+          <button onClick={() => setCalFilter("all")} className={"px-4 py-1.5 rounded-full border text-xs tracking-[0.2em] uppercase transition-all " + (calFilter === "all" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
+            All industries
+          </button>
+          <div className="flex gap-2">
+            {(["yachts", "villas", "jets", "cars"] as const).map((f) => (
+              <button key={f} onClick={() => setCalFilter(f)} className={"px-4 py-1.5 rounded-full border text-xs tracking-[0.2em] uppercase transition-all " + (calFilter === f ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           <div className="glass rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <button onClick={() => { if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); } else setViewMonth((m) => m - 1); }} className="p-1 rounded hover:bg-primary/10 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
@@ -658,10 +613,12 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </AppShell>
-  );
-}
+        </aside>
+      </div>
 
+    </AppShell>
+  )
+}
 function Card({ children, accent }: { children: React.ReactNode; accent?: boolean }) {
   return (
     <div className={`relative glass rounded-2xl p-6 sm:p-7 overflow-hidden ${accent ? "ring-gold" : ""}`}>
