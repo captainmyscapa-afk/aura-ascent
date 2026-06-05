@@ -6,8 +6,7 @@
   "main": "src/server.ts",
   "vars": {
     "AI_PROVIDER": "groq",
-    "GROQ_API_KEY": "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",
-    "GEMINI_API_KEY": "AQ.Ab8RN6JcVMsYWOab6uZcMOkTgB1G27rm_pZRVJ-yhPZBnR9AjQ",
+"GEMINI_API_KEY": "AQ.Ab8RN6JcVMsYWOab6uZcMOkTgB1G27rm_pZRVJ-yhPZBnR9AjQ",
     "GEMINI_MODEL": "gemini-2.0-flash-lite"
   }
 }
