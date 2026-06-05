@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { ai, type AiTool } from "@/lib/ai";
 
 export type StudioContentPlan = {
   title: string;
@@ -22,7 +23,7 @@ type Input = {
   intelligenceContext?: string;
 };
 
-const tool = {
+const contentTool: AiTool = {
   type: "function",
   function: {
     name: "emit_content_plan",
@@ -42,11 +43,7 @@ const tool = {
           },
           required: ["instagram", "tiktok"],
         },
-        script: {
-          type: "array",
-          items: { type: "string" },
-          description: "Ordered beats / lines for the post",
-        },
+        script: { type: "array", items: { type: "string" }, description: "Ordered beats / lines for the post" },
         hashtags: { type: "array", items: { type: "string" } },
         visual_prompt: {
           type: "string",
@@ -63,93 +60,45 @@ const tool = {
   },
 };
 
-function stripAdditional(obj: any) {
-  if (obj && typeof obj === "object") {
-    delete obj.additionalProperties;
-    for (const v of Object.values(obj)) stripAdditional(v);
-  }
-}
-
 export const generateStudioContent = createServerFn({ method: "POST" })
   .inputValidator((d: Input) => d)
   .handler(async ({ data }) => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
-
-    const system = `You are an elite social media growth strategist and creative director for luxury industries (yachts, real estate, jets, cars). You craft viral, cinematic, platform-optimized POSTS for high-net-worth audiences. Tone is aspirational, restrained, premium — never generic, never cheesy. Every output must feel like it came from a top luxury brand agency. You ALWAYS call the emit_content_plan tool. Never reply in plain text.`;
-
-    const userParts: string[] = [];
-    userParts.push(`MODE: ${data.industryLabel} (${data.industry})`);
-    if (data.userLevel) userParts.push(`USER LEVEL: ${data.userLevel}`);
-    if (data.goal) userParts.push(`GOAL: ${data.goal}`);
-    userParts.push(`FORMAT: post`);
-    if (data.userIdea) userParts.push(`USER IDEA:\n${data.userIdea}`);
-    if (data.intelligenceContext) {
-      userParts.push(`LIVE INTELLIGENCE SIGNALS:\n${data.intelligenceContext}\n\nTurn these signals into a viral content angle.`);
-    }
-    userParts.push(
+    const userParts: string[] = [
+      `MODE: ${data.industryLabel} (${data.industry})`,
+      data.userLevel ? `USER LEVEL: ${data.userLevel}` : "",
+      data.goal ? `GOAL: ${data.goal}` : "",
+      `FORMAT: post`,
+      data.userIdea ? `USER IDEA:\n${data.userIdea}` : "",
+      data.intelligenceContext
+        ? `LIVE INTELLIGENCE SIGNALS:\n${data.intelligenceContext}\n\nTurn these signals into a viral content angle.`
+        : "",
       `Deliver a complete, post-ready plan: viral title, first 2s hook, Instagram + TikTok captions (LinkedIn only if relevant), step-by-step script, niche+reach hashtags, and a cinematic visual prompt for AI image generation specific to the ${data.industryLabel} world.`,
-    );
+    ].filter(Boolean);
 
-    const cleanParams = JSON.parse(JSON.stringify(tool.function.parameters));
-    stripAdditional(cleanParams);
-
-    const geminiBody: Record<string, unknown> = {
-      contents: [
+    const result = await ai.complete(
+      [
+        {
+          role: "system",
+          content: `You are an elite social media growth strategist and creative director for luxury industries (yachts, real estate, jets, cars). You craft viral, cinematic, platform-optimized POSTS for high-net-worth audiences. Tone is aspirational, restrained, premium — never generic, never cheesy. Every output must feel like it came from a top luxury brand agency. You ALWAYS call the emit_content_plan tool. Never reply in plain text.`,
+        },
         {
           role: "user",
-          parts: [{ text: userParts.join("\n\n") }],
+          content: userParts.join("\n\n"),
         },
       ],
-      systemInstruction: {
-        parts: [{ text: system }],
-      },
-      tools: [{
-        functionDeclarations: [{
-          name: tool.function.name,
-          description: tool.function.description,
-          parameters: cleanParams,
-        }],
-      }],
-      toolConfig: {
-        functionCallingConfig: {
-          mode: "ANY",
-          allowedFunctionNames: ["emit_content_plan"],
-        },
-      },
-    };
-
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(geminiBody),
-      },
+      [contentTool],
+      "emit_content_plan",
     );
 
-    if (!res.ok) {
-      const errText = await res.text();
-      if (res.status === 429) throw new Error("Rate limit reached. Try again in a moment.");
-      if (res.status === 403) throw new Error("Invalid Gemini API key.");
-      throw new Error(`Gemini API error ${res.status}: ${errText}`);
-    }
+    if (!result.args) throw new Error("AI did not return a structured plan.");
 
-    const json = (await res.json()) as any;
-    const part = json.candidates?.[0]?.content?.parts?.[0];
-
-    if (!part?.functionCall) {
-      throw new Error("AI did not return a structured plan.");
-    }
-
-    const raw = part.functionCall.args as {
+    const raw = result.args as {
       title: string;
       hook: string;
       caption: { instagram: string; tiktok: string; linkedin?: string };
       script: string[];
       hashtags: string[];
       visual_prompt: string;
-      platform: string[];
     };
 
     const plan: StudioContentPlan = {

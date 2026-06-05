@@ -100,8 +100,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "The First Operating System for Entering Elite Industries" },
       { property: "og:description", content: "The First Operating System for Entering Elite Industries" },
       { name: "twitter:description", content: "The First Operating System for Entering Elite Industries" },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/OFwJ9wo6sgZC76OhPX0EoZEecjD3/social-images/social-1779314113500-Aurum_OS_logo.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/OFwJ9wo6sgZC76OhPX0EoZEecjD3/social-images/social-1779314113500-Aurum_OS_logo.webp" },
+      { property: "og:image", content: "https://ooliwsmmtpggejyjmone.supabase.co/storage/v1/object/public/public-assets/aurum-og.png" },
+      { name: "twitter:image", content: "https://ooliwsmmtpggejyjmone.supabase.co/storage/v1/object/public/public-assets/aurum-og.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

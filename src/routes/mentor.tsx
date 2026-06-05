@@ -2,11 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
-import { Sparkles, Send, MessageCircle, Compass, Target, Zap, RefreshCw, Plus, Clock } from "lucide-react";
+import { Sparkles, Send, MessageCircle, Compass, Target, Zap, RefreshCw, Plus, Clock, X } from "lucide-react";
 import { useIndustry, useIndustrySystemPrompt } from "@/lib/industry/IndustryProvider";
 import { askGemini } from "@/lib/gemini.functions";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useProGate, UsageBar } from "@/components/aurum/ProGate";
+import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 import { useMentorConversations } from "@/hooks/useMentorConversations";
 import { generateConversationTitle } from "@/lib/mentor.functions";
 import type { ConversationMessage } from "@/hooks/useMentorConversations";
@@ -37,11 +39,12 @@ function Mentor() {
   const systemPrompt = useIndustrySystemPrompt(core?.current_level ?? undefined, userProfile?.mentor_tone ?? undefined);
   const ask = useServerFn(askGemini);
   const genTitle = useServerFn(generateConversationTitle);
-  const { conversations, loading: convsLoading, createConversation, updateConversation } = useMentorConversations();
+  const { conversations, loading: convsLoading, createConversation, updateConversation, deleteConversation } = useMentorConversations();
   const mentorConversations = conversations.filter((c) => !c.industry.endsWith("-tutor"));
 
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
+  const mentorGate = useProGate("mentor_messages");
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [prompts, setPrompts] = useState<string[]>([...industry.mentorPrompts]);
@@ -81,6 +84,7 @@ function Mentor() {
   const send = async () => {
     const text = input.trim();
     if (!text || pending) return;
+    if (!mentorGate.gate("You've used your 5 free mentor messages. Upgrade to Pro for unlimited access.")) return;
     const next: ConversationMessage[] = [...displayMessages, { r: "me", t: text }];
     setMessages(next);
     setInput("");
@@ -94,6 +98,7 @@ function Mentor() {
       });
       const final: ConversationMessage[] = [...next, { r: "ai", t: reply || "..." }];
       setMessages(final);
+      await mentorGate.increment("mentor_messages");
       if (!activeConvId) {
         const firstUserMsg = next.find((m) => m.r === "me")?.t ?? text;
         const { title } = await genTitle({ data: { firstMessage: firstUserMsg, industry: industryId } });
@@ -112,6 +117,11 @@ function Mentor() {
 
   return (
     <AppShell>
+      <UpgradeModal
+        open={mentorGate.showUpgrade}
+        onClose={() => mentorGate.setShowUpgrade(false)}
+        reason="You've used your 5 free mentor messages. Upgrade to Pro for unlimited AI mentorship."
+      />
       <div className="grid lg:grid-cols-[1fr_320px] gap-6 h-[calc(100vh-7rem)]">
         <div className="glass rounded-xl flex flex-col overflow-hidden">
           <div className="flex items-center gap-3 px-6 py-5 border-b border-border/60">
@@ -122,10 +132,15 @@ function Mentor() {
               <div className="font-serif text-lg leading-tight">{industry.mentorPersona}</div>
               <div className="text-[11px] text-muted-foreground">{industry.mentorSpecialty}</div>
             </div>
-            <span className="ml-auto inline-flex items-center gap-1.5 text-[10px] tracking-[0.3em] text-emerald-400/90">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              ONLINE
-            </span>
+            <div className="ml-auto flex items-center gap-3">
+              {!mentorGate.isPro && (
+                <UsageBar used={mentorGate.limit - mentorGate.remaining} limit={mentorGate.limit} label="free messages" />
+              )}
+              <span className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.3em] text-emerald-400/90">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                ONLINE
+              </span>
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {displayMessages.map((m, i) => (
@@ -165,13 +180,26 @@ function Mentor() {
               <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">RECENT CONVERSATIONS</div>
               <div className="space-y-2">
                 {mentorConversations.map((conv) => (
-                  <button key={conv.id} onClick={() => loadConversation(conv)} className={"w-full flex flex-col gap-1 p-3 rounded-lg border text-left text-sm transition-colors " + (activeConvId === conv.id ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/40")}>
-                    <span className="font-medium leading-tight line-clamp-2">{conv.title}</span>
-                    <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      {formatDate(conv.updated_at)} · {conv.messages.length} messages
-                    </span>
-                  </button>
+                  <div key={conv.id} className={"flex items-start gap-1 rounded-lg border transition-colors " + (activeConvId === conv.id ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/40")}>
+                    <button onClick={() => loadConversation(conv)} className="flex-1 flex flex-col gap-1 p-3 text-left text-sm min-w-0">
+                      <span className="font-medium leading-tight line-clamp-2">{conv.title}</span>
+                      <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {formatDate(conv.updated_at)} · {conv.messages.length} messages
+                      </span>
+                    </button>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (activeConvId === conv.id) startFresh();
+                        await deleteConversation(conv.id);
+                      }}
+                      className="shrink-0 p-2 mt-1.5 text-muted-foreground hover:text-destructive transition-colors"
+                      title="Delete conversation"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -202,7 +230,7 @@ function Mentor() {
             <ul className="text-xs text-foreground/90 space-y-2">
               <li>· {industry.modeLabel} · {industry.phaseLabel}</li>
               <li>· {(core?.streak ?? 0) + "-day execution streak"}</li>
-              <li>· {(core?.execution_score ?? 0) + " execution score"}</li>
+              <li>· {(core?.execution_score ?? 0) + " tasks completed today"}</li>
             </ul>
           </div>
         </aside>

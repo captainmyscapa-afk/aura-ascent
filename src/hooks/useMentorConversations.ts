@@ -108,11 +108,25 @@ export function useMentorConversations() {
     [user]
   );
 
+  const deleteConversation = useCallback(
+    async (id: string) => {
+      if (!user) return;
+      await supabase
+        .from("mentor_conversations")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id);
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+    },
+    [user]
+  );
+
   return {
     conversations,
     loading,
     createConversation,
     updateConversation,
     updateTitle,
+    deleteConversation,
   };
 }

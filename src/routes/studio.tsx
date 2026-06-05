@@ -18,6 +18,9 @@ import {
   X,
 } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
+import { INDUSTRY_TO_CATEGORY } from "@/lib/industry/categoryMap";
+import { useProGate, UsageBar } from "@/components/aurum/ProGate";
+import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { generateStudioContent, type StudioContentPlan } from "@/lib/studio.functions";
@@ -74,6 +77,7 @@ function Studio() {
   const [plan, setPlan] = useState<StudioContentPlan | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const studioGate = useProGate("studio_drafts");
   const [copied, setCopied] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
@@ -122,6 +126,19 @@ function Studio() {
       .order("created_at", { ascending: false })
       .limit(20);
     setHistory((data as HistoryEntry[]) || []);
+  };
+
+  const deleteFromHistory = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await (supabase.from("user_content_history") as any)
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user?.id);
+    setHistory((prev) => prev.filter((h) => h.id !== id));
+    if (lastSavedId === id) {
+      setLastSavedId(null);
+      setPlan(null);
+    }
   };
 
   const saveToHistory = async (result: StudioContentPlan) => {
@@ -198,6 +215,7 @@ function Studio() {
 
   const run = async () => {
     if (pending) return;
+    if (!studioGate.gate("You've used your free content draft. Upgrade to Pro for unlimited generation.")) return;
     setError(null);
     setPlan(null);
     setImageUrl(null);
@@ -247,6 +265,7 @@ function Studio() {
       });
 
       setPlan(result);
+      await studioGate.increment("studio_drafts");
       await saveToHistory(result);
       await updateMemory(result);
     } catch (e) {
@@ -261,16 +280,49 @@ function Studio() {
     setImageError(false);
     setImageUrl(null);
     try {
-      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(visualPrompt + ", luxury lifestyle, cinematic, editorial photography, high end, 4K")}?width=1024&height=1024&nologo=true&enhance=true&model=flux`;
-      await new Promise<void>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error("Failed to load"));
-        img.src = url;
-      });
-      setImageUrl(url);
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        "https://ooliwsmmtpggejyjmone.supabase.co/functions/v1/generate-image",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token ?? ""}`,
+          },
+          body: JSON.stringify({ prompt: visualPrompt }),
+        }
+      );
+
+      if (!res.ok) throw new Error("Image generation failed");
+      const data = await res.json() as { type: "url" | "base64"; url?: string; data?: string; mimeType?: string };
+
+      let finalUrl: string;
+      if (data.type === "base64" && data.data) {
+        // Convert base64 to blob URL for display
+        const byteChars = atob(data.data);
+        const byteArr = new Uint8Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
+        const blob = new Blob([byteArr], { type: data.mimeType ?? "image/png" });
+        finalUrl = URL.createObjectURL(blob);
+      } else if (data.type === "url" && data.url) {
+        // Pollinations URL — verify it loads
+        await new Promise<void>((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error("Image load failed"));
+          setTimeout(() => reject(new Error("Timeout")), 30_000);
+          img.src = data.url!;
+        });
+        finalUrl = data.url;
+      } else {
+        throw new Error("No image returned");
+      }
+
+      setImageUrl(finalUrl);
       if (lastSavedId) {
-        await (supabase.from("user_content_history") as any).update({ image_url: url }).eq("id", lastSavedId);
+        await (supabase.from("user_content_history") as any)
+          .update({ image_url: finalUrl })
+          .eq("id", lastSavedId);
         loadHistory();
       }
     } catch {
@@ -301,13 +353,47 @@ function Studio() {
     setTimeout(() => setCopied(null), 1500);
   };
 
-  const canRun = mode === "intelligence" ? intel.length > 0 : idea.trim().length > 2;
+  // Share to any connected platform
+  const [sharing, setSharing] = useState<string | null>(null);
+
+  const shareToplatform = async (platform: string, text: string, key: string) => {
+    setSharing(key);
+    try {
+      await navigator.clipboard.writeText(text);
+      const urls: Record<string, string> = {
+        twitter:   `https://twitter.com/intent/tweet?text=${encodeURIComponent(text.slice(0, 280))}`,
+        linkedin:  `https://www.linkedin.com/feed/?shareActive=true`,
+        instagram: `https://www.instagram.com/`,
+        tiktok:    `https://www.tiktok.com/upload`,
+        youtube:   `https://studio.youtube.com/`,
+        substack:  `https://substack.com/publish/post/new`,
+      };
+      const url = urls[platform];
+      if (url) window.open(url, "_blank");
+    } finally {
+      setTimeout(() => setSharing(null), 1500);
+    }
+  };
+
+  const linkedinPosting = null; // kept for type compat below
+
+  const canRun = (mode === "intelligence" ? intel.length > 0 : idea.trim().length > 2) && studioGate.canUse;
 
   return (
     <AppShell>
+      <UpgradeModal
+        open={studioGate.showUpgrade}
+        onClose={() => studioGate.setShowUpgrade(false)}
+        reason="You've used your free content draft. Upgrade to Pro for unlimited AI content generation."
+      />
       <div className="mb-8 animate-fade-up">
-        <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">
-          CONTENT STUDIO · {industry.modeLabel.toUpperCase()}
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-[10px] tracking-[0.34em] text-primary/80">
+            CONTENT STUDIO · {industry.modeLabel.toUpperCase()}
+          </div>
+          {!studioGate.isPro && (
+            <UsageBar used={studioGate.limit - studioGate.remaining} limit={studioGate.limit} label="free draft" />
+          )}
         </div>
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -346,26 +432,34 @@ function Studio() {
           </div>
           <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
             {history.map((entry) => (
-              <button
-                key={entry.id}
-                onClick={() => loadFromHistory(entry)}
-                className="w-full text-left p-3 rounded-lg border border-border hover:border-primary/40 transition-all"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-serif truncate">{entry.title || "Untitled"}</div>
-                    {entry.idea && (
-                      <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{entry.idea}</div>
-                    )}
+              <div key={entry.id} className="flex items-start gap-1 rounded-lg border border-border hover:border-primary/40 transition-all">
+                <button
+                  onClick={() => loadFromHistory(entry)}
+                  className="flex-1 text-left p-3 min-w-0"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-serif truncate">{entry.title || "Untitled"}</div>
+                      {entry.idea && (
+                        <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{entry.idea}</div>
+                      )}
+                    </div>
+                    <div className="shrink-0 text-[10px] text-muted-foreground font-mono">
+                      {new Date(entry.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </div>
                   </div>
-                  <div className="shrink-0 text-[10px] text-muted-foreground font-mono">
-                    {new Date(entry.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                  </div>
-                </div>
-                {entry.image_url && (
-                  <img src={entry.image_url} alt="" className="mt-2 h-12 w-20 object-cover rounded" />
-                )}
-              </button>
+                  {entry.image_url && (
+                    <img src={entry.image_url} alt="" className="mt-2 h-12 w-20 object-cover rounded" />
+                  )}
+                </button>
+                <button
+                  onClick={(e) => void deleteFromHistory(entry.id, e)}
+                  className="shrink-0 p-2 mt-1.5 text-muted-foreground hover:text-destructive transition-colors"
+                  title="Delete draft"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
             ))}
           </div>
         </div>
@@ -558,27 +652,50 @@ function Studio() {
               imageError={imageError}
               onGenerateImage={() => generateImage(plan.visualPrompt)}
               onDownloadImage={downloadImage}
+              onShare={shareToplatform}
+              sharing={sharing}
             />
           )}
         </div>
       </div>
 
       <div className="mt-14">
-        <SectionHeading eyebrow="STARTERS" title="Ideas to expand" />
+        <SectionHeading eyebrow="LIVE SIGNALS" title="Ideas to expand" />
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {industry.contentPrompts.map((p) => (
-            <button
-              key={p.t}
-              onClick={() => {
-                setMode("assisted");
-                setIdea(p.t);
-              }}
-              className="glass rounded-xl p-4 text-left hover:ring-gold transition-all"
-            >
-              <div className="text-[9px] tracking-[0.3em] text-primary/80 mb-2">{p.type}</div>
-              <div className="text-sm font-serif leading-snug">{p.t}</div>
-            </button>
-          ))}
+          {/* Live intelligence articles as content ideas */}
+          {intel
+            .filter(e => e.category === INDUSTRY_TO_CATEGORY[industryId as keyof typeof INDUSTRY_TO_CATEGORY] || !e.category)
+            .slice(0, 8)
+            .map((e) => (
+              <button
+                key={e.id}
+                onClick={() => {
+                  setMode("intelligence");
+                  setSelectedIntel(new Set([e.id]));
+                  setIdea("");
+                }}
+                className="glass rounded-xl p-4 text-left hover:ring-gold transition-all group"
+              >
+                <div className="text-[9px] tracking-[0.3em] text-primary/80 mb-2 flex items-center gap-1.5">
+                  <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
+                  {e.source ?? "LIVE SIGNAL"}
+                </div>
+                <div className="text-sm font-serif leading-snug group-hover:text-primary transition-colors">{e.title}</div>
+              </button>
+            ))}
+          {/* Fallback to config prompts if no intelligence yet */}
+          {intel.filter(e => e.category === INDUSTRY_TO_CATEGORY[industryId as keyof typeof INDUSTRY_TO_CATEGORY]).length === 0 &&
+            industry.contentPrompts.map((p) => (
+              <button
+                key={p.t}
+                onClick={() => { setMode("assisted"); setIdea(p.t); }}
+                className="glass rounded-xl p-4 text-left hover:ring-gold transition-all"
+              >
+                <div className="text-[9px] tracking-[0.3em] text-primary/80 mb-2">{p.type}</div>
+                <div className="text-sm font-serif leading-snug">{p.t}</div>
+              </button>
+            ))
+          }
         </div>
       </div>
     </AppShell>
@@ -623,6 +740,8 @@ function PlanOutput({
   imageError,
   onGenerateImage,
   onDownloadImage,
+  onShare,
+  sharing,
 }: {
   plan: StudioContentPlan;
   copied: string | null;
@@ -632,6 +751,8 @@ function PlanOutput({
   imageError: boolean;
   onGenerateImage: () => void;
   onDownloadImage: () => void;
+  onShare?: (platform: string, text: string, key: string) => void;
+  sharing?: string | null;
 }) {
   return (
     <div className="space-y-4 animate-fade-up">
@@ -649,10 +770,10 @@ function PlanOutput({
       <div className="glass rounded-xl p-5">
         <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-4">PLATFORM VERSIONS</div>
         <div className="space-y-4">
-          <PlatformBlock label="Instagram" text={plan.platforms.instagram} id="ig" copied={copied} onCopy={onCopy} />
-          <PlatformBlock label="TikTok" text={plan.platforms.tiktok} id="tt" copied={copied} onCopy={onCopy} />
+          <PlatformBlock label="Instagram" text={plan.platforms.instagram} id="ig" copied={copied} onCopy={onCopy} onShare={onShare ? () => onShare("instagram", plan.platforms.instagram, "ig") : undefined} shareLabel="Copy + Open Instagram" posting={sharing === "ig"} />
+          <PlatformBlock label="TikTok" text={plan.platforms.tiktok} id="tt" copied={copied} onCopy={onCopy} onShare={onShare ? () => onShare("tiktok", plan.platforms.tiktok, "tt") : undefined} shareLabel="Copy + Open TikTok" posting={sharing === "tt"} />
           {plan.platforms.linkedin && (
-            <PlatformBlock label="LinkedIn" text={plan.platforms.linkedin} id="li" copied={copied} onCopy={onCopy} />
+            <PlatformBlock label="LinkedIn" text={plan.platforms.linkedin} id="li" copied={copied} onCopy={onCopy} onShare={onShare ? () => onShare("linkedin", plan.platforms.linkedin!, "li") : undefined} shareLabel="Copy + Open LinkedIn" posting={sharing === "li"} />
           )}
         </div>
       </div>
@@ -758,18 +879,38 @@ function PlatformBlock({
   id,
   copied,
   onCopy,
+  onShare,
+  shareLabel,
+  posting,
 }: {
   label: string;
   text: string;
   id: string;
   copied: string | null;
   onCopy: (k: string, t: string) => void;
+  onShare?: () => void;
+  shareLabel?: string;
+  posting?: boolean;
 }) {
   return (
     <div className="border border-border/60 rounded-lg p-3">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground">{label}</span>
-        <CopyBtn id={id} copied={copied} onClick={() => onCopy(id, text)} />
+        <div className="flex items-center gap-2">
+          {onShare && (
+            <button
+              onClick={onShare}
+              disabled={posting}
+              className="flex items-center gap-1 text-[10px] tracking-[0.2em] uppercase text-primary/80 hover:text-primary transition-colors disabled:opacity-50"
+            >
+              {posting
+                ? <><Loader2 className="h-3 w-3 animate-spin" /> Posting...</>
+                : <><Send className="h-3 w-3" /> {shareLabel}</>
+              }
+            </button>
+          )}
+          <CopyBtn id={id} copied={copied} onClick={() => onCopy(id, text)} />
+        </div>
       </div>
       <div className="text-sm whitespace-pre-wrap leading-relaxed">{text}</div>
     </div>

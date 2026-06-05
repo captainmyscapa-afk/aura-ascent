@@ -8,6 +8,7 @@ import {
   Users,
   Video,
   User2,
+  Map,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 
 const nav = [
   { to: "/app", label: "Mission Control", icon: LayoutDashboard },
+  { to: "/roadmap", label: "30-Day Roadmap", icon: Map },
   { to: "/intelligence", label: "Intelligence", icon: Radio },
   { to: "/mentor", label: "AI Mentor", icon: Sparkles },
   { to: "/academy", label: "Academy", icon: GraduationCap },

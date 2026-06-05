@@ -47,12 +47,15 @@ function Intelligence() {
     setLoading(true);
 
     const load = async () => {
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { data } = await (supabase.from("live_intelligence") as any)
+      // 30-day window so feed never goes empty if pipeline is delayed
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data } = await supabase
+        .from("live_intelligence")
         .select("*")
         .eq("category", category)
-        .gte("created_at", sevenDaysAgo)
-        .order("created_at", { ascending: false });
+        .gte("created_at", thirtyDaysAgo)
+        .order("created_at", { ascending: false })
+        .limit(50);
       if (!mounted) return;
       setEntries([...((data as Entry[]) || [])]);
       setLastSync(new Date());

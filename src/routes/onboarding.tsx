@@ -53,7 +53,11 @@ function Onboarding() {
     setStep((s) => s + 1);
   }
   function back() {
-    setStep((s) => Math.max(0, s - 1));
+    if (step === 0) {
+      navigate({ to: "/" });
+    } else {
+      setStep((s) => s - 1);
+    }
   }
 
   const canNext =
@@ -208,15 +212,19 @@ function Onboarding() {
             <div className="mt-12 flex items-center justify-between">
               <button
                 onClick={back}
-                disabled={step === 0}
-                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                <ArrowLeft className="h-4 w-4" /> Back
+                <ArrowLeft className="h-4 w-4" />
+                {step === 0 ? "Home" : "Back"}
               </button>
               <button
                 onClick={next}
                 disabled={!canNext}
-                className="inline-flex items-center gap-3 bg-[var(--gradient-gold)] text-primary-foreground rounded-full px-6 py-3 text-sm tracking-wider shadow-[var(--shadow-gold)] disabled:opacity-30 disabled:cursor-not-allowed transition-transform hover:scale-[1.02]"
+                className="inline-flex items-center gap-3 rounded-full px-7 py-3 text-sm font-medium tracking-wide shadow-[var(--shadow-gold)] disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:opacity-90 hover:scale-[1.02]"
+                style={{
+                  background: canNext ? "var(--gradient-gold)" : "rgba(201,168,76,0.3)",
+                  color: "#080808",
+                }}
               >
                 {step === totalSteps - 1 ? "Forge My System" : "Continue"}
                 <ArrowRight className="h-4 w-4" />

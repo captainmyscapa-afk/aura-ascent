@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useIndustry } from "@/lib/industry/IndustryProvider";
+import { INDUSTRY_TO_CATEGORY } from "@/lib/industry/categoryMap";
 
 type Entry = {
   id: string;
@@ -24,17 +26,22 @@ function timeAgo(iso: string): string {
 }
 
 export function LiveIntelligenceFeed() {
+  const { industryId } = useIndustry();
+  const category = INDUSTRY_TO_CATEGORY[industryId as keyof typeof INDUSTRY_TO_CATEGORY];
   const [entries, setEntries] = useState<Entry[]>([]);
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await (supabase.from("live_intelligence") as any)
+      let query = (supabase.from("live_intelligence") as any)
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (category) query = query.eq("category", category);
+      const { data } = await query;
       setEntries([...((data as Entry[]) || [])]);
     };
     load();
-  }, []);
+  }, [category]);
 
   return (
     <div className="relative glass rounded-2xl p-6 sm:p-7 overflow-hidden ring-gold">

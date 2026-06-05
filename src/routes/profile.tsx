@@ -699,6 +699,15 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+const PLATFORM_META: Record<string, { label: string; placeholder: string; hint: string }> = {
+  linkedin:  { label: "PROFILE URL OR USERNAME", placeholder: "linkedin.com/in/yourname or yourname", hint: "Your LinkedIn profile URL or username" },
+  instagram: { label: "USERNAME", placeholder: "@yourhandle", hint: "Your Instagram handle (without @)" },
+  twitter:   { label: "USERNAME", placeholder: "@yourhandle", hint: "Your X / Twitter handle" },
+  tiktok:    { label: "USERNAME", placeholder: "@yourhandle", hint: "Your TikTok handle" },
+  youtube:   { label: "CHANNEL NAME OR URL", placeholder: "youtube.com/@yourchannel", hint: "Your YouTube channel name or URL" },
+  substack:  { label: "SUBSTACK URL", placeholder: "https://you.substack.com", hint: "Your full Substack publication URL" },
+};
+
 function ConnectDialog({
   platform,
   onClose,
@@ -709,35 +718,42 @@ function ConnectDialog({
   onConfirm: (platform: string, username: string) => Promise<void>;
 }) {
   const [value, setValue] = useState("");
-  useEffect(() => setValue(""), [platform]);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { setValue(""); setSaving(false); }, [platform]);
   if (!platform) return null;
   const meta = PLATFORMS.find((p) => p.key === platform);
+  const fieldMeta = PLATFORM_META[platform] ?? { label: "USERNAME", placeholder: "yourhandle", hint: "" };
+
+  const handleConfirm = async () => {
+    if (!value.trim()) return;
+    setSaving(true);
+    await onConfirm(platform, value.trim());
+    setSaving(false);
+  };
+
   return (
     <Dialog open={!!platform} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="font-serif text-2xl">Connect {meta?.name}</DialogTitle>
           <DialogDescription>
-            Enter your {meta?.name} handle{platform === "substack" ? " or URL" : ""} — OAuth-based publishing rolls out
-            shortly.
+            {fieldMeta.hint} — AURUM will use this to redirect your content to the right platform.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <Label className="text-[10px] tracking-[0.3em] text-muted-foreground">
-            {platform === "substack" ? "URL" : "USERNAME"}
-          </Label>
+          <Label className="text-[10px] tracking-[0.3em] text-muted-foreground">{fieldMeta.label}</Label>
           <Input
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder={platform === "substack" ? "https://you.substack.com" : "yourhandle"}
+            onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
+            placeholder={fieldMeta.placeholder}
+            autoFocus
           />
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={() => value.trim() && onConfirm(platform, value.trim())} disabled={!value.trim()}>
-            Connect
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleConfirm} disabled={!value.trim() || saving}>
+            {saving ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Connecting…</> : "Connect"}
           </Button>
         </DialogFooter>
       </DialogContent>

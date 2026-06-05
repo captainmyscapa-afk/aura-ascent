@@ -33,6 +33,12 @@ export type AurumCoreState = {
   upcoming_events_week_start: string | null;
   updated_at: string | null;
   last_active: string | null;
+  // Roadmap
+  roadmap: unknown | null;
+  roadmap_generated_at: string | null;
+  roadmap_progress: unknown | null;
+  // Free tier
+  free_usage: unknown | null;
 };
 
 // Map exposed (canonical) field names → legacy DB column names.
@@ -88,6 +94,10 @@ function fromRow(row: Record<string, unknown> | null): AurumCoreState | null {
     upcoming_events_week_start: (row.upcoming_events_week_start as string | null) ?? null,
     updated_at: (row.updated_at as string | null) ?? null,
     last_active: null,
+    roadmap: (row.roadmap as unknown) ?? null,
+    roadmap_generated_at: (row.roadmap_generated_at as string | null) ?? null,
+    roadmap_progress: (row.roadmap_progress as unknown) ?? null,
+    free_usage: (row.free_usage as unknown) ?? null,
   };
 }
 
@@ -118,10 +128,27 @@ export function useAurumCoreState() {
     let alive = true;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase.from("aurum_core_state").select("*").eq("user_id", user.id).maybeSingle();
+      const { data, error } = await supabase
+        .from("aurum_core_state")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
       if (!alive) return;
-      if (error) setError(error.message);
-      setState(fromRow(data as Record<string, unknown> | null));
+      if (error) { setError(error.message); setLoading(false); return; }
+
+      if (!data) {
+        // First login — create the default row
+        const { data: inserted, error: insertError } = await supabase
+          .from("aurum_core_state")
+          .insert({ user_id: user.id, streak: 0, execution_score: 0 })
+          .select("*")
+          .maybeSingle();
+        if (!alive) return;
+        if (insertError) setError(insertError.message);
+        setState(fromRow(inserted as Record<string, unknown> | null));
+      } else {
+        setState(fromRow(data as Record<string, unknown>));
+      }
       setLoading(false);
     })();
     return () => {
@@ -149,8 +176,7 @@ export function useAurumCoreState() {
       const { data, error } = await supabase
         .from("aurum_core_state")
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update(dbPatch as any)
-        .eq("user_id", user.id)
+        .upsert({ ...dbPatch, user_id: user.id } as any, { onConflict: "user_id" })
         .select()
         .maybeSingle();
       if (error) {

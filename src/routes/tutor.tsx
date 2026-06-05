@@ -2,12 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
-import { GraduationCap, Send, BookOpen, Lightbulb, ListChecks, HelpCircle, Plus, Clock } from "lucide-react";
+import { GraduationCap, Send, BookOpen, Lightbulb, ListChecks, HelpCircle, Plus, Clock, X } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { askGemini } from "@/lib/gemini.functions";
 import { generateConversationTitle } from "@/lib/mentor.functions";
 import { useMentorConversations } from "@/hooks/useMentorConversations";
 import type { ConversationMessage } from "@/hooks/useMentorConversations";
+import { useProGate, UsageBar } from "@/components/aurum/ProGate";
+import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 
 export const Route = createFileRoute("/tutor")({
   component: Tutor,
@@ -32,10 +34,11 @@ function Tutor() {
   const { industry, industryId } = useIndustry();
   const ask = useServerFn(askGemini);
   const genTitle = useServerFn(generateConversationTitle);
-  const { conversations, loading: convsLoading, createConversation, updateConversation } = useMentorConversations();
+  const { conversations, loading: convsLoading, createConversation, updateConversation, deleteConversation } = useMentorConversations();
 
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
+  const tutorGate = useProGate("tutor_messages");
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -84,6 +87,7 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
   const send = async (override?: string) => {
     const text = (override ?? input).trim();
     if (!text || pending) return;
+    if (!tutorGate.gate("You've used your 5 free tutor messages. Upgrade to Pro for unlimited AI tutoring.")) return;
     const next: ConversationMessage[] = [...displayMessages, { r: "me", t: text }];
     setMessages(next);
     setInput("");
@@ -97,6 +101,7 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
       });
       const final: ConversationMessage[] = [...next, { r: "ai", t: reply || "..." }];
       setMessages(final);
+      await tutorGate.increment("tutor_messages");
       if (!activeConvId) {
         const firstUserMsg = next.find((m) => m.r === "me")?.t ?? text;
         const { title } = await genTitle({ data: { firstMessage: firstUserMsg, industry: industryId } });
@@ -117,6 +122,7 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
 
   return (
     <AppShell>
+      <UpgradeModal open={tutorGate.showUpgrade} onClose={() => tutorGate.setShowUpgrade(false)} reason="You've used your 5 free tutor messages. Upgrade to Pro for unlimited AI tutoring." />
       <div className="grid lg:grid-cols-[1fr_320px] gap-6 h-[calc(100vh-7rem)]">
         <div className="glass rounded-xl flex flex-col overflow-hidden">
           <div className="flex items-center gap-3 px-6 py-5 border-b border-border/60">
@@ -172,13 +178,26 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
               <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">RECENT LESSONS</div>
               <div className="space-y-2">
                 {tutorConversations.map((conv) => (
-                  <button key={conv.id} onClick={() => loadConversation(conv)} className={"w-full flex flex-col gap-1 p-3 rounded-lg border text-left text-sm transition-colors " + (activeConvId === conv.id ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/40")}>
-                    <span className="font-medium leading-tight line-clamp-2">{conv.title}</span>
-                    <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      {formatDate(conv.updated_at)} · {conv.messages.length} messages
-                    </span>
-                  </button>
+                  <div key={conv.id} className={"flex items-start gap-1 rounded-lg border transition-colors " + (activeConvId === conv.id ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/40")}>
+                    <button onClick={() => loadConversation(conv)} className="flex-1 flex flex-col gap-1 p-3 text-left text-sm min-w-0">
+                      <span className="font-medium leading-tight line-clamp-2">{conv.title}</span>
+                      <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {formatDate(conv.updated_at)} · {conv.messages.length} messages
+                      </span>
+                    </button>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (activeConvId === conv.id) startFresh();
+                        await deleteConversation(conv.id);
+                      }}
+                      className="shrink-0 p-2 mt-1.5 text-muted-foreground hover:text-destructive transition-colors"
+                      title="Delete lesson"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>

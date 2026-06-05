@@ -9,47 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      aurum_content: {
-        Row: {
-          id: string;
-          user_id: string | null;
-          mode: string | null;
-          platform: string | null;
-          type: string | null;
-          hook: string | null;
-          script: string | null;
-          caption: string | null;
-          visual_prompt: string | null;
-          viral_score: number | null;
-          created_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          user_id?: string | null;
-          mode?: string | null;
-          platform?: string | null;
-          type?: string | null;
-          hook?: string | null;
-          script?: string | null;
-          caption?: string | null;
-          visual_prompt?: string | null;
-          viral_score?: number | null;
-          created_at?: string | null;
-        };
-        Update: {
-          id?: string;
-          user_id?: string | null;
-          mode?: string | null;
-          platform?: string | null;
-          type?: string | null;
-          hook?: string | null;
-          script?: string | null;
-          caption?: string | null;
-          visual_prompt?: string | null;
-          viral_score?: number | null;
-          created_at?: string | null;
-        };
-      };
       aurum_core_state: {
         Row: {
           id: string;
@@ -136,6 +95,7 @@ export type Database = {
           status: string | null;
           priority: string | null;
           source: string | null;
+          completed_at: string | null;
           created_at: string | null;
         };
         Insert: {
@@ -146,6 +106,7 @@ export type Database = {
           status?: string | null;
           priority?: string | null;
           source?: string | null;
+          completed_at?: string | null;
           created_at?: string | null;
         };
         Update: {
@@ -156,6 +117,7 @@ export type Database = {
           status?: string | null;
           priority?: string | null;
           source?: string | null;
+          completed_at?: string | null;
           created_at?: string | null;
         };
       };
@@ -312,6 +274,57 @@ export type Database = {
           visual_prompt?: string | null;
           image_url?: string | null;
           created_at?: string | null;
+        };
+      };
+      contacts: {
+        Row: { id: string; user_id: string; name: string; email: string | null; company: string | null; role: string | null; phone: string | null; linkedin_url: string | null; instagram_url: string | null; facebook_url: string | null; notes: string | null; industry: string | null; created_at: string; updated_at: string; };
+        Insert: { id?: string; user_id: string; name: string; email?: string | null; company?: string | null; role?: string | null; phone?: string | null; linkedin_url?: string | null; instagram_url?: string | null; facebook_url?: string | null; notes?: string | null; industry?: string | null; };
+        Update: { id?: string; user_id?: string; name?: string; email?: string | null; company?: string | null; role?: string | null; phone?: string | null; linkedin_url?: string | null; instagram_url?: string | null; facebook_url?: string | null; notes?: string | null; industry?: string | null; };
+      };
+      message_drafts: {
+        Row: { id: string; user_id: string; contact_id: string | null; contact_name: string | null; platform: string; category: string | null; subject: string | null; body: string; status: string; sent_at: string | null; created_at: string; updated_at: string; };
+        Insert: { id?: string; user_id: string; contact_id?: string | null; contact_name?: string | null; platform: string; category?: string | null; subject?: string | null; body: string; status?: string; sent_at?: string | null; };
+        Update: { id?: string; user_id?: string; contact_id?: string | null; contact_name?: string | null; platform?: string; category?: string | null; subject?: string | null; body?: string; status?: string; sent_at?: string | null; };
+      };
+      user_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          plan: string;
+          status: string;
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          stripe_price_id: string | null;
+          current_period_end: string | null;
+          cancel_at_period_end: boolean | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          plan?: string;
+          status?: string;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          stripe_price_id?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          plan?: string;
+          status?: string;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          stripe_price_id?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean | null;
+          created_at?: string;
+          updated_at?: string;
         };
       };
       user_memory: {

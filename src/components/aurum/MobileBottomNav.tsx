@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard,
-  GraduationCap,
+  Map,
   Sparkles,
   Video,
   User2,
@@ -9,7 +9,7 @@ import {
 
 const tabs = [
   { to: "/app", label: "Home", icon: LayoutDashboard },
-  { to: "/academy", label: "Academy", icon: GraduationCap },
+  { to: "/roadmap", label: "Roadmap", icon: Map },
   { to: "/mentor", label: "Mentor", icon: Sparkles },
   { to: "/studio", label: "Studio", icon: Video },
   { to: "/profile", label: "Identity", icon: User2 },

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, Hotel, Lock, RefreshCw, MapPin, ChevronLeft } from "lucide-react";
+import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, Hotel, Lock, RefreshCw, MapPin, ChevronLeft, Clock } from "lucide-react";
 import React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -13,6 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { generateRecommendation, generateDailyTasks } from "@/lib/identity.functions";
+import { useSubscription } from "@/hooks/useSubscription";
+import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
@@ -35,6 +37,49 @@ const INDUSTRY_TO_TRACK: Record<IndustryId, string> = {
   jets: "aviation",
   cars: "automotive",
 };
+
+const COMPLETION_MESSAGES = [
+  "🎉 Excellent work! You've completed all 5 daily rituals today. Keep building momentum and come back tomorrow for another step forward.",
+  "🏆 Daily mission accomplished! Every ritual completed. Rest, recharge, and come back tomorrow to continue your streak.",
+  "✨ Great job! You've shown up for yourself and completed everything today. Come back tomorrow and do it again.",
+  "🔥 You're on fire! All 5 rituals are complete. Small daily actions create big results — see you tomorrow.",
+  "💪 Another day, another victory. You've completed every ritual. Come back tomorrow and keep the momentum going.",
+  "🌟 Outstanding! Consistency is your superpower. All tasks completed — come back tomorrow for the next challenge.",
+  "🚀 Progress unlocked! You've completed today's rituals and moved one step closer to your goals. Come back tomorrow.",
+  "👏 Well done! Today's work is finished. Keep stacking these wins and return tomorrow for another successful day.",
+  "🎯 Target hit! All 5 rituals completed successfully. Take pride in today's effort and come back tomorrow.",
+  "⚡ Momentum builds one day at a time. You've completed every ritual today. Come back tomorrow and keep growing.",
+  "🏅 Success! You've finished all of today's rituals. The journey continues — come back tomorrow.",
+  "🌱 Growth happens daily, and today you've done your part. All rituals complete. Come back tomorrow and keep evolving.",
+  "💎 Discipline achieved. Every ritual completed. Your future self will thank you — come back tomorrow.",
+  "🎖️ Another perfect day. All 5 rituals are complete. Keep the streak alive and come back tomorrow.",
+  "🔥 Streak secured! You've completed everything on today's list. See you tomorrow for the next round.",
+  "🌄 A productive day comes to a close. Every ritual is complete. Rest well and come back tomorrow.",
+  "⭐ Fantastic work! You've earned today's victory. Come back tomorrow and continue building something great.",
+  "🛡️ You kept your commitment to yourself today. All rituals complete. Come back tomorrow and do it again.",
+  "📈 Progress never stops. You've completed all 5 rituals today. Come back tomorrow for another step upward.",
+  "👑 Congratulations! Today's rituals are complete. Stay consistent, stay focused, and come back tomorrow for the next level.",
+  "✅ Daily ritual complete. Five tasks finished, one step closer to the life you're building. Come back tomorrow.",
+  "🌟 You've done the work today. Your future self is already benefiting. Come back tomorrow and keep going.",
+  "🏆 Another successful day in the books. All five rituals completed. Come back tomorrow for your next win.",
+  "🔥 Consistency beats motivation. You've completed all five rituals today. Come back tomorrow and continue the streak.",
+  "⚡ Progress confirmed. Every ritual is complete. Rest well and return tomorrow stronger than before.",
+  "🎯 Mission accomplished. Today's rituals are complete. Tomorrow is another opportunity to level up.",
+  "🚀 Momentum is growing. Five rituals complete. Come back tomorrow and keep moving forward.",
+  "💪 Discipline wins again. Every task completed. Come back tomorrow and build on today's success.",
+  "🌱 Small actions. Big future. All rituals complete. Come back tomorrow and plant another seed.",
+  "🏅 You kept your promise to yourself today. Five rituals complete. Come back tomorrow and do it again.",
+  "⭐ Another brick added to the foundation. All five rituals completed. Come back tomorrow to keep building.",
+  "🔥 Streak protected. Progress secured. Come back tomorrow and continue your journey.",
+  "💎 Excellence is built daily. Today's rituals are complete. Come back tomorrow for another step forward.",
+  "🎖️ You've earned today's victory. All five rituals are done. Come back tomorrow for the next challenge.",
+  "⚔️ The battle for your goals continues. Today's round is won. Come back tomorrow.",
+  "🌄 Day complete. Rituals complete. Progress complete. Come back tomorrow and keep climbing.",
+  "🚩 Checkpoint reached. All five rituals completed successfully. Come back tomorrow and continue the adventure.",
+  "📈 Growth recorded. Every ritual finished. Come back tomorrow and keep raising the standard.",
+  "🏔️ Great achievements are built one day at a time. Today's work is done. Come back tomorrow.",
+  "👑 Another day conquered. Five rituals complete. Return tomorrow and continue your ascent.",
+];
 
 type CalendarEvent = {
   id: string;
@@ -157,6 +202,8 @@ export default function Dashboard() {
   const now = useNow();
   const [profileName, setProfileName] = useState<string | null>(null);
   const { state: core, update: updateCore } = useAurumCoreState();
+  const { isPro, startCheckout } = useSubscription();
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const { profile: userProfile } = useUserProfile();
 
   const [recommendation, setRecommendation] = useState<string | null>(null);
@@ -164,6 +211,7 @@ export default function Dashboard() {
   const [dailyTasks, setDailyTasks] = useState<string[]>(industry.dailyObjectives);
   const [tasksLoading, setTasksLoading] = useState(false);
   const [done, setDone] = useState<Record<number, boolean>>({});
+  const [completionMsg, setCompletionMsg] = useState<string | null>(null);
 
   const [calFilter, setCalFilter] = React.useState<string>("all");
   const [selectedEvent, setSelectedEvent] = React.useState<CalendarEvent | null>(null);
@@ -175,6 +223,21 @@ export default function Dashboard() {
   const tasksFn = useServerFn(generateDailyTasks);
 
   const todayStr = isoDay();
+
+  const completed = dailyTasks.filter((_, i) => done[i]).length;
+  const total = dailyTasks.length || 1;
+  const allDone = total > 0 && completed === total;
+
+  // CAP-59: show completion message once per day when all rituals are done
+  useEffect(() => {
+    if (!allDone) return;
+    const key = `aurum:ritualMsg:${user?.id ?? "demo"}:${todayStr}`;
+    const stored = typeof window !== "undefined" ? localStorage.getItem(key) : null;
+    if (stored) { setCompletionMsg(stored); return; }
+    const msg = COMPLETION_MESSAGES[Math.floor(Math.random() * COMPLETION_MESSAGES.length)];
+    if (typeof window !== "undefined") localStorage.setItem(key, msg);
+    setCompletionMsg(msg);
+  }, [allDone, todayStr, user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -208,7 +271,7 @@ export default function Dashboard() {
     const recStale =
       !summary?.recommendation ||
       !c.ai_summary_updated_at ||
-      Date.now() - new Date(c.ai_summary_updated_at).getTime() > 86_400_000 ||
+      Date.now() - new Date(c.ai_summary_updated_at).getTime() > 6 * 3_600_000 ||
       summary?.mode !== industry.label;
     if (recStale) {
       refreshRecommendation(ctx);
@@ -217,9 +280,14 @@ export default function Dashboard() {
     }
 
     const cachedTasks = c.daily_tasks as any;
-    if (cachedTasks?.tasks?.length > 0 && c.daily_tasks_date === isoDay() && cachedTasks?.mode === industry.label) {
+    // CAP-60: lock to calendar day only — mode switch must not regenerate
+    const tasksAreForToday = cachedTasks?.tasks?.length > 0 && c.daily_tasks_date === isoDay();
+    // CAP-60: once completed, no new tasks generate for that day
+    const doneKey = `aurum:ritualsDone:${user?.id ?? ""}:${isoDay()}`;
+    const alreadyCompletedToday = typeof window !== "undefined" && !!localStorage.getItem(doneKey);
+    if (tasksAreForToday) {
       setDailyTasks(cachedTasks.tasks);
-    } else {
+    } else if (!alreadyCompletedToday) {
       refreshDailyTasks(ctx);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -228,6 +296,13 @@ export default function Dashboard() {
   async function toggle(i: number) {
     const wasDone = !!done[i];
     setDone((d) => ({ ...d, [i]: !d[i] }));
+    // CAP-60: mark today as completed if this was the last task
+    if (!wasDone) {
+      const nowAllDone = dailyTasks.every((_, idx) => idx === i ? true : !!done[idx]);
+      if (nowAllDone && typeof window !== "undefined") {
+        localStorage.setItem(`aurum:ritualsDone:${user?.id ?? ""}:${isoDay()}`, "1");
+      }
+    }
     if (wasDone || !user) return;
     const today = isoDay();
     const STREAK_KEY = `aurum:lastStreakDate:${user.id}`;
@@ -238,17 +313,35 @@ export default function Dashboard() {
       nextStreak = last === yesterday ? nextStreak + 1 : 1;
       if (typeof window !== "undefined") localStorage.setItem(STREAK_KEY, today);
     }
-    // Write to aurum_tasks table
-    await (supabase as any).from("aurum_tasks").insert({
-      user_id: user.id,
-      title: dailyTasks[i],
-      status: "completed",
-      priority: "medium",
-      source: "daily_ritual",
-    });
-    // Update core state
+    // Dedup: skip if this task was already completed today
+    const { data: existing } = await supabase
+      .from("aurum_tasks")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("title", dailyTasks[i])
+      .eq("source", "daily_ritual")
+      .gte("completed_at", today + "T00:00:00Z")
+      .maybeSingle();
+    if (!existing) {
+      const { error } = await (supabase as any).from("aurum_tasks").insert({
+        user_id: user.id,
+        title: dailyTasks[i],
+        status: "completed",
+        priority: "medium",
+        source: "daily_ritual",
+        completed_at: new Date().toISOString(),
+      });
+      if (error) console.error("[aurum_tasks] insert failed:", error.message);
+    }
+    // Derive today's score from actual DB count (self-healing, resets daily automatically)
+    const { count } = await supabase
+      .from("aurum_tasks")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .gte("completed_at", today + "T00:00:00Z");
+
     await updateCore({
-      execution_score: (core?.execution_score ?? 0) + 1,
+      execution_score: count ?? (core?.execution_score ?? 0) + 1,
       streak: nextStreak,
     });
   }
@@ -301,9 +394,6 @@ export default function Dashboard() {
     }
   }
 
-  const completed = dailyTasks.filter((_, i) => done[i]).length;
-  const total = dailyTasks.length || 1;
-
   const welcome = useMemo(() => {
     const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86_400_000);
     return WELCOMES[dayOfYear % WELCOMES.length];
@@ -329,6 +419,8 @@ export default function Dashboard() {
 
   return (
     <AppShell>
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
+
       {isDemo && (
         <div className="mb-6 flex items-center justify-between gap-4 glass rounded-xl px-4 sm:px-5 py-3 border border-primary/20 animate-fade-up">
           <div className="flex items-center gap-3 min-w-0">
@@ -347,6 +439,27 @@ export default function Dashboard() {
           >
             Sign in
           </Link>
+        </div>
+      )}
+
+      {!isDemo && !isPro && (
+        <div className="mb-6 flex items-center justify-between gap-4 glass rounded-xl px-4 sm:px-5 py-3 border border-primary/20 animate-fade-up">
+          <div className="flex items-center gap-3 min-w-0">
+            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+            <div className="min-w-0">
+              <div className="text-[10px] tracking-[0.32em] text-primary/80 uppercase">Free plan</div>
+              <div className="text-sm text-foreground/90 truncate">
+                Upgrade to Pro — unlock full Academy, unlimited mentor, content studio & more.
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowUpgrade(true)}
+            className="shrink-0 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs tracking-wide text-primary-foreground shadow-[var(--shadow-gold)]"
+            style={{ background: "var(--gradient-gold)" }}
+          >
+            Upgrade · £29/mo
+          </button>
         </div>
       )}
 
@@ -396,11 +509,22 @@ export default function Dashboard() {
       <div className="grid lg:grid-cols-3 gap-6 lg:gap-8 items-start">
         <section className="lg:col-span-2 space-y-6 lg:space-y-8">
           <Card>
-            <CardHeader
-              eyebrow={`TODAY · ${industry.modeLabel.toUpperCase()}`}
-              title="Daily ritual"
-              meta={tasksLoading ? "…" : `${completed} of ${total}`}
-            />
+            {/* CAP-59: custom header with completion badge + banner */}
+            <div className="flex items-start justify-between mb-5 gap-4">
+              <div>
+                <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">TODAY · {industry.modeLabel.toUpperCase()}</div>
+                <h2 className="font-serif text-xl sm:text-[22px] leading-tight">Daily ritual</h2>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="text-xs text-muted-foreground font-mono mb-1">{tasksLoading ? "…" : `${completed} of ${total}`}</div>
+                {allDone && (
+                  <span className="inline-flex items-center gap-1 text-[9px] tracking-[0.25em] text-primary animate-pulse">
+                    <Sparkles className="h-2.5 w-2.5" /> ALL COMPLETE
+                  </span>
+                )}
+              </div>
+            </div>
+            {allDone && completionMsg && <CompletionBanner message={completionMsg} />}
             <div className="space-y-1.5">
               {dailyTasks.map((t, i) => {
                 const isDone = !!done[i];
@@ -571,6 +695,26 @@ export default function Dashboard() {
                   <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">{selectedEvent.industry.toUpperCase()}</span>
                 </div>
                 <h3 className="text-lg font-bold">{selectedEvent.title}</h3>
+                {(() => {
+                  const daysUntil = Math.ceil((new Date(selectedEvent.startDate).getTime() - new Date().setHours(0,0,0,0)) / 86_400_000);
+                  if (daysUntil > 0) return (
+                    <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-2 w-fit">
+                      <Clock className="w-3.5 h-3.5 text-primary" />
+                      <span className="text-sm font-semibold text-primary">{daysUntil} days away</span>
+                    </div>
+                  );
+                  if (daysUntil === 0) return (
+                    <div className="flex items-center gap-2 bg-emerald-400/10 border border-emerald-400/30 rounded-lg px-3 py-2 w-fit">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-sm font-semibold text-emerald-400">Happening today</span>
+                    </div>
+                  );
+                  return (
+                    <div className="flex items-center gap-2 bg-muted/40 border border-border/60 rounded-lg px-3 py-2 w-fit">
+                      <span className="text-sm text-muted-foreground">Event has passed</span>
+                    </div>
+                  );
+                })()}
                 <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{selectedEvent.location}</span>
                   <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{new Date(selectedEvent.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}{selectedEvent.startDate !== selectedEvent.endDate && " - " + new Date(selectedEvent.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
@@ -619,6 +763,54 @@ export default function Dashboard() {
     </AppShell>
   )
 }
+function CompletionBanner({ message }: { message: string }) {
+  // Split leading emoji from body text
+  const match = message.match(/^([\p{Emoji}\s]+?)(\s+)(.+)$/su);
+  const emoji = match?.[1]?.trim() ?? "✨";
+  const text = match?.[3] ?? message;
+
+  return (
+    <div className="relative mb-5 rounded-xl overflow-hidden animate-fade-up">
+      {/* Dark gold base */}
+      <div
+        className="absolute inset-0"
+        style={{ background: "linear-gradient(135deg, oklch(0.19 0.04 65), oklch(0.14 0.015 50))" }}
+      />
+      {/* Gold shimmer layer */}
+      <div className="absolute inset-0 opacity-25" style={{ background: "var(--gradient-gold)" }} />
+      {/* Pulsing glow ring */}
+      <div className="absolute inset-0 rounded-xl border border-primary/50 animate-pulse" />
+      {/* Content */}
+      <div className="relative px-5 py-4">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl leading-none shrink-0 mt-0.5 drop-shadow-[0_0_8px_oklch(0.85_0.18_85)]">
+            {emoji}
+          </span>
+          <div>
+            <p className="text-sm sm:text-[15px] leading-relaxed font-medium text-foreground/95">
+              {text}
+            </p>
+          </div>
+        </div>
+        {/* Subtle sparkle dots */}
+        <div className="absolute top-3 right-4 flex gap-1 opacity-40">
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="h-1 w-1 rounded-full animate-ping"
+              style={{
+                background: "var(--gradient-gold)",
+                animationDelay: `${i * 0.4}s`,
+                animationDuration: "2s",
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Card({ children, accent }: { children: React.ReactNode; accent?: boolean }) {
   return (
     <div className={`relative glass rounded-2xl p-6 sm:p-7 overflow-hidden ${accent ? "ring-gold" : ""}`}>
