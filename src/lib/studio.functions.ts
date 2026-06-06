@@ -1,114 +1,120 @@
 import { createServerFn } from "@tanstack/react-start";
-import { ai, type AiTool } from "@/lib/ai";
+import { ai } from "@/lib/ai";
 
 export type StudioContentPlan = {
   title: string;
   viralHook: string;
-  platforms: {
-    instagram: string;
-    tiktok: string;
-    linkedin?: string;
-  };
+  platforms: Record<string, string>;
   script: string[];
   hashtags: string[];
   visualPrompt: string;
+  format: string;
 };
 
 type Input = {
   industry: string;
   industryLabel: string;
-  userLevel?: string;
+  format?: string;
+  orientation?: string;
   goal?: string;
   userIdea?: string;
   intelligenceContext?: string;
 };
 
-const contentTool: AiTool = {
-  type: "function",
-  function: {
-    name: "emit_content_plan",
-    description: "Return a viral-ready, platform-optimized luxury social post plan.",
-    parameters: {
-      type: "object",
-      properties: {
-        title: { type: "string", description: "Bold attention-grabbing title" },
-        hook: { type: "string", description: "First 2 seconds spoken/on-screen viral hook" },
-        caption: {
-          type: "object",
-          description: "Per-platform captions",
-          properties: {
-            instagram: { type: "string" },
-            tiktok: { type: "string" },
-            linkedin: { type: "string" },
-          },
-          required: ["instagram", "tiktok"],
-        },
-        script: { type: "array", items: { type: "string" }, description: "Ordered beats / lines for the post" },
-        hashtags: { type: "array", items: { type: "string" } },
-        visual_prompt: {
-          type: "string",
-          description: "Cinematic prompt for AI image generation, luxury tone, mode-specific environment",
-        },
-        platform: {
-          type: "array",
-          items: { type: "string", enum: ["instagram", "tiktok", "linkedin"] },
-          description: "Target platforms for this post",
-        },
-      },
-      required: ["title", "hook", "caption", "script", "hashtags", "visual_prompt", "platform"],
-    },
-  },
-};
+function getPlatformKeys(format: string): string[] {
+  return format === "post"
+    ? ["facebook", "twitter", "linkedin"]
+    : ["tiktok", "instagram", "youtube_shorts"];
+}
+
+function getPlatformGuidance(format: string): string {
+  if (format === "post") return [
+    "facebook: 250-400 words. Storytelling. End with a question or CTA.",
+    "twitter: Max 280 chars. Hook in first 5 words. One decisive statement.",
+    "linkedin: 250-350 words. Insight-driven. Bold claim, industry context, forward-looking close.",
+  ].join("\n");
+
+  if (format === "image") return [
+    "tiktok: 150-200 chars. Hook in first 3 words. Energetic. CTA at end.",
+    "instagram: 200-300 words. Aesthetic, aspirational. Paragraphs with line breaks. Question at end.",
+    "youtube_shorts: 80-120 chars. Title-style hook. Curiosity gap.",
+  ].join("\n");
+
+  return [
+    "tiktok: 100-180 chars. Action-driven. Hook in 2 seconds.",
+    "instagram: 180-260 words. Cinematic scene-setting. Aspirational.",
+    "youtube_shorts: 100-150 chars. SEO-conscious. Curiosity gap.",
+  ].join("\n");
+}
 
 export const generateStudioContent = createServerFn({ method: "POST" })
   .inputValidator((d: Input) => d)
   .handler(async ({ data }) => {
-    const userParts: string[] = [
-      `MODE: ${data.industryLabel} (${data.industry})`,
-      data.userLevel ? `USER LEVEL: ${data.userLevel}` : "",
+    const format = data.format ?? "post";
+    const orientation = data.orientation ?? "auto";
+    const platformKeys = getPlatformKeys(format);
+
+    const orientationNote =
+      (format === "image" || format === "video") && orientation !== "auto"
+        ? `ORIENTATION: ${orientation === "portrait" ? "9:16 portrait" : "16:9 landscape"}.`
+        : "";
+
+    const systemPrompt = `You are an elite luxury social media creative director for yachts, real estate, private jets, and exotic cars. You write world-class viral content for UHNW audiences.
+
+You MUST respond with ONLY a valid JSON object — no markdown fences, no extra text, nothing else. The JSON must have exactly these keys:
+{
+  "title": "string — bold content title (10-15 words)",
+  "hook": "string — first 2-second viral hook, impossible to scroll past",
+  ${platformKeys.map(k => `"${k}": "string — caption for ${k}"`).join(",\n  ")},
+  "script": ["string array — 8-10 ordered beats, specific and cinematic"],
+  "hashtags": ["string array — 18-24 hashtags mixing ultra-niche + industry + broad"],
+  "visual_prompt": "string — cinematic AI image prompt, 60-100 words, luxury brand quality"
+}
+
+Each platform caption must be meaningfully different in voice and length. No filler. Elite quality only.`;
+
+    const userParts = [
+      `MODE: ${data.industryLabel}`,
+      `FORMAT: ${format.toUpperCase()}`,
+      orientationNote,
       data.goal ? `GOAL: ${data.goal}` : "",
-      `FORMAT: post`,
-      data.userIdea ? `USER IDEA:\n${data.userIdea}` : "",
-      data.intelligenceContext
-        ? `LIVE INTELLIGENCE SIGNALS:\n${data.intelligenceContext}\n\nTurn these signals into a viral content angle.`
-        : "",
-      `Deliver a complete, post-ready plan: viral title, first 2s hook, Instagram + TikTok captions (LinkedIn only if relevant), step-by-step script, niche+reach hashtags, and a cinematic visual prompt for AI image generation specific to the ${data.industryLabel} world.`,
-    ].filter(Boolean);
+      data.userIdea ? `IDEA: ${data.userIdea}` : "",
+      data.intelligenceContext ? `SIGNALS:\n${data.intelligenceContext}` : "",
+      `PLATFORM GUIDANCE:\n${getPlatformGuidance(format)}`,
+      `Return ONLY valid JSON. No markdown. No explanation.`,
+    ].filter(Boolean).join("\n\n");
 
-    const result = await ai.complete(
-      [
-        {
-          role: "system",
-          content: `You are an elite social media growth strategist and creative director for luxury industries (yachts, real estate, jets, cars). You craft viral, cinematic, platform-optimized POSTS for high-net-worth audiences. Tone is aspirational, restrained, premium — never generic, never cheesy. Every output must feel like it came from a top luxury brand agency. You ALWAYS call the emit_content_plan tool. Never reply in plain text.`,
-        },
-        {
-          role: "user",
-          content: userParts.join("\n\n"),
-        },
-      ],
-      [contentTool],
-      "emit_content_plan",
-    );
+    const { text } = await ai.chat([
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userParts },
+    ]);
 
-    if (!result.args) throw new Error("AI did not return a structured plan.");
+    // Parse the JSON response
+    let raw: Record<string, unknown>;
+    try {
+      // Strip any accidental markdown fences
+      const cleaned = text.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
+      raw = JSON.parse(cleaned) as Record<string, unknown>;
+    } catch {
+      throw new Error("Content generation failed — invalid response. Please try again.");
+    }
 
-    const raw = result.args as {
-      title: string;
-      hook: string;
-      caption: { instagram: string; tiktok: string; linkedin?: string };
-      script: string[];
-      hashtags: string[];
-      visual_prompt: string;
+    const platforms: Record<string, string> = {};
+    for (const key of platformKeys) {
+      if (typeof raw[key] === "string" && (raw[key] as string).trim()) {
+        platforms[key] = (raw[key] as string).trim();
+      }
+    }
+
+    return {
+      plan: {
+        title: String(raw.title ?? ""),
+        viralHook: String(raw.hook ?? ""),
+        platforms,
+        script: Array.isArray(raw.script) ? raw.script.map(String) : [],
+        hashtags: Array.isArray(raw.hashtags) ? raw.hashtags.map(String) : [],
+        visualPrompt: String(raw.visual_prompt ?? ""),
+        format,
+      } as StudioContentPlan,
     };
-
-    const plan: StudioContentPlan = {
-      title: raw.title,
-      viralHook: raw.hook,
-      platforms: raw.caption,
-      script: raw.script,
-      hashtags: raw.hashtags,
-      visualPrompt: raw.visual_prompt,
-    };
-
-    return { plan };
   });
