@@ -98,6 +98,8 @@ function Academy() {
   const [pdfs, setPdfs] = useState<Record<string, DbPdf[]>>({});
   const [questions, setQuestions] = useState<Record<string, DbQuestion[]>>({});
   const [progress, setProgress] = useState<Record<string, ModuleProgress>>({});
+  // Real DB counts for all tracks (for the track selector cards)
+  const [allTracksStats, setAllTracksStats] = useState<Record<string, { total: number; completed: number }>>({});
   const [loading, setLoading] = useState(true);
 
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
@@ -117,8 +119,9 @@ function Academy() {
 
   const loadAll = useCallback(async () => {
     setLoading(true);
+    const trackName = industryId === "villas" ? "villas" : industryId === "jets" ? "jets" : industryId === "cars" ? "cars" : "yachts";
     const { data: mods } = await (supabase.from("academy_modules") as any)
-      .select("*").eq("track", "yachts").order("module_number");
+      .select("*").eq("track", trackName).order("module_number");
     if (!mods) { setLoading(false); return; }
     setModules(mods as DbModule[]);
 
@@ -163,13 +166,49 @@ function Academy() {
     })();
   }, [user, modules]);
 
+  // Load real total + completed counts for ALL tracks (for the track selector cards)
+  useEffect(() => {
+    (async () => {
+      // Total per track
+      const { data: allMods } = await (supabase.from("academy_modules") as any).select("id, track");
+      const totals: Record<string, number> = {};
+      const modIdToTrack: Record<string, string> = {};
+      for (const m of (allMods ?? []) as { id: string; track: string }[]) {
+        totals[m.track] = (totals[m.track] ?? 0) + 1;
+        modIdToTrack[m.id] = m.track;
+      }
+
+      // Completed per track for this user
+      const completed: Record<string, number> = {};
+      if (user) {
+        const { data: progData } = await (supabase.from("user_module_progress") as any)
+          .select("module_id").eq("user_id", user.id).eq("quiz_passed", true);
+        for (const p of (progData ?? []) as { module_id: string }[]) {
+          const t = modIdToTrack[p.module_id];
+          if (t) completed[t] = (completed[t] ?? 0) + 1;
+        }
+      }
+
+      const stats: Record<string, { total: number; completed: number }> = {};
+      for (const track of Object.keys(totals)) {
+        stats[track] = { total: totals[track], completed: completed[track] ?? 0 };
+      }
+      setAllTracksStats(stats);
+    })();
+  }, [user]);
+
+  // Non-yachts tracks are locked for regular users — admin can still access to add content
+  const isTrackLocked = industryId !== "yachts" && !isAdmin;
+
   const isUnlocked = (mod: DbModule) => {
+    if (isTrackLocked) return false;
     if (mod.module_number === 1) return true;
     const prev = modules.find((m) => m.module_number === mod.module_number - 1);
     return !!prev && !!progress[prev.id]?.quiz_passed;
   };
 
   const getState = (mod: DbModule): "done" | "current" | "locked" => {
+    if (isTrackLocked) return "locked";
     if (progress[mod.id]?.quiz_passed) return "done";
     if (isUnlocked(mod)) return "current";
     return "locked";
@@ -181,6 +220,7 @@ function Academy() {
   const activeProgress = activeModuleId ? (progress[activeModuleId] ?? null) : null;
 
   const openModule = (mod: DbModule) => {
+    if (isTrackLocked) return; // whole track locked for regular users
     if (getState(mod) === "locked" && !isAdmin) return;
     setActiveModuleId(mod.id);
     setView("module");
@@ -285,19 +325,31 @@ function Academy() {
                 <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
               </div>
               <div className="p-5">
-                <div className="font-serif text-lg">{t.trackName}</div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {t.id === "yachts" ? "10 modules" : t.trackModules + " modules"}
-                </div>
-                <div className="mt-4 h-1 bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-[var(--gradient-gold)]"
-                    style={{ width: t.id === "yachts" ? `${(totalDone / 10) * 100}%` : `${(t.trackProgress / t.trackModules) * 100}%` }}
-                  />
-                </div>
-                <div className="mt-2 text-[11px] text-muted-foreground font-mono">
-                  {t.id === "yachts" ? `${totalDone}/10 complete` : `${t.trackProgress}/${t.trackModules} complete`}
-                </div>
+                {(() => {
+                  const yachtsStats = allTracksStats["yachts"];
+                  const total = yachtsStats?.total ?? 0;
+                  const pct = total > 0 ? (totalDone / total) * 100 : 0;
+                  return (
+                    <>
+                      <div className="font-serif text-lg">{t.trackName}</div>
+                      {t.id === "yachts" ? (
+                        <>
+                          <div className="mt-1 text-xs text-muted-foreground">{total > 0 ? `${total} modules` : "10 modules"}</div>
+                          <div className="mt-4 h-1 bg-secondary rounded-full overflow-hidden">
+                            <div className="h-full bg-[var(--gradient-gold)]" style={{ width: `${pct}%` }} />
+                          </div>
+                          <div className="mt-2 text-[11px] text-muted-foreground font-mono">{totalDone}/{total || 10} complete</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="mt-1 text-xs text-muted-foreground">Coming soon</div>
+                          <div className="mt-4 h-1 bg-secondary/40 rounded-full overflow-hidden" />
+                          <div className="mt-2 text-[11px] text-muted-foreground font-mono">—</div>
+                        </>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </button>
           );
@@ -305,16 +357,30 @@ function Academy() {
       </div>
 
       {/* Content area */}
-      {industryId !== "yachts" ? (
-        <ComingSoon trackName={industry.trackName} />
+      {/* Non-yachts: regular users see Coming Soon only. Admin sees module list. */}
+      {isTrackLocked ? (
+        <div className="glass rounded-2xl p-16 text-center animate-fade-up">
+          <div className="relative h-16 w-16 mx-auto mb-6">
+            <div className="absolute inset-0 rounded-full border border-primary/30 animate-ping" />
+            <div className="absolute inset-2 rounded-full flex items-center justify-center" style={{ background: "var(--gradient-gold)" }}>
+              <Sparkles className="h-5 w-5 text-primary-foreground" />
+            </div>
+          </div>
+          <p className="font-serif text-2xl mb-2">{industry.trackName} — Coming Soon</p>
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+            This curriculum is being crafted by industry insiders. Switch to the Yacht Brokerage track to start learning now.
+          </p>
+        </div>
       ) : view === "list" ? (
         <>
           <ModuleList
             phases={phases}
+            modules={modules}
             progress={progress}
             getState={getState}
             isAdmin={isAdmin}
             adminMode={adminMode}
+            isTrackLocked={isTrackLocked}
             onToggleAdmin={() => setAdminMode((v) => !v)}
             onOpenModule={openModule}
             loading={loading}
@@ -384,13 +450,15 @@ function ComingSoon({ trackName }: { trackName: string }) {
 // ─── Module List ─────────────────────────────────────────────────────────────
 
 function ModuleList({
-  phases, progress, getState, isAdmin, adminMode, onToggleAdmin, onOpenModule, loading, totalDone,
+  phases, modules, progress, getState, isAdmin, adminMode, isTrackLocked, onToggleAdmin, onOpenModule, loading, totalDone,
 }: {
   phases: Record<number, { title: string; mods: DbModule[] }>;
+  modules: DbModule[];
   progress: Record<string, ModuleProgress>;
   getState: (m: DbModule) => "done" | "current" | "locked";
   isAdmin: boolean;
   adminMode: boolean;
+  isTrackLocked: boolean;
   onToggleAdmin: () => void;
   onOpenModule: (m: DbModule) => void;
   loading: boolean;
@@ -398,9 +466,29 @@ function ModuleList({
 }) {
   return (
     <>
+      {/* Coming soon banner for locked tracks (regular users) */}
+      {isTrackLocked && (
+        <div className="glass rounded-xl p-5 mb-5 border border-primary/20 flex items-center gap-4 animate-fade-up">
+          <div className="h-10 w-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--gradient-gold)" }}>
+            <Lock className="h-4 w-4 text-primary-foreground" />
+          </div>
+          <div>
+            <div className="font-medium text-sm">Course coming soon</div>
+            <p className="text-xs text-muted-foreground mt-0.5">This curriculum is being built. Switch to Yacht Brokerage to start learning now.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Admin notice for non-yacht tracks */}
+      {isAdmin && adminMode && modules.length > 0 && modules[0].track !== "yachts" && (
+        <div className="glass rounded-xl p-4 mb-5 border border-amber-400/30 bg-amber-400/5 text-xs text-amber-400/90 animate-fade-up">
+          ⚠ Admin view — this track is locked for users. Add content and quizzes here to prepare for launch.
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-5">
         <div>
-          <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-1">ACTIVE TRACK · YACHT BROKERAGE</div>
+          <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-1">ACTIVE TRACK · {modules.length > 0 ? modules[0].track.toUpperCase() : "YACHT BROKERAGE"}</div>
           <h2 className="font-serif text-xl sm:text-[22px] leading-tight">Your 10-module programme</h2>
         </div>
         <div className="flex items-center gap-3">
@@ -418,6 +506,19 @@ function ModuleList({
 
       {loading ? (
         <div className="space-y-2">{[0,1,2,3].map((i) => <div key={i} className="h-16 rounded-xl bg-secondary/20 animate-pulse" />)}</div>
+      ) : Object.keys(phases).length === 0 ? (
+        <div className="glass rounded-2xl p-16 text-center animate-fade-up">
+          <div className="relative h-16 w-16 mx-auto mb-6">
+            <div className="absolute inset-0 rounded-full border border-primary/30 animate-ping" />
+            <div className="absolute inset-2 rounded-full flex items-center justify-center" style={{ background: "var(--gradient-gold)" }}>
+              <Sparkles className="h-5 w-5 text-primary-foreground" />
+            </div>
+          </div>
+          <p className="font-serif text-2xl mb-2">Coming Soon</p>
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+            This curriculum is being crafted by industry insiders. Switch to the Yacht Brokerage track to start learning now.
+          </p>
+        </div>
       ) : (
         <div className="space-y-6">
           {Object.entries(phases).sort(([a], [b]) => +a - +b).map(([phaseNum, { title, mods }]) => (

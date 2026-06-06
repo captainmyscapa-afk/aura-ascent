@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, Hotel, Lock, RefreshCw, MapPin, ChevronLeft, Clock } from "lucide-react";
+import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, Lock, RefreshCw, MapPin, ChevronLeft, Clock } from "lucide-react";
 import React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -206,6 +206,9 @@ export default function Dashboard() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const { profile: userProfile } = useUserProfile();
 
+  // Academy progress: track -> { total, completed }
+  const [academyProgress, setAcademyProgress] = useState<Record<string, { total: number; completed: number }>>({});
+
   const [recommendation, setRecommendation] = useState<string | null>(null);
   const [recLoading, setRecLoading] = useState(false);
   const [dailyTasks, setDailyTasks] = useState<string[]>(industry.dailyObjectives);
@@ -250,9 +253,48 @@ export default function Dashboard() {
       .then(({ data }) => {
         if (alive) setProfileName((data as { full_name: string | null } | null)?.full_name ?? null);
       });
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
+  }, [user]);
+
+  // Load real academy module counts + user progress from DB
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      // Total modules per track
+      const { data: modData } = await (supabase.from("academy_modules") as any)
+        .select("track");
+      const totals: Record<string, number> = {};
+      for (const row of (modData ?? []) as { track: string }[]) {
+        totals[row.track] = (totals[row.track] ?? 0) + 1;
+      }
+
+      // Completed modules for this user
+      const completed: Record<string, number> = {};
+      if (user) {
+        const { data: progData } = await (supabase.from("user_module_progress") as any)
+          .select("module_id")
+          .eq("user_id", user.id)
+          .eq("quiz_passed", true);
+        const completedIds = new Set((progData ?? []).map((r: { module_id: string }) => r.module_id));
+
+        if (completedIds.size > 0) {
+          const { data: modRows } = await (supabase.from("academy_modules") as any)
+            .select("id, track")
+            .in("id", Array.from(completedIds));
+          for (const row of (modRows ?? []) as { id: string; track: string }[]) {
+            completed[row.track] = (completed[row.track] ?? 0) + 1;
+          }
+        }
+      }
+
+      if (!alive) return;
+      const result: Record<string, { total: number; completed: number }> = {};
+      for (const track of Object.keys(totals)) {
+        result[track] = { total: totals[track], completed: completed[track] ?? 0 };
+      }
+      setAcademyProgress(result);
+    })();
+    return () => { alive = false; };
   }, [user]);
 
   useEffect(() => {
@@ -409,13 +451,6 @@ export default function Dashboard() {
     nextEvent: m.upcoming[0],
   }));
 
-  const hospitality = {
-    id: "hospitality" as const,
-    label: "Hospitality",
-    modeLabel: "Hospitality Mode",
-    icon: Hotel,
-    ambientImage: INDUSTRY_LIST[1].ambientImage,
-  };
 
   return (
     <AppShell>
@@ -565,6 +600,12 @@ export default function Dashboard() {
               {hubs.map((m) => {
                 const Icon = m.icon;
                 const trackSlug = INDUSTRY_TO_TRACK[m.id];
+                // Map industry ID to DB track name
+                const dbTrack = trackSlug === "yachting" ? "yachts" : trackSlug === "property" ? "villas" : trackSlug === "aviation" ? "jets" : "cars";
+                const prog = academyProgress[dbTrack];
+                const trackTotal = prog?.total ?? 0;
+                const trackDone = prog?.completed ?? 0;
+                const pct = trackTotal > 0 ? (trackDone / trackTotal) * 100 : 0;
                 return (
                   <Link
                     key={m.id}
@@ -582,34 +623,30 @@ export default function Dashboard() {
                     <div className="relative h-full p-4 flex flex-col justify-between">
                       <div className="flex items-center justify-between">
                         <Icon className="h-4 w-4 text-primary/90" />
-                        {m.active && <span className="text-[8px] tracking-[0.3em] text-primary/90">LIVE</span>}
+                        {m.id === "yachts"
+                          ? m.active && <span className="text-[8px] tracking-[0.3em] text-primary/90">LIVE</span>
+                          : <Lock className="h-3 w-3 text-muted-foreground/60" />
+                        }
                       </div>
                       <div>
                         <div className="font-serif text-lg leading-tight">{m.label}</div>
-                        <div className="mt-1 text-[10px] tracking-wider text-muted-foreground uppercase">
-                          {m.trackProgress}/{m.trackModules} complete
-                        </div>
+                        {trackTotal > 0 ? (
+                          <>
+                            <div className="mt-2 h-0.5 bg-secondary/60 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: "var(--gradient-gold)" }} />
+                            </div>
+                            <div className="mt-1.5 text-[10px] tracking-wider text-muted-foreground uppercase">
+                              {m.id === "yachts" ? `${trackDone}/${trackTotal} complete` : "Coming soon"}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="mt-1 text-[10px] tracking-wider text-muted-foreground uppercase">Coming soon</div>
+                        )}
                       </div>
                     </div>
                   </Link>
                 );
               })}
-              <div className="relative aspect-[4/5] rounded-xl overflow-hidden border border-border/40 opacity-60">
-                <img
-                  src={hospitality.ambientImage}
-                  alt={hospitality.label}
-                  className="absolute inset-0 h-full w-full object-cover opacity-40"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/40 to-transparent" />
-                <div className="relative h-full p-4 flex flex-col justify-between">
-                  <Hotel className="h-4 w-4 text-primary/70" />
-                  <div>
-                    <div className="font-serif text-lg leading-tight">Hospitality</div>
-                    <div className="mt-1 text-[10px] tracking-wider text-muted-foreground uppercase">Arriving soon</div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </section>
