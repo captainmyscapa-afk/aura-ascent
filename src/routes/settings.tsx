@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type React from "react";
 import {
   User,
@@ -13,6 +13,10 @@ import {
   LogOut,
   RotateCcw,
   Loader2,
+  Flame,
+  GraduationCap,
+  Radio,
+  CheckCheck,
 } from "lucide-react";
 import { AppShell } from "@/components/aurum/AppShell";
 import { useAuth } from "@/hooks/useAuth";
@@ -42,7 +46,7 @@ const SECTIONS: Section[] = [
   { id: "account", label: "Account", icon: User, soon: false },
   { id: "aurum", label: "My AURUM", icon: Sparkles, soon: false },
   { id: "content", label: "Content", icon: ChevronRight, soon: false },
-  { id: "notifications", label: "Notifications", icon: Bell, soon: true },
+  { id: "notifications", label: "Notifications", icon: Bell, soon: false },
   { id: "privacy", label: "Privacy", icon: Shield, soon: true },
   { id: "billing", label: "Billing", icon: CreditCard, soon: true },
   { id: "danger", label: "Danger Zone", icon: AlertTriangle, soon: false },
@@ -98,6 +102,51 @@ function Settings() {
   const [saving, setSaving] = useState(false);
   const [fullName, setFullName] = useState(profile?.full_name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
+
+  // Notification preferences (stored in user_profiles via a JSON column or separate flags)
+  const [notifPrefs, setNotifPrefs] = useState({
+    streak: true,
+    academy: true,
+    intelligence: true,
+    mentor: true,
+    system: true,
+  });
+  const [recentNotifs, setRecentNotifs] = useState<Array<{ id: string; type: string; title: string; body: string | null; read: boolean; created_at: string }>>([]);
+  const [notifSaving, setNotifSaving] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    (supabase as any)
+      .from("notifications")
+      .select("id, type, title, body, read, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(10)
+      .then(({ data }: { data: any[] | null }) => {
+        if (data) setRecentNotifs(data);
+      });
+  }, [user]);
+
+  const markAllRead = async () => {
+    if (!user) return;
+    setNotifSaving(true);
+    const ids = recentNotifs.filter((n) => !n.read).map((n) => n.id);
+    if (ids.length) {
+      await (supabase as any).from("notifications").update({ read: true }).in("id", ids);
+      setRecentNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+    }
+    setNotifSaving(false);
+  };
+
+  function timeAgo(iso: string) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return "just now";
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  }
 
   const handleSignOut = async () => {
     await signOut();
@@ -389,10 +438,82 @@ function Settings() {
           )}
 
           {activeSection === "notifications" && (
-            <ComingSoon
-              title="Notifications"
-              desc="Get notified about your streak, intelligence alerts, and weekly reports. Coming soon."
-            />
+            <div className="space-y-8">
+              <SectionTitle
+                title="Notifications"
+                desc="Choose what alerts you receive inside AURUM OS."
+              />
+
+              {/* Preference toggles */}
+              <div className="space-y-3">
+                {[
+                  { key: "streak", icon: Flame, label: "Streak reminders", desc: "Daily nudge to keep your momentum going", color: "text-orange-400" },
+                  { key: "academy", icon: GraduationCap, label: "Academy progress", desc: "When a new module unlocks or you complete one", color: "text-primary" },
+                  { key: "intelligence", icon: Radio, label: "Intelligence feed", desc: "Fresh luxury industry news available", color: "text-blue-400" },
+                  { key: "mentor", icon: Sparkles, label: "Mentor sessions", desc: "Reminders to check in with your AI mentor", color: "text-primary" },
+                  { key: "system", icon: Bell, label: "System & announcements", desc: "Platform updates and important alerts", color: "text-muted-foreground" },
+                ].map(({ key, icon: Icon, label, desc, color }) => (
+                  <div key={key} className="flex items-center justify-between gap-4 rounded-xl border border-border/50 px-4 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <span className={`h-8 w-8 rounded-lg flex items-center justify-center bg-secondary/50 ${color}`}>
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <div>
+                        <div className="text-sm font-medium">{label}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{desc}</div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setNotifPrefs((p) => ({ ...p, [key]: !p[key as keyof typeof p] }))}
+                      className={`relative h-6 w-11 rounded-full transition-colors shrink-0 ${notifPrefs[key as keyof typeof notifPrefs] ? "bg-primary" : "bg-border"}`}
+                    >
+                      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${notifPrefs[key as keyof typeof notifPrefs] ? "translate-x-6" : "translate-x-1"}`} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Recent notifications */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] tracking-[0.3em] text-muted-foreground">RECENT</span>
+                  {recentNotifs.some((n) => !n.read) && (
+                    <button
+                      onClick={markAllRead}
+                      disabled={notifSaving}
+                      className="flex items-center gap-1.5 text-[11px] text-primary hover:text-primary/80 transition-colors"
+                    >
+                      <CheckCheck className="h-3.5 w-3.5" />
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+
+                {recentNotifs.length === 0 ? (
+                  <div className="rounded-xl border border-border/40 px-4 py-8 text-center text-muted-foreground text-sm">
+                    No notifications yet
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border/50 overflow-hidden divide-y divide-border/40">
+                    {recentNotifs.map((n) => (
+                      <div
+                        key={n.id}
+                        className={`flex items-start gap-3 px-4 py-3 ${!n.read ? "bg-secondary/10" : ""}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className={`text-sm ${!n.read ? "font-medium text-foreground" : "text-foreground/80"}`}>
+                            {n.title}
+                          </div>
+                          {n.body && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.body}</div>}
+                          <div className="text-[10px] text-muted-foreground/60 mt-1">{timeAgo(n.created_at)}</div>
+                        </div>
+                        {!n.read && <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           )}
           {activeSection === "privacy" && (
             <ComingSoon title="Privacy" desc="Control who can see your profile, streak and activity. Coming soon." />
