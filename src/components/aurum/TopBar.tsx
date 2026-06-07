@@ -36,7 +36,10 @@ export function TopBar() {
   }, [user]);
 
   return (
-    <header className="sticky top-0 z-30 glass-strong border-b border-border/60">
+    <header
+      className="sticky top-0 z-30 glass-strong border-b border-border/60"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
       <div className="flex items-center gap-3 px-4 sm:px-8 lg:px-12 h-14 lg:h-16">
         <div className="lg:hidden flex items-center gap-2">
           <MobileNav />
