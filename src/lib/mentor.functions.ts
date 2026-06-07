@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { ai } from "@/lib/ai";
+import { requireServerAuth } from "@/lib/serverAuth";
 
 export const generateConversationTitle = createServerFn({ method: "POST" })
   .inputValidator((d: { firstMessage: string; industry: string }) => d)
   .handler(async ({ data }) => {
+    await requireServerAuth();
     const { text } = await ai.chat([
       {
         role: "user",

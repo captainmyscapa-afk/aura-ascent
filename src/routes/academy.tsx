@@ -12,7 +12,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-const ADMIN_EMAIL = "captainmyscapa@gmail.com";
+// Admin status comes from user_profiles.is_admin in Supabase — no email in client bundle
 const PASS_SCORE = 3;
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -92,7 +92,18 @@ function Academy() {
   const { industry, industryId, setIndustry } = useIndustry();
   const { user } = useAuth();
   const { track } = Route.useSearch();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Fetch admin status from DB — never trust client-side email checks
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    supabase
+      .from("user_profiles")
+      .select("is_admin")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setIsAdmin((data as { is_admin: boolean } | null)?.is_admin ?? false));
+  }, [user]);
 
   const [modules, setModules] = useState<DbModule[]>([]);
   const [pdfs, setPdfs] = useState<Record<string, DbPdf[]>>({});

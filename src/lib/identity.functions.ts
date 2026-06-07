@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { ai, type AiTool } from "@/lib/ai";
+import { requireServerAuth } from "@/lib/serverAuth";
 
 export type IdentityAction = {
   label: "HIGH IMPACT" | "COMPOUNDING" | "QUICK WIN";
@@ -138,6 +139,7 @@ type DashInput = {
 export const generateIdentityAudit = createServerFn({ method: "POST" })
   .inputValidator((d: AuditInput) => d)
   .handler(async ({ data }) => {
+    await requireServerAuth();
     const result = await ai.complete(
       [
         {
@@ -171,6 +173,7 @@ export const generateIdentityAudit = createServerFn({ method: "POST" })
 export const generateTodayBrief = createServerFn({ method: "POST" })
   .inputValidator((d: AuditInput) => d)
   .handler(async ({ data }) => {
+    await requireServerAuth();
     const result = await ai.complete(
       [
         {
@@ -201,6 +204,7 @@ export const generateTodayBrief = createServerFn({ method: "POST" })
 export const generateRecommendation = createServerFn({ method: "POST" })
   .inputValidator((d: DashInput) => d)
   .handler(async ({ data }) => {
+    await requireServerAuth();
     const { text } = await ai.chat([
       {
         role: "system",
@@ -227,6 +231,7 @@ export const generateRecommendation = createServerFn({ method: "POST" })
 export const generateDailyTasks = createServerFn({ method: "POST" })
   .inputValidator((d: DashInput) => d)
   .handler(async ({ data }) => {
+    await requireServerAuth();
     const result = await ai.complete(
       [
         {
@@ -257,6 +262,7 @@ export const generateDailyTasks = createServerFn({ method: "POST" })
 export const generateUpcomingEvents = createServerFn({ method: "POST" })
   .inputValidator((d: { mode: string }) => d)
   .handler(async ({ data }) => {
+    await requireServerAuth();
     const result = await ai.complete(
       [
         {
@@ -403,6 +409,7 @@ function parseWeekJson(text: string, weekNum: number, baseDay: number): RoadmapW
 export const generateRoadmap = createServerFn({ method: "POST" })
   .inputValidator((d: RoadmapInput) => d)
   .handler(async ({ data }) => {
+    await requireServerAuth();
     const baseContext = [
       `INDUSTRY: ${data.industry}`,
       `LEVEL: ${data.level}`,

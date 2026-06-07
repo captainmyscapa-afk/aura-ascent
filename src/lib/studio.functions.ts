@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { ai } from "@/lib/ai";
+import { requireServerAuth } from "@/lib/serverAuth";
 
 export type StudioContentPlan = {
   title: string;
@@ -50,6 +51,7 @@ function getPlatformGuidance(format: string): string {
 export const generateStudioContent = createServerFn({ method: "POST" })
   .inputValidator((d: Input) => d)
   .handler(async ({ data }) => {
+    await requireServerAuth();
     const format = data.format ?? "post";
     const orientation = data.orientation ?? "auto";
     const platformKeys = getPlatformKeys(format);

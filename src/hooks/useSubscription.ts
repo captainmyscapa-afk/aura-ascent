@@ -26,6 +26,18 @@ export function useSubscription() {
   const { user, session } = useAuth();
   const [sub, setSub] = useState<Subscription>(FREE_SUB);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Fetch admin status from DB — no hardcoded emails in client bundle
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    supabase
+      .from("user_profiles")
+      .select("is_admin")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setIsAdmin((data as { is_admin: boolean } | null)?.is_admin ?? false));
+  }, [user]);
 
   useEffect(() => {
     if (!user) {
@@ -57,9 +69,7 @@ export function useSubscription() {
     return () => { alive = false; };
   }, [user]);
 
-  // Admin bypass — owner always has full Pro access regardless of subscription
-  const ADMIN_EMAILS = ["captainmyscapa@gmail.com"];
-  const isAdmin = user?.email ? ADMIN_EMAILS.includes(user.email) : false;
+  // Admin bypass — driven by DB flag, no email in client code
   const isPro = isAdmin || (sub.plan === "pro" && (sub.status === "active" || sub.status === "trialing"));
 
   const startCheckout = useCallback(async () => {
