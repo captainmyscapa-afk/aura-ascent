@@ -109,7 +109,7 @@ function Network() {
     if (!user) return;
     setContactsLoading(true);
     const { data } = await supabase
-      .from("contacts" as any)
+      .from("contacts")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
@@ -122,7 +122,7 @@ function Network() {
     if (!user) return;
     setDraftsLoading(true);
     const { data } = await supabase
-      .from("message_drafts" as any)
+      .from("message_drafts")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
