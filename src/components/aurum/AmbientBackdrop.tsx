@@ -3,11 +3,17 @@ import { useIndustry } from "@/lib/industry/IndustryProvider";
 export function AmbientBackdrop() {
   const { industry } = useIndustry();
   return (
-    <div
-      aria-hidden
-      className="fixed inset-0 -z-10 pointer-events-none"
-    >
-      {/* Industry photo — slightly more visible */}
+    <div aria-hidden className="fixed inset-0 -z-10 pointer-events-none">
+
+      {/* 1 — Base dark gradient (bottom of stack) */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "linear-gradient(180deg, var(--ambient-2) 0%, oklch(0.08 0.005 240) 100%)",
+        }}
+      />
+
+      {/* 2 — Industry photo on top of base */}
       <img
         key={industry.id}
         src={industry.ambientImage}
@@ -16,45 +22,46 @@ export function AmbientBackdrop() {
         style={{ transition: "opacity 900ms ease" }}
       />
 
-      {/* Primary ambient glow — top, animated drift */}
+      {/* 3 — Primary colour glow — top centre, slowly breathes */}
       <div
         className="absolute inset-0 ambient-glow-top"
         style={{
           background:
-            "radial-gradient(ellipse 80% 55% at 50% -5%, var(--ambient-1) 0%, transparent 70%)",
+            "radial-gradient(ellipse 90% 65% at 50% -10%, var(--ambient-1) 0%, transparent 68%)",
         }}
       />
 
-      {/* Secondary glow — bottom-left accent */}
+      {/* 4 — Secondary accent — bottom-left */}
       <div
         className="absolute inset-0 ambient-glow-secondary"
         style={{
           background:
-            "radial-gradient(ellipse 60% 40% at 15% 90%, var(--ambient-accent, oklch(0.3 0.08 255 / 25%)) 0%, transparent 65%)",
+            "radial-gradient(ellipse 70% 50% at 10% 95%, var(--ambient-accent) 0%, transparent 65%)",
         }}
       />
 
-      {/* Base gradient */}
+      {/* 5 — Right-side accent */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, var(--ambient-2) 0%, oklch(0.08 0.005 240) 100%)",
+            "radial-gradient(ellipse 50% 40% at 95% 30%, var(--ambient-accent) 0%, transparent 60%)",
+          animation: "glow-drift-secondary 15s ease-in-out infinite reverse",
         }}
       />
 
-      {/* Noise grain for depth */}
+      {/* 6 — Noise grain (top of stack for texture) */}
       <div className="absolute inset-0 ambient-noise" />
 
       <style>{`
         @keyframes glow-drift {
-          0%   { opacity: 0.75; transform: translateY(0px) scale(1); }
-          50%  { opacity: 1;    transform: translateY(-18px) scale(1.04); }
-          100% { opacity: 0.75; transform: translateY(0px) scale(1); }
+          0%   { opacity: 0.7;  transform: translateY(0px) scale(1); }
+          50%  { opacity: 1;    transform: translateY(-20px) scale(1.05); }
+          100% { opacity: 0.7;  transform: translateY(0px) scale(1); }
         }
         @keyframes glow-drift-secondary {
           0%   { opacity: 0.5; transform: translate(0px, 0px); }
-          50%  { opacity: 0.8; transform: translate(12px, -10px); }
+          50%  { opacity: 0.9; transform: translate(14px, -12px); }
           100% { opacity: 0.5; transform: translate(0px, 0px); }
         }
         .ambient-glow-top {
@@ -69,9 +76,8 @@ export function AmbientBackdrop() {
           background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.045'/></svg>");
           background-repeat: repeat;
           background-size: 180px 180px;
-          opacity: 0.6;
+          opacity: 0.5;
           mix-blend-mode: overlay;
-          pointer-events: none;
         }
       `}</style>
     </div>

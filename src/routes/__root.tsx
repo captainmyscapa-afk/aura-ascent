@@ -10,6 +10,7 @@ import {
 import { IndustryProvider } from "@/lib/industry/IndustryProvider";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
+import { CommandPalette } from "@/components/aurum/CommandPalette";
 
 import appCss from "../styles.css?url";
 
@@ -150,6 +151,7 @@ function RootComponent() {
       <AuthProvider>
         <IndustryProvider>
           <Outlet />
+          <CommandPalette />
           <Toaster />
         </IndustryProvider>
       </AuthProvider>

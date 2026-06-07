@@ -121,34 +121,34 @@
   --transition-smooth: cubic-bezier(0.32, 0.72, 0, 1);
 
   /* Ambient (industry-mode driven) — defaults to Yacht ocean navy */
-  --ambient-1: oklch(0.28 0.07 255 / 80%);
-  --ambient-2: oklch(0.11 0.008 240);
-  --ambient-accent: oklch(0.45 0.12 245 / 30%);
+  --ambient-1: oklch(0.42 0.14 255 / 55%);
+  --ambient-2: oklch(0.13 0.02 240);
+  --ambient-accent: oklch(0.50 0.16 245 / 30%);
 }
 
 [data-industry="yachts"] {
-  /* Deep ocean teal-blue */
-  --ambient-1: oklch(0.32 0.10 225 / 85%);
-  --ambient-2: oklch(0.10 0.015 230);
-  --ambient-accent: oklch(0.45 0.14 220 / 35%);
+  /* Deep ocean teal — visible blue-green glow */
+  --ambient-1: oklch(0.52 0.18 210 / 45%);
+  --ambient-2: oklch(0.12 0.025 220);
+  --ambient-accent: oklch(0.48 0.20 215 / 28%);
 }
 [data-industry="villas"] {
-  /* Warm Meditteranean amber-stone */
-  --ambient-1: oklch(0.38 0.09 65 / 75%);
-  --ambient-2: oklch(0.12 0.018 55);
-  --ambient-accent: oklch(0.50 0.13 50 / 30%);
+  /* Jaguar British Racing Green — dark prestige, almost black-green */
+  --ambient-1: oklch(0.36 0.14 152 / 55%);
+  --ambient-2: oklch(0.09 0.030 150);
+  --ambient-accent: oklch(0.32 0.16 150 / 32%);
 }
 [data-industry="jets"] {
-  /* Electric sky blue-silver */
-  --ambient-1: oklch(0.35 0.08 215 / 80%);
-  --ambient-2: oklch(0.10 0.012 225);
-  --ambient-accent: oklch(0.55 0.12 210 / 30%);
+  /* Rich violet-purple — twilight sky, premium aviation */
+  --ambient-1: oklch(0.52 0.20 288 / 44%);
+  --ambient-2: oklch(0.11 0.022 285);
+  --ambient-accent: oklch(0.48 0.22 290 / 28%);
 }
 [data-industry="cars"] {
-  /* Hot ember red */
-  --ambient-1: oklch(0.35 0.16 20 / 75%);
-  --ambient-2: oklch(0.10 0.018 20);
-  --ambient-accent: oklch(0.48 0.20 22 / 30%);
+  /* Burning crimson red */
+  --ambient-1: oklch(0.52 0.24 18 / 48%);
+  --ambient-2: oklch(0.12 0.025 18);
+  --ambient-accent: oklch(0.50 0.26 20 / 30%);
 }
 
 .dark {
@@ -174,7 +174,11 @@
   }
 
   body {
-    background: var(--ambient-2, oklch(0.1 0.005 240));
+    background:
+      radial-gradient(ellipse 100% 60% at 50% -5%, var(--ambient-1) 0%, transparent 65%),
+      radial-gradient(ellipse 70% 45% at 8% 95%,  var(--ambient-accent) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 35% at 95% 30%, var(--ambient-accent) 0%, transparent 55%),
+      var(--ambient-2, oklch(0.1 0.005 240));
     color: var(--color-foreground);
     font-family: var(--font-sans);
     font-feature-settings: "ss01", "cv11";
@@ -275,15 +279,64 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(16px); filter: blur(3px); }
+  to   { opacity: 1; transform: translateY(0);    filter: blur(0);   }
+}
+
 @keyframes pulse-gold {
   0%, 100% { box-shadow: 0 0 0 0 oklch(0.82 0.09 85 / 40%); }
   50% { box-shadow: 0 0 0 8px oklch(0.82 0.09 85 / 0%); }
 }
 
 .animate-fade-up { animation: fade-up 0.7s var(--transition-smooth) both; }
+.animate-page-enter { animation: page-enter 0.4s var(--transition-smooth) both; }
 .animate-shimmer {
   background: linear-gradient(90deg, transparent, oklch(1 0 0 / 8%), transparent);
   background-size: 200% 100%;
   animation: shimmer 2.4s linear infinite;
 }
 .animate-pulse-gold { animation: pulse-gold 2s ease-in-out infinite; }
+
+/* ── View Transitions ─────────────────────────────── */
+@keyframes aurum-page-out {
+  to {
+    opacity: 0;
+    transform: scale(0.97) translateY(-6px);
+    filter: blur(2px);
+  }
+}
+@keyframes aurum-page-in {
+  from {
+    opacity: 0;
+    transform: scale(1.02) translateY(10px);
+    filter: blur(3px);
+  }
+}
+@keyframes aurum-sidebar-stay {
+  from { opacity: 1; }
+  to   { opacity: 1; }
+}
+
+/* Old page exits: scale down + fade + soft blur */
+::view-transition-old(root) {
+  animation: 200ms var(--transition-smooth) both aurum-page-out;
+}
+/* New page enters: scale up from slightly below + fade in */
+::view-transition-new(root) {
+  animation: 320ms var(--transition-smooth) both aurum-page-in;
+}
+
+/* Sidebar stays perfectly still during transitions */
+::view-transition-old(aurum-sidebar),
+::view-transition-new(aurum-sidebar) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* TopBar also stays still */
+::view-transition-old(aurum-topbar),
+::view-transition-new(aurum-topbar) {
+  animation: none;
+  mix-blend-mode: normal;
+}

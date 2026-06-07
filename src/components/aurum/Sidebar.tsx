@@ -39,7 +39,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col glass-strong border-r border-border/60 z-30">
+    <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col glass-strong border-r border-border/60 z-30" style={{ viewTransitionName: "aurum-sidebar" }}>
       <div className="px-6 pt-7 pb-8">
         <Link to="/app">
           <Logo />

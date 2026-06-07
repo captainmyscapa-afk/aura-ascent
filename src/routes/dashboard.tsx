@@ -4,6 +4,7 @@ import React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
+import { AnimateIn } from "@/components/aurum/AnimateIn";
 import { GlobalTimeHub } from "@/components/aurum/GlobalTimeHub";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
@@ -542,7 +543,8 @@ export default function Dashboard() {
       </header>
 
       <div className="grid lg:grid-cols-3 gap-6 lg:gap-8 items-start">
-        <section className="lg:col-span-2 space-y-6 lg:space-y-8">
+        <AnimateIn delay={0} className="lg:col-span-2">
+        <section className="space-y-6 lg:space-y-8">
           <Card>
             {/* CAP-59: custom header with completion badge + banner */}
             <div className="flex items-start justify-between mb-5 gap-4">
@@ -650,7 +652,9 @@ export default function Dashboard() {
             </div>
           </div>
         </section>
+        </AnimateIn>
 
+        <AnimateIn delay={120}>
         <aside className="space-y-6 lg:space-y-8">
       <div className="space-y-6">
         <div className="flex flex-col items-center gap-2">
@@ -795,6 +799,7 @@ export default function Dashboard() {
         </div>
       </div>
         </aside>
+        </AnimateIn>
       </div>
 
     </AppShell>
