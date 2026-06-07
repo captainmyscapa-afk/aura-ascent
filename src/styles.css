@@ -121,30 +121,34 @@
   --transition-smooth: cubic-bezier(0.32, 0.72, 0, 1);
 
   /* Ambient (industry-mode driven) — defaults to Yacht ocean navy */
-  --ambient-1: oklch(0.22 0.04 255 / 60%);
-  --ambient-2: oklch(0.13 0.005 240);
-  --ambient-accent: oklch(0.55 0.08 240);
+  --ambient-1: oklch(0.28 0.07 255 / 80%);
+  --ambient-2: oklch(0.11 0.008 240);
+  --ambient-accent: oklch(0.45 0.12 245 / 30%);
 }
 
 [data-industry="yachts"] {
-  --ambient-1: oklch(0.22 0.06 240 / 65%);
-  --ambient-2: oklch(0.12 0.01 240);
-  --ambient-accent: oklch(0.60 0.09 235);
+  /* Deep ocean teal-blue */
+  --ambient-1: oklch(0.32 0.10 225 / 85%);
+  --ambient-2: oklch(0.10 0.015 230);
+  --ambient-accent: oklch(0.45 0.14 220 / 35%);
 }
 [data-industry="villas"] {
-  --ambient-1: oklch(0.28 0.05 60 / 55%);
-  --ambient-2: oklch(0.14 0.012 50);
-  --ambient-accent: oklch(0.65 0.10 55);
+  /* Warm Meditteranean amber-stone */
+  --ambient-1: oklch(0.38 0.09 65 / 75%);
+  --ambient-2: oklch(0.12 0.018 55);
+  --ambient-accent: oklch(0.50 0.13 50 / 30%);
 }
 [data-industry="jets"] {
-  --ambient-1: oklch(0.25 0.04 220 / 60%);
-  --ambient-2: oklch(0.12 0.008 230);
-  --ambient-accent: oklch(0.72 0.08 215);
+  /* Electric sky blue-silver */
+  --ambient-1: oklch(0.35 0.08 215 / 80%);
+  --ambient-2: oklch(0.10 0.012 225);
+  --ambient-accent: oklch(0.55 0.12 210 / 30%);
 }
 [data-industry="cars"] {
-  --ambient-1: oklch(0.26 0.08 25 / 55%);
-  --ambient-2: oklch(0.11 0.012 25);
-  --ambient-accent: oklch(0.62 0.18 25);
+  /* Hot ember red */
+  --ambient-1: oklch(0.35 0.16 20 / 75%);
+  --ambient-2: oklch(0.10 0.018 20);
+  --ambient-accent: oklch(0.48 0.20 22 / 30%);
 }
 
 .dark {
