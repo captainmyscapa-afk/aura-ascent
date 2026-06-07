@@ -1,8 +1,8 @@
-import { Bell } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Logo } from "./Logo";
 import { IndustrySwitcher } from "./IndustrySwitcher";
 import { MobileNav } from "./MobileNav";
+import { NotificationPanel } from "./NotificationPanel";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,13 +55,7 @@ export function TopBar() {
           <div className="sm:hidden">
             <IndustrySwitcher compact />
           </div>
-          <button
-            aria-label="Notifications"
-            className="relative h-9 w-9 rounded-full glass flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors active:scale-95"
-          >
-            <Bell className="h-4 w-4" />
-            <span className="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-primary" />
-          </button>
+          <NotificationPanel />
           <Link
             to="/profile"
             className="hidden sm:flex h-9 w-9 rounded-full bg-[var(--gradient-gold)] items-center justify-center text-[11px] font-medium text-primary-foreground"
