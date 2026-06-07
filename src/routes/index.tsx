@@ -35,11 +35,17 @@ const STYLES = `
   /* Nav */
   .l-nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 2.5rem; height: 64px;
+    display: flex; flex-direction: column;
     background: rgba(8,8,8,0.8);
     backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border-bottom: 1px solid rgba(201,168,76,0.12);
+    /* glass fills status bar area, content pushed below it */
+    padding-top: env(safe-area-inset-top);
+  }
+  .l-nav-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 2.5rem; height: 64px;
   }
   .l-nav-logo {
     display: flex; align-items: center; gap: 10px;
@@ -104,10 +110,12 @@ const STYLES = `
 
   /* Hero */
   .l-hero {
-    min-height: 100vh;
+    min-height: 100svh;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    text-align: center; padding: 9rem 2rem 6rem;
+    text-align: center;
+    /* top padding = nav height + safe area + breathing room */
+    padding: calc(env(safe-area-inset-top) + 8rem) 2rem 6rem;
     position: relative; overflow: hidden;
   }
   .l-hero-glow {
@@ -317,12 +325,26 @@ const STYLES = `
 
   @media (max-width: 900px) {
     .l-nav-links { display: none; }
+    .l-nav-row { padding: 0 1.25rem; }
+    .l-hero {
+      padding: calc(env(safe-area-inset-top) + 5.5rem) 1.5rem 4rem;
+      min-height: 100svh;
+    }
+    .l-hero-h1 { font-size: clamp(2.6rem, 11vw, 4rem); margin-bottom: 1.25rem; }
+    .l-hero-sub { font-size: 0.95rem; margin-bottom: 2rem; }
+    .l-hero-actions { flex-direction: column; gap: 0.6rem; width: 100%; }
+    .l-hero-actions a, .l-hero-actions button {
+      width: 100%; justify-content: center;
+      padding: 0.9rem 1.5rem !important; font-size: 14px !important;
+    }
+    .l-hero-proof { gap: 1rem; font-size: 11px; }
     .l-bento { grid-template-columns: 1fr; grid-auto-rows: auto; }
     .l-bento-wide, .l-bento-narrow, .l-bento-full, .l-bento-third { grid-column: span 1; }
     .l-stats { grid-template-columns: repeat(2, 1fr); }
     .l-steps { grid-template-columns: 1fr 1fr; gap: 2rem; }
     .l-testimonials { grid-template-columns: 1fr; }
     .l-pricing-grid { grid-template-columns: 1fr; }
+    .l-section { padding: 4rem 1.5rem; }
   }
 `;
 
@@ -333,21 +355,23 @@ export default function Landing() {
 
       {/* ── NAV ─────────────────────────────────────────── */}
       <nav className="l-nav">
-        <Link to="/" className="l-nav-logo">
-          <div className="l-nav-mark l-serif">Au</div>
-          <div className="l-nav-name">Aurum OS</div>
-        </Link>
+        <div className="l-nav-row">
+          <Link to="/" className="l-nav-logo">
+            <div className="l-nav-mark l-serif">Au</div>
+            <div className="l-nav-name">Aurum OS</div>
+          </Link>
 
-        <ul className="l-nav-links">
-          <li><a href="#platform">Platform</a></li>
-          <li><a href="#how">How it works</a></li>
-          <li><a href="#pricing">Pricing</a></li>
-          <li><Link to="/dashboard" style={{ color: "inherit" }}>Intelligence</Link></li>
-        </ul>
+          <ul className="l-nav-links">
+            <li><a href="#platform">Platform</a></li>
+            <li><a href="#how">How it works</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><Link to="/dashboard" style={{ color: "inherit" }}>Intelligence</Link></li>
+          </ul>
 
-        <div className="l-nav-right">
-          <Link to="/login" className="l-btn-text">Sign in</Link>
-          <Link to="/onboarding" className="l-btn-primary">Get started free →</Link>
+          <div className="l-nav-right">
+            <Link to="/login" className="l-btn-text">Sign in</Link>
+            <Link to="/onboarding" className="l-btn-primary">Get started free →</Link>
+          </div>
         </div>
       </nav>
 
