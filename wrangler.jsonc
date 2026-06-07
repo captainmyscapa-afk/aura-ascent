@@ -4,9 +4,10 @@
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/server.ts",
+  // Non-sensitive config only. Secrets (GEMINI_API_KEY, etc.) must be stored
+  // via `wrangler secret put` — never in this file.
   "vars": {
     "AI_PROVIDER": "groq",
-"GEMINI_API_KEY": "AQ.Ab8RN6JcVMsYWOab6uZcMOkTgB1G27rm_pZRVJ-yhPZBnR9AjQ",
     "GEMINI_MODEL": "gemini-2.0-flash-lite"
   }
 }
