@@ -154,11 +154,19 @@
 @layer base {
   * {
     border-color: var(--color-border);
+    /* Prevent blue flash on tap — native app feel */
+    -webkit-tap-highlight-color: transparent;
+    /* Faster, more responsive taps */
+    touch-action: manipulation;
   }
 
   html {
     background-color: var(--color-background);
     color-scheme: dark;
+    /* Prevent rubber-band overscroll — native app feel */
+    overscroll-behavior: none;
+    /* Prevent font size change on orientation flip */
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -169,6 +177,26 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     transition: background 700ms var(--transition-smooth, ease);
+    overscroll-behavior: none;
+    min-height: 100dvh;
+    /* Hide scrollbar — app-like */
+    scrollbar-width: none;
+  }
+
+  body::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Momentum scrolling + hidden scrollbars in all scroll containers */
+  .overflow-y-auto,
+  .overflow-y-scroll {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .overflow-y-auto::-webkit-scrollbar,
+  .overflow-y-scroll::-webkit-scrollbar {
+    display: none;
   }
 
   h1,

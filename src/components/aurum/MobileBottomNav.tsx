@@ -1,18 +1,16 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
-  LayoutDashboard,
-  Map,
+  GraduationCap,
   Sparkles,
   Video,
-  User2,
+  Radio,
 } from "lucide-react";
 
 const tabs = [
-  { to: "/app", label: "Home", icon: LayoutDashboard },
-  { to: "/roadmap", label: "Roadmap", icon: Map },
+  { to: "/academy", label: "Academy", icon: GraduationCap },
   { to: "/mentor", label: "Mentor", icon: Sparkles },
   { to: "/studio", label: "Studio", icon: Video },
-  { to: "/profile", label: "Identity", icon: User2 },
+  { to: "/intelligence", label: "Intelligence", icon: Radio },
 ] as const;
 
 export function MobileBottomNav() {
@@ -25,7 +23,7 @@ export function MobileBottomNav() {
     >
       <div className="pointer-events-auto mx-3 mb-3">
         <div
-          className="glass-strong rounded-2xl px-2 py-1.5 flex items-center justify-between shadow-[var(--shadow-elegant)]"
+          className="glass-strong rounded-2xl px-4 py-1.5 flex items-center justify-between shadow-[var(--shadow-elegant)]"
         >
           {tabs.map(({ to, label, icon: Icon }) => {
             const active = pathname === to || pathname.startsWith(to + "/");
@@ -34,23 +32,25 @@ export function MobileBottomNav() {
                 key={to}
                 to={to}
                 className="relative flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl active:scale-95 transition-transform"
+                style={{ WebkitTapHighlightColor: "transparent" }}
               >
                 <span
-                  className={`flex items-center justify-center h-8 w-8 rounded-lg transition-all ${
+                  className={`flex items-center justify-center h-9 w-9 rounded-xl transition-all ${
                     active
-                      ? "bg-[var(--gradient-gold)] shadow-[var(--shadow-gold)]"
+                      ? "shadow-[var(--shadow-gold)]"
                       : "bg-transparent"
                   }`}
+                  style={active ? { background: "var(--gradient-gold)" } : {}}
                 >
                   <Icon
-                    className={`h-[18px] w-[18px] ${
+                    className={`h-[19px] w-[19px] ${
                       active ? "text-primary-foreground" : "text-muted-foreground"
                     }`}
                   />
                 </span>
                 <span
-                  className={`text-[10px] tracking-wide ${
-                    active ? "text-foreground" : "text-muted-foreground/80"
+                  className={`text-[10px] tracking-wide font-medium ${
+                    active ? "text-foreground" : "text-muted-foreground/70"
                   }`}
                 >
                   {label}
