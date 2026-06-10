@@ -34,7 +34,12 @@ export async function requireServerAuth(): Promise<{ id: string; email: string |
 
   const { data, error } = await supabase.auth.getClaims(token);
   if (error || !data?.claims?.sub) {
-    throw new Error("Unauthorized: invalid or expired token");
+    const reason = error?.message ?? "no claims returned";
+    const hasUrl = !!process.env["SUPABASE_URL"];
+    const hasKey = !!process.env["SUPABASE_PUBLISHABLE_KEY"];
+    throw new Error(
+      `Unauthorized: invalid or expired token (${reason}) [env: url=${hasUrl}, key=${hasKey}]`
+    );
   }
 
   return {
