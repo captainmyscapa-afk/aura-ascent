@@ -32,18 +32,18 @@ export async function requireServerAuth(): Promise<{ id: string; email: string |
     }
   );
 
-  const { data, error } = await supabase.auth.getClaims(token);
-  if (error || !data?.claims?.sub) {
-    const reason = error?.message ?? "no claims returned";
-    const hasUrl = !!process.env["SUPABASE_URL"];
-    const hasKey = !!process.env["SUPABASE_PUBLISHABLE_KEY"];
-    throw new Error(
-      `Unauthorized: invalid or expired token (${reason}) [env: url=${hasUrl}, key=${hasKey}]`
-    );
+  // Use getUser() instead of getClaims(): getClaims() verifies the JWT locally
+  // against a cached JWKS, which can go stale in long-lived Worker isolates
+  // after a signing-key rotation (causing "unrecognized JWT kid" errors even
+  // for valid tokens). getUser() validates directly against Supabase Auth.
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data?.user?.id) {
+    if (error) console.error("requireServerAuth: getUser failed:", error.message);
+    throw new Error("Unauthorized: invalid or expired token");
   }
 
   return {
-    id: data.claims.sub as string,
-    email: data.claims.email as string | undefined,
+    id: data.user.id,
+    email: data.user.email,
   };
 }
