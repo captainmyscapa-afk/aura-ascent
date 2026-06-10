@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { IndustryProvider } from "@/lib/industry/IndustryProvider";
+import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
 import { CommandPalette } from "@/components/aurum/CommandPalette";
@@ -149,11 +150,13 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <IndustryProvider>
-          <Outlet />
-          <CommandPalette />
-          <Toaster />
-        </IndustryProvider>
+        <LanguageProvider>
+          <IndustryProvider>
+            <Outlet />
+            <CommandPalette />
+            <Toaster />
+          </IndustryProvider>
+        </LanguageProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

@@ -29,6 +29,37 @@ const ambitions = [
   "Build a sophisticated lifestyle",
 ];
 
+// CAP-78: daily ritual onboarding questions
+const TIME_BUDGETS = [
+  { id: "15min", name: "15 minutes", desc: "Quick daily wins between commitments" },
+  { id: "30min", name: "30 minutes", desc: "A focused block before or after work" },
+  { id: "1hr", name: "1 hour", desc: "Steady, compounding daily progress" },
+  { id: "2hr+", name: "2+ hours", desc: "Going all-in on the transition" },
+] as const;
+
+const PREFERRED_TIMES = [
+  { id: "morning", name: "Early morning" },
+  { id: "midday", name: "During the day" },
+  { id: "evening", name: "Evening" },
+  { id: "late_night", name: "Late night" },
+] as const;
+
+const FOCUS_AREAS = [
+  "Networking & relationships",
+  "Industry knowledge",
+  "Content & visibility",
+  "Direct outreach",
+  "Confidence & mindset",
+];
+
+const CHALLENGES = [
+  "I don't know where to start",
+  "I lack confidence",
+  "I don't have a network yet",
+  "I don't have much time",
+  "I don't know the industry well enough",
+];
+
 function Onboarding() {
   const navigate = useNavigate();
   const { industryId, setIndustry, industry } = useIndustry();
@@ -38,14 +69,28 @@ function Onboarding() {
   const [amb, setAmb] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
 
-  const totalSteps = 4;
+  // CAP-78: daily ritual onboarding answers
+  const [timeBudget, setTimeBudget] = useState<string | null>(null);
+  const [preferredTime, setPreferredTime] = useState<string | null>(null);
+  const [background, setBackground] = useState("");
+  const [focusAreas, setFocusAreas] = useState<string[]>([]);
+  const [challenge, setChallenge] = useState<string | null>(null);
+
+  const totalSteps = 9;
 
   async function next() {
     if (step === totalSteps - 1) {
       setGenerating(true);
       await updateCore({
         active_mode: industryId,
-        current_level: level ?? "beginner"
+        current_level: level ?? "beginner",
+        ritual_profile: {
+          timeBudget: (timeBudget ?? "30min") as "15min" | "30min" | "1hr" | "2hr+",
+          preferredTime: (preferredTime ?? "evening") as "morning" | "midday" | "evening" | "late_night",
+          background: background.trim(),
+          focusAreas,
+          biggestChallenge: challenge ?? "",
+        },
       });
       setTimeout(() => navigate({ to: "/app" }), 2200);
       return;
@@ -64,7 +109,12 @@ function Onboarding() {
     step === 0 ||
     (step === 1 && !!level) ||
     (step === 2 && amb.length > 0) ||
-    step === 3;
+    (step === 3 && !!timeBudget) ||
+    (step === 4 && !!preferredTime) ||
+    step === 5 ||
+    (step === 6 && focusAreas.length > 0) ||
+    (step === 7 && !!challenge) ||
+    step === 8;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -193,14 +243,141 @@ function Onboarding() {
 
             {step === 3 && (
               <StepWrap
-                eyebrow="STEP 04 · INITIATION"
+                eyebrow="STEP 04 · DAILY RITUAL · 1 OF 5"
+                title="How much time can you realistically commit each day?"
+                sub="Be honest — your daily rituals will be sized to fit this, so they actually feel doable."
+              >
+                <div className="space-y-3">
+                  {TIME_BUDGETS.map(({ id, name, desc }) => (
+                    <button
+                      key={id}
+                      onClick={() => setTimeBudget(id)}
+                      className={`w-full text-left p-5 rounded-lg border transition-all glass flex items-center gap-5 ${
+                        timeBudget === id
+                          ? "border-primary/60 ring-gold"
+                          : "border-border hover:border-border/80"
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <div className="font-serif text-lg text-foreground">{name}</div>
+                        <div className="text-sm text-muted-foreground">{desc}</div>
+                      </div>
+                      {timeBudget === id && <Check className="h-5 w-5 text-primary" />}
+                    </button>
+                  ))}
+                </div>
+              </StepWrap>
+            )}
+
+            {step === 4 && (
+              <StepWrap
+                eyebrow="STEP 04 · DAILY RITUAL · 2 OF 5"
+                title="When do you have the energy to focus on this?"
+                sub="We'll frame your daily rituals around the part of the day you're most likely to actually do them."
+              >
+                <div className="space-y-3">
+                  {PREFERRED_TIMES.map(({ id, name }) => (
+                    <button
+                      key={id}
+                      onClick={() => setPreferredTime(id)}
+                      className={`w-full text-left p-5 rounded-lg border transition-all glass flex items-center gap-5 ${
+                        preferredTime === id
+                          ? "border-primary/60 ring-gold"
+                          : "border-border hover:border-border/80"
+                      }`}
+                    >
+                      <div className="flex-1 font-serif text-lg text-foreground">{name}</div>
+                      {preferredTime === id && <Check className="h-5 w-5 text-primary" />}
+                    </button>
+                  ))}
+                </div>
+              </StepWrap>
+            )}
+
+            {step === 5 && (
+              <StepWrap
+                eyebrow="STEP 04 · DAILY RITUAL · 3 OF 5"
+                title="Tell us a little about where you're coming from."
+                sub="Your current profession, skills or experience — anything that helps us make your rituals feel relevant to your life. Optional, but it helps."
+              >
+                <textarea
+                  value={background}
+                  onChange={(e) => setBackground(e.target.value)}
+                  placeholder="e.g. I work in corporate sales and have a strong network on LinkedIn, but I know nothing about yachting yet…"
+                  rows={5}
+                  className="w-full rounded-lg border border-border glass p-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 resize-none"
+                />
+              </StepWrap>
+            )}
+
+            {step === 6 && (
+              <StepWrap
+                eyebrow="STEP 04 · DAILY RITUAL · 4 OF 5"
+                title="Where should your daily rituals focus most?"
+                sub="Select all that resonate — we'll weight your tasks toward these areas."
+              >
+                <div className="flex flex-wrap gap-2.5">
+                  {FOCUS_AREAS.map((a) => {
+                    const selected = focusAreas.includes(a);
+                    return (
+                      <button
+                        key={a}
+                        onClick={() =>
+                          setFocusAreas((prev) =>
+                            prev.includes(a) ? prev.filter((p) => p !== a) : [...prev, a],
+                          )
+                        }
+                        className={`px-4 py-2.5 rounded-full border text-sm transition-all ${
+                          selected
+                            ? "bg-[var(--gradient-gold)] text-primary-foreground border-transparent"
+                            : "glass text-foreground border-border hover:border-primary/40"
+                        }`}
+                      >
+                        {a}
+                      </button>
+                    );
+                  })}
+                </div>
+              </StepWrap>
+            )}
+
+            {step === 7 && (
+              <StepWrap
+                eyebrow="STEP 04 · DAILY RITUAL · 5 OF 5"
+                title="What's holding you back the most right now?"
+                sub="No judgment — this just helps us calibrate the kind of support your rituals give you."
+              >
+                <div className="space-y-3">
+                  {CHALLENGES.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setChallenge(c)}
+                      className={`w-full text-left p-5 rounded-lg border transition-all glass flex items-center gap-5 ${
+                        challenge === c
+                          ? "border-primary/60 ring-gold"
+                          : "border-border hover:border-border/80"
+                      }`}
+                    >
+                      <div className="flex-1 font-serif text-lg text-foreground">{c}</div>
+                      {challenge === c && <Check className="h-5 w-5 text-primary" />}
+                    </button>
+                  ))}
+                </div>
+              </StepWrap>
+            )}
+
+            {step === 8 && (
+              <StepWrap
+                eyebrow="STEP 05 · INITIATION"
                 title="Your operating system is ready to be forged."
-                sub="On the next screen, AURUM AI will architect your personal 30-day immersion."
+                sub="On the next screen, AURUM AI will architect your personal 30-day immersion and your daily rituals."
               >
                 <div className="glass rounded-xl p-8 space-y-5">
                   <Row label="Ecosystem" value={industry.modeLabel} />
                   <Row label="Level" value={levels.find((l) => l.id === level)?.name ?? "—"} />
                   <Row label="Ambitions" value={`${amb.length} selected`} />
+                  <Row label="Daily commitment" value={TIME_BUDGETS.find((t) => t.id === timeBudget)?.name ?? "—"} />
+                  <Row label="Ritual focus" value={`${focusAreas.length} selected`} />
                   <div className="hairline" />
                   <p className="text-sm text-muted-foreground italic">
                     "The discipline of taste begins on day one."

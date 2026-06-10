@@ -1,19 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowUpRight,
   Linkedin,
   Instagram,
   MapPin,
   Flame,
-  RefreshCw,
   Pencil,
   Twitter,
   Youtube,
   Music2,
   FileText,
   Loader2,
-  Sparkles,
   CheckCircle2,
   Plug,
 } from "lucide-react";
@@ -24,13 +21,6 @@ import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useUserProfile, type UserProfile } from "@/hooks/useUserProfile";
-import { useServerFn } from "@tanstack/react-start";
-import {
-  generateIdentityAudit,
-  generateTodayBrief,
-  type IdentityAudit,
-  type TodayBrief,
-} from "@/lib/identity.functions";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
   Dialog,
@@ -107,12 +97,7 @@ function Profile() {
   const [socials, setSocials] = useState<SocialAccount[]>([]);
   const [socialsLoading, setSocialsLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
-  const [auditLoading, setAuditLoading] = useState(false);
-  const [briefLoading, setBriefLoading] = useState(false);
   const [connectPlatform, setConnectPlatform] = useState<string | null>(null);
-
-  const runAudit = useServerFn(generateIdentityAudit);
-  const runBrief = useServerFn(generateTodayBrief);
 
   useEffect(() => {
     if (!user) return;
@@ -188,65 +173,6 @@ function Profile() {
     [scoreBreakdown],
   );
 
-  useEffect(() => {
-    if (!user || !core || !profile) return;
-    if (profile.auto_daily_brief === false) return;
-    const today = new Date().toISOString().slice(0, 10);
-    if (core.daily_brief && core.daily_brief_date === today) return;
-    if (!profile.full_name && !profile.current_profession) return;
-    void refreshBrief();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, core?.user_id, profile?.full_name]);
-
-  async function refreshAudit() {
-    if (!user || !profile) return;
-    setAuditLoading(true);
-    try {
-      const focus = typeof core?.current_focus === "string" ? core.current_focus : undefined;
-      const { audit } = await runAudit({
-        data: {
-          name: profile.full_name ?? undefined,
-          mode: industry.label,
-          profession: profile.current_profession ?? undefined,
-          goal: profile.goal ?? focus,
-          location: profile.location ?? undefined,
-          level: core?.current_level ?? undefined,
-          streak: core?.streak,
-          aurumScore,
-        },
-      });
-      await updateCore({ ai_summary: audit, ai_summary_updated_at: new Date().toISOString() });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Audit failed");
-    } finally {
-      setAuditLoading(false);
-    }
-  }
-
-  async function refreshBrief() {
-    if (!user || !profile) return;
-    setBriefLoading(true);
-    try {
-      const focus = typeof core?.current_focus === "string" ? core.current_focus : undefined;
-      const { brief } = await runBrief({
-        data: {
-          name: profile.full_name ?? undefined,
-          mode: industry.label,
-          profession: profile.current_profession ?? undefined,
-          goal: profile.goal ?? focus,
-          location: profile.location ?? undefined,
-          level: core?.current_level ?? undefined,
-        },
-      });
-      const today = new Date().toISOString().slice(0, 10);
-      await updateCore({ daily_brief: brief, daily_brief_date: today });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Brief failed");
-    } finally {
-      setBriefLoading(false);
-    }
-  }
-
   async function saveProfile(updates: Partial<UserProfile>) {
     if (!user) return;
     await updateProfile(updates);
@@ -294,8 +220,6 @@ function Profile() {
   const hasName = !!profile.full_name;
   const displayName = profile.full_name || "Unnamed Operator";
   const computedTitle = `${titleFor(industry.id, core?.current_level ?? "initiate")} · ${profile.location || industry.label}`;
-  const audit = (core?.ai_summary ?? null) as IdentityAudit | null;
-  const brief = (core?.daily_brief ?? null) as TodayBrief | null;
   const phaseProgress = Math.min(100, Math.round(((core?.execution_score ?? 0) / 100) * 100));
 
   return (
@@ -441,50 +365,6 @@ function Profile() {
         </div>
       </div>
 
-      <div className="glass rounded-2xl p-6 sm:p-8 mb-10 animate-fade-up relative" style={{ animationDelay: "160ms" }}>
-        <div className="flex items-start justify-between gap-4">
-          <SectionHeading eyebrow="AI POSITIONING AUDIT" title="AURUM's read on you." />
-          <Sparkles className="h-5 w-5 text-primary/70" />
-        </div>
-        {audit ? (
-          <div className="space-y-5 mt-4">
-            {(audit?.actions ?? []).map((a) => (
-              <div key={a.headline} className="border-t border-border/60 first:border-0 pt-5 first:pt-0">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-[9px] tracking-[0.3em] text-primary/80 mb-1">{a.label}</div>
-                    <div className="font-serif text-lg">{a.headline}</div>
-                    <p className="text-sm text-muted-foreground mt-1.5 max-w-2xl">{a.explanation}</p>
-                  </div>
-                  <button className="text-xs text-foreground inline-flex items-center gap-1 hover:text-primary transition-colors shrink-0">
-                    Act on this <ArrowUpRight className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-6 text-sm text-muted-foreground">
-            {auditLoading ? (
-              <span className="inline-flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> Generating your positioning audit…
-              </span>
-            ) : (
-              <button onClick={refreshAudit} className="text-primary hover:underline">
-                Generate my positioning audit →
-              </button>
-            )}
-          </div>
-        )}
-        <button
-          onClick={refreshAudit}
-          disabled={auditLoading}
-          className="absolute bottom-5 right-5 text-xs inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${auditLoading ? "animate-spin" : ""}`} /> Refresh
-        </button>
-      </div>
-
       <div className="glass rounded-2xl p-6 sm:p-8 mb-10 animate-fade-up" style={{ animationDelay: "240ms" }}>
         <SectionHeading eyebrow="CONNECTED ACCOUNTS" title="Your publishing network." />
         <p className="text-sm text-muted-foreground -mt-2 mb-1">
@@ -536,51 +416,6 @@ function Profile() {
               </div>
             );
           })}
-        </div>
-      </div>
-
-      <div
-        className="glass rounded-2xl p-6 sm:p-8 mb-6 animate-fade-up relative overflow-hidden"
-        style={{ animationDelay: "320ms" }}
-      >
-        <div className="absolute inset-0 bg-[var(--gradient-gold)] opacity-[0.04] pointer-events-none" />
-        <div className="relative">
-          <SectionHeading eyebrow="TODAY'S BRIEF" title="Your signal for today." />
-          {brief ? (
-            <div className="mt-4 grid sm:grid-cols-3 gap-5">
-              <div>
-                <div className="text-[9px] tracking-[0.3em] text-primary/80 mb-1.5">🎯 PRIORITY</div>
-                <p className="text-sm leading-relaxed">{brief.priority}</p>
-              </div>
-              <div>
-                <div className="text-[9px] tracking-[0.3em] text-primary/80 mb-1.5">💡 INSIGHT</div>
-                <p className="text-sm leading-relaxed">{brief.insight}</p>
-              </div>
-              <div>
-                <div className="text-[9px] tracking-[0.3em] text-primary/80 mb-1.5">🤝 NETWORK MOVE</div>
-                <p className="text-sm leading-relaxed">{brief.network_move}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-4 text-sm text-muted-foreground">
-              {briefLoading ? (
-                <span className="inline-flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Drafting today's brief…
-                </span>
-              ) : (
-                <button onClick={refreshBrief} className="text-primary hover:underline">
-                  Generate today's brief →
-                </button>
-              )}
-            </div>
-          )}
-          <button
-            onClick={refreshBrief}
-            disabled={briefLoading}
-            className="absolute top-0 right-0 text-xs inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${briefLoading ? "animate-spin" : ""}`} />
-          </button>
         </div>
       </div>
 

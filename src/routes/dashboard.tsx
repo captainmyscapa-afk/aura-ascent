@@ -11,7 +11,7 @@ import { INDUSTRY_LIST } from "@/lib/industry/config";
 import type { IndustryId } from "@/lib/industry/types";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useAurumCoreState } from "@/hooks/useAurumCoreState";
+import { useAurumCoreState, type RitualProfile } from "@/hooks/useAurumCoreState";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { generateRecommendation, generateDailyTasks } from "@/lib/identity.functions";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -398,6 +398,8 @@ export default function Dashboard() {
       streak: c.streak,
       phase: industry.phaseLabel,
       taskCount: userProfile?.daily_task_count ?? 5,
+      // CAP-78: personalize daily rituals using the onboarding ritual profile (if set)
+      ritualProfile: c.ritual_profile ?? undefined,
     };
 
     const recStale =
@@ -508,6 +510,7 @@ export default function Dashboard() {
     streak?: number;
     phase?: string;
     taskCount?: number;
+    ritualProfile?: RitualProfile;
   }) {
     if (!user) return;
     setTasksLoading(true);

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Globe2, Pencil, X } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { IndustryId } from "@/lib/industry/types";
 
 type City = { city: string; flag: string; tz: string };
@@ -219,6 +220,7 @@ function CityEditor({ city, onSave, onCancel }: CityEditorProps) {
   const [value, setValue] = useState(city.city);
   const [error, setError] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -245,7 +247,7 @@ function CityEditor({ city, onSave, onCancel }: CityEditorProps) {
             if (e.key === "Escape") onCancel();
           }}
           className="text-[11px] tracking-[0.15em] uppercase bg-transparent border-b border-primary/60 outline-none w-28 text-foreground/90 placeholder:text-muted-foreground/40 py-0.5"
-          placeholder="City name…"
+          placeholder={t.cityPlaceholder}
         />
         <datalist id="aurum-city-suggestions">
           {CITY_DB.filter(
@@ -273,7 +275,7 @@ function CityEditor({ city, onSave, onCancel }: CityEditorProps) {
       </div>
       {error && (
         <span className="text-[9px] tracking-[0.2em] text-destructive/80 uppercase">
-          City not found
+          {t.cityNotFound}
         </span>
       )}
     </div>
@@ -284,6 +286,7 @@ function CityEditor({ city, onSave, onCancel }: CityEditorProps) {
 export function GlobalTimeHub({ compact = false }: { compact?: boolean } = {}) {
   useTick(1000);
   const { industry, industryId } = useIndustry();
+  const { t } = useLanguage();
 
   const [customCitiesAll, setCustomCitiesAll] = useState<
     Partial<Record<IndustryId, City[]>>
@@ -321,7 +324,7 @@ export function GlobalTimeHub({ compact = false }: { compact?: boolean } = {}) {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5 text-[9px] tracking-[0.35em] text-primary/80 uppercase">
               <Globe2 className="h-2.5 w-2.5" />
-              {industry.modeLabel} · Live
+              {industry.modeLabel} · {t.live}
             </div>
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-70" />
@@ -334,7 +337,8 @@ export function GlobalTimeHub({ compact = false }: { compact?: boolean } = {}) {
               const time = formatTime(c.tz, now);
               const hour = Number(time.split(":")[0]);
               const isNight = hour >= 20 || hour < 6;
-              const day = dayDelta(c.tz, now);
+              const dayRaw = dayDelta(c.tz, now);
+              const day = dayRaw === "TODAY" ? t.today : dayRaw === "TOMORROW" ? t.tomorrow : t.yesterday;
               const isEditing = editingIdx === idx;
               return (
                 <div
@@ -408,11 +412,11 @@ export function GlobalTimeHub({ compact = false }: { compact?: boolean } = {}) {
           <div>
             <div className="flex items-center gap-2 text-[10px] tracking-[0.4em] text-primary/80 uppercase mb-2">
               <Globe2 className="h-3 w-3" />
-              {industry.modeLabel} · Live
+              {industry.modeLabel} · {t.live}
             </div>
             <h3 className="font-serif text-xl sm:text-2xl leading-tight">
-              The rhythm of the{" "}
-              <span className="italic text-gold-gradient">world</span>
+              {t.worldRhythmPre}{" "}
+              <span className="italic text-gold-gradient">{t.worldRhythmEm}</span>
             </h3>
           </div>
           <div className="hidden sm:flex items-center gap-2 text-[10px] tracking-[0.3em] text-muted-foreground uppercase">
@@ -420,7 +424,7 @@ export function GlobalTimeHub({ compact = false }: { compact?: boolean } = {}) {
               <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-70" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
             </span>
-            Live
+            {t.live}
           </div>
         </div>
 
@@ -429,7 +433,8 @@ export function GlobalTimeHub({ compact = false }: { compact?: boolean } = {}) {
             const time = formatTime(c.tz, now);
             const secs = formatSeconds(c.tz, now);
             const off = tzOffsetLabel(c.tz, now);
-            const day = dayDelta(c.tz, now);
+            const dayRaw = dayDelta(c.tz, now);
+            const day = dayRaw === "TODAY" ? t.today : dayRaw === "TOMORROW" ? t.tomorrow : t.yesterday;
             const hour = Number(time.split(":")[0]);
             const isNight = hour >= 20 || hour < 6;
             const isEditing = editingIdx === idx;
@@ -490,7 +495,7 @@ export function GlobalTimeHub({ compact = false }: { compact?: boolean } = {}) {
                 <div className="relative mt-4 flex items-center justify-between text-[10px] tracking-[0.3em] uppercase text-muted-foreground">
                   <span>{off || c.tz.split("/")[1]?.replace("_", " ")}</span>
                   <span>
-                    {isNight ? "Evening" : hour < 12 ? "Morning" : "Daylight"}
+                    {isNight ? t.evening : hour < 12 ? t.morning : t.daylight}
                   </span>
                 </div>
 

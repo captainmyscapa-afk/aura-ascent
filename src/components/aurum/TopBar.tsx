@@ -4,8 +4,62 @@ import { IndustrySwitcher } from "./IndustrySwitcher";
 import { MobileNav } from "./MobileNav";
 import { NotificationPanel } from "./NotificationPanel";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ChevronDown, Check } from "lucide-react";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import type { Lang } from "@/lib/i18n/translations";
+
+const LANG_OPTIONS: { lang: Lang; flag: string; label: string }[] = [
+  { lang: "en", flag: "🇬🇧", label: "English" },
+  { lang: "fr", flag: "🇫🇷", label: "Français" },
+];
+
+function LanguageSwitcher() {
+  const { lang, setLang } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const current = LANG_OPTIONS.find((o) => o.lang === lang)!;
+
+  useEffect(() => {
+    function onClickOut(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOut);
+    return () => document.removeEventListener("mousedown", onClickOut);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex items-center gap-1.5 glass rounded-full px-2.5 py-1.5 text-xs text-foreground hover:ring-gold transition-all"
+        aria-label="Change language"
+      >
+        <span className="text-base leading-none">{current.flag}</span>
+        <ChevronDown className="h-3 w-3 text-muted-foreground" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-36 glass-strong rounded-xl p-1.5 z-50 animate-fade-up shadow-[var(--shadow-elegant)]">
+          {LANG_OPTIONS.map((opt) => (
+            <button
+              key={opt.lang}
+              onClick={() => { setLang(opt.lang); setOpen(false); }}
+              className={`w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors ${
+                lang === opt.lang ? "bg-secondary/60" : "hover:bg-secondary/40"
+              }`}
+            >
+              <span className="text-base leading-none">{opt.flag}</span>
+              <span className="text-[12px] tracking-wide">{opt.label}</span>
+              {lang === opt.lang && <Check className="h-3 w-3 text-primary ml-auto shrink-0" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function TopBar() {
   const { user } = useAuth();
@@ -49,6 +103,7 @@ export function TopBar() {
         </div>
         <div className="hidden md:flex flex-1" />
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
+          <LanguageSwitcher />
           <div className="hidden sm:block">
             <IndustrySwitcher />
           </div>

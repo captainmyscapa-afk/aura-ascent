@@ -39,6 +39,17 @@ export type AurumCoreState = {
   roadmap_progress: unknown | null;
   // Free tier
   free_usage: unknown | null;
+  // CAP-78: daily ritual profile (time budget, focus areas, challenge — captured on first connection)
+  ritual_profile: RitualProfile | null;
+};
+
+// CAP-78: answers to the 5 "daily ritual" onboarding questions
+export type RitualProfile = {
+  timeBudget: "15min" | "30min" | "1hr" | "2hr+";
+  preferredTime: "morning" | "midday" | "evening" | "late_night";
+  background: string;
+  focusAreas: string[];
+  biggestChallenge: string;
 };
 
 // Map exposed (canonical) field names → legacy DB column names.
@@ -98,6 +109,7 @@ function fromRow(row: Record<string, unknown> | null): AurumCoreState | null {
     roadmap_generated_at: (row.roadmap_generated_at as string | null) ?? null,
     roadmap_progress: (row.roadmap_progress as unknown) ?? null,
     free_usage: (row.free_usage as unknown) ?? null,
+    ritual_profile: (row.ritual_profile as RitualProfile | null) ?? null,
   };
 }
 

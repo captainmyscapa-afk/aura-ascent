@@ -132,6 +132,30 @@ type DashInput = {
   streak?: number;
   location?: string;
   taskCount?: number;
+  ritualProfile?: RitualProfileInput;
+};
+
+// CAP-78: the 5 daily-ritual onboarding answers, used to personalise daily tasks
+export type RitualProfileInput = {
+  timeBudget?: "15min" | "30min" | "1hr" | "2hr+";
+  preferredTime?: "morning" | "midday" | "evening" | "late_night";
+  background?: string;
+  focusAreas?: string[];
+  biggestChallenge?: string;
+};
+
+const TIME_BUDGET_LABEL: Record<string, string> = {
+  "15min": "about 15 minutes total — each task should be a 2-4 minute micro-action",
+  "30min": "about 30 minutes total — each task should take roughly 5-8 minutes",
+  "1hr": "about 1 hour total — each task should take roughly 10-15 minutes",
+  "2hr+": "2+ hours total — tasks can be more substantial, roughly 20-30 minutes each",
+};
+
+const PREFERRED_TIME_LABEL: Record<string, string> = {
+  morning: "early morning, before the day gets busy",
+  midday: "during the day, in short breaks",
+  evening: "in the evening, after work",
+  late_night: "late at night, when things wind down",
 };
 
 // ─── Server functions ─────────────────────────────────────────────────────────
@@ -232,11 +256,14 @@ export const generateDailyTasks = createServerFn({ method: "POST" })
   .inputValidator((d: DashInput) => d)
   .handler(async ({ data }) => {
     await requireServerAuth();
+    const ritual = data.ritualProfile;
+    const taskCount = data.taskCount ?? 5;
+
     const result = await ai.complete(
       [
         {
           role: "system",
-          content: `You are AURUM — generate sharp, specific daily tasks for luxury-industry operators. No filler. Always invoke emit_daily_tasks.`,
+          content: `You are AURUM — generate sharp, specific daily tasks ("daily rituals") for luxury-industry operators. Tasks must feel achievable in the time the person actually has, relevant to their real life and experience, and like they genuinely move the person forward — not generic busywork. No filler. Always invoke emit_daily_tasks.`,
         },
         {
           role: "user",
@@ -246,7 +273,19 @@ export const generateDailyTasks = createServerFn({ method: "POST" })
             data.phase ? `PHASE: ${data.phase}` : null,
             data.goal ? `GOAL: ${data.goal}` : null,
             typeof data.streak === "number" ? `STREAK: ${data.streak} days` : null,
-            `Generate exactly ${data.taskCount ?? 5} specific daily tasks for someone breaking into the ${data.mode} industry at ${data.level ?? "beginner"} level. Tasks should cover: networking, content, learning, outreach and relationship building.`,
+            ritual?.timeBudget ? `DAILY TIME BUDGET: ${TIME_BUDGET_LABEL[ritual.timeBudget] ?? ritual.timeBudget}` : null,
+            ritual?.preferredTime ? `WHEN THEY DO THIS: ${PREFERRED_TIME_LABEL[ritual.preferredTime] ?? ritual.preferredTime}` : null,
+            ritual?.background ? `THEIR BACKGROUND: ${ritual.background}` : null,
+            ritual?.focusAreas?.length ? `PRIORITY FOCUS AREAS (weight tasks toward these): ${ritual.focusAreas.join(", ")}` : null,
+            ritual?.biggestChallenge ? `THEIR BIGGEST OBSTACLE RIGHT NOW: "${ritual.biggestChallenge}" — at least one task should directly help with this.` : null,
+            `Generate exactly ${taskCount} specific daily tasks for someone breaking into the ${data.mode} industry at ${data.level ?? "beginner"} level.`,
+            ritual?.focusAreas?.length
+              ? `Cover the priority focus areas above first, then fill remaining tasks with networking, content, learning, outreach and relationship building.`
+              : `Tasks should cover: networking, content, learning, outreach and relationship building.`,
+            ritual?.background
+              ? `Where possible, connect tasks to their background/experience above so they feel personal and relatable, not generic.`
+              : null,
+            `Each task must fit within the daily time budget given above — do not propose tasks that would take longer than the person has.`,
           ]
             .filter(Boolean)
             .join("\n"),
@@ -368,7 +407,18 @@ type RoadmapInput = {
   level: string;
   goal?: string;
   ambitions?: string[];
+  // CAP-78: personalize the 30-day roadmap with the same ritual profile used for daily rituals
+  ritualProfile?: RitualProfileInput;
 };
+
+// CAP-78: how many tasks/day and roughly how long each should take, given the user's daily time budget
+const ROADMAP_TIME_CONFIG: Record<string, { tasksPerDay: number; duration: string; total: string }> = {
+  "15min": { tasksPerDay: 1, duration: "10-15 min", total: "about 15 minutes" },
+  "30min": { tasksPerDay: 2, duration: "12-18 min", total: "about 30 minutes" },
+  "1hr":   { tasksPerDay: 2, duration: "25-35 min", total: "about 1 hour" },
+  "2hr+":  { tasksPerDay: 3, duration: "30-45 min", total: "2+ hours" },
+};
+const DEFAULT_ROADMAP_TIME = { tasksPerDay: 2, duration: "20-45 min", total: "about an hour" };
 
 const WEEK_THEMES = [
   "Foundation & Orientation",
@@ -410,21 +460,33 @@ export const generateRoadmap = createServerFn({ method: "POST" })
   .inputValidator((d: RoadmapInput) => d)
   .handler(async ({ data }) => {
     await requireServerAuth();
+    const ritual = data.ritualProfile;
+    const timeConfig = (ritual?.timeBudget && ROADMAP_TIME_CONFIG[ritual.timeBudget]) || DEFAULT_ROADMAP_TIME;
+
     const baseContext = [
       `INDUSTRY: ${data.industry}`,
       `LEVEL: ${data.level}`,
       data.goal ? `GOAL: ${data.goal}` : "",
+      ritual?.timeBudget ? `DAILY TIME BUDGET: ${TIME_BUDGET_LABEL[ritual.timeBudget] ?? ritual.timeBudget}` : "",
+      ritual?.preferredTime ? `WHEN THEY DO THIS: ${PREFERRED_TIME_LABEL[ritual.preferredTime] ?? ritual.preferredTime}` : "",
+      ritual?.background ? `THEIR BACKGROUND: ${ritual.background}` : "",
+      ritual?.focusAreas?.length ? `PRIORITY FOCUS AREAS (weight tasks toward these): ${ritual.focusAreas.join(", ")}` : "",
+      ritual?.biggestChallenge ? `THEIR BIGGEST OBSTACLE: "${ritual.biggestChallenge}" — some tasks across the roadmap should help with this.` : "",
     ].filter(Boolean).join("\n");
 
     const weeks: RoadmapWeek[] = [];
 
     for (let w = 1; w <= 4; w++) {
       const baseDay = (w - 1) * 7 + 1;
+      const taskLines = Array.from({ length: timeConfig.tasksPerDay }, (_, ti) =>
+        `        {"id": "w${w}d1-t${ti + 1}", "type": "${ti === 0 ? "networking" : ti === 1 ? "learning" : "content"}", "title": "action title max 8 words", "detail": "specific how-to 1 sentence", "duration": "${timeConfig.duration}"}`,
+      ).join(",\n");
+
       // Use plain chat (no tool calling) — more reliable across all providers
       const { text } = await ai.chat([
         {
           role: "system",
-          content: `You are AURUM — elite luxury industry strategist. Return ONLY valid JSON, no markdown, no explanation. Tasks must use real ${data.industry} industry terms, platforms, and actions.`,
+          content: `You are AURUM — elite luxury industry strategist. Return ONLY valid JSON, no markdown, no explanation. Tasks must use real ${data.industry} industry terms, platforms, and actions. Tasks must feel achievable in the time the person actually has, and relevant to their real life and experience — not generic busywork.`,
         },
         {
           role: "user",
@@ -442,21 +504,27 @@ Return this exact JSON structure:
       "day": ${baseDay},
       "theme": "day theme 3-5 words",
       "tasks": [
-        {"id": "w${w}d1-t1", "type": "networking", "title": "action title max 8 words", "detail": "specific how-to 1 sentence", "duration": "30 min"},
-        {"id": "w${w}d1-t2", "type": "learning", "title": "action title max 8 words", "detail": "specific how-to 1 sentence", "duration": "45 min"}
+${taskLines}
       ]
     }
     ... 7 days total, day ${baseDay + 6} must include "milestone": "achievement statement"
   ]
 }
 
-Types: networking, content, learning, outreach, mindset. Mix them. Be specific to ${data.industry}.`,
+Each day must have exactly ${timeConfig.tasksPerDay} task${timeConfig.tasksPerDay === 1 ? "" : "s"}, each taking roughly ${timeConfig.duration}, so the whole day's rituals fit within ${timeConfig.total}.
+Types: networking, content, learning, outreach, mindset. Mix them across the week${ritual?.focusAreas?.length ? `, leaning toward: ${ritual.focusAreas.join(", ")}` : ""}. Be specific to ${data.industry}${ritual?.background ? `, and where natural connect tasks to their background (${ritual.background})` : ""}.`,
         },
       ]);
 
       const weekData = parseWeekJson(text, w, baseDay);
       if (!weekData) {
         // Fallback: create a basic week structure if parse fails
+        const fallbackTasks = [
+          { id: "t1", type: "learning" as const, title: `Study ${data.industry} fundamentals`, detail: `Research key players, terminology and deal structures in ${data.industry}.`, duration: timeConfig.duration },
+          { id: "t2", type: "networking" as const, title: "Reach out to one industry professional", detail: `Find and connect with a ${data.industry} professional on LinkedIn with a personalised message.`, duration: timeConfig.duration },
+          { id: "t3", type: "content" as const, title: "Share an industry observation", detail: `Post a short, thoughtful note about something you learned in ${data.industry} this week.`, duration: timeConfig.duration },
+        ].slice(0, timeConfig.tasksPerDay);
+
         const fallback: RoadmapWeek = {
           week: w,
           theme: WEEK_THEMES[w - 1],
@@ -465,10 +533,7 @@ Types: networking, content, learning, outreach, mindset. Mix them. Be specific t
             day: baseDay + i,
             theme: `Day ${baseDay + i}`,
             milestone: i === 6 ? `Week ${w} complete — you're building real momentum.` : undefined,
-            tasks: [
-              { id: `w${w}d${i + 1}-t1`, type: "learning" as const, title: `Study ${data.industry} fundamentals`, detail: `Research key players, terminology and deal structures in ${data.industry}.`, duration: "45 min" },
-              { id: `w${w}d${i + 1}-t2`, type: "networking" as const, title: "Reach out to one industry professional", detail: `Find and connect with a ${data.industry} professional on LinkedIn with a personalised message.`, duration: "20 min" },
-            ],
+            tasks: fallbackTasks.map((t, ti) => ({ ...t, id: `w${w}d${i + 1}-t${ti + 1}` })),
           })),
         };
         weeks.push(fallback);

@@ -15,24 +15,27 @@ import {
 import { Logo } from "./Logo";
 import { useAuth } from "@/hooks/useAuth";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
-
-const nav = [
-  { to: "/app", label: "Mission Control", icon: LayoutDashboard },
-  { to: "/roadmap", label: "30-Day Roadmap", icon: Map },
-  { to: "/intelligence", label: "Intelligence", icon: Radio },
-  { to: "/mentor", label: "AI Mentor", icon: Sparkles },
-  { to: "/academy", label: "Academy", icon: GraduationCap },
-  { to: "/tutor", label: "AI Tutor", icon: BookOpen },
-  { to: "/network", label: "Network", icon: Users },
-  { to: "/studio", label: "Content Studio", icon: Video },
-  { to: "/profile", label: "Identity", icon: User2 },
-] as const;
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export function Sidebar() {
   const { pathname } = useLocation();
   const { session, signOut } = useAuth();
   const { state: core } = useAurumCoreState();
+  const { t } = useLanguage();
   const navigate = useNavigate();
+
+  const nav = [
+    { to: "/app", label: t.navDashboard, icon: LayoutDashboard },
+    { to: "/roadmap", label: t.navRoadmap, icon: Map },
+    { to: "/intelligence", label: t.navIntelligence, icon: Radio },
+    { to: "/mentor", label: t.navMentor, icon: Sparkles },
+    { to: "/academy", label: t.navAcademy, icon: GraduationCap },
+    { to: "/tutor", label: t.navTutor, icon: BookOpen },
+    { to: "/network", label: t.navNetwork, icon: Users },
+    { to: "/studio", label: t.navStudio, icon: Video },
+    { to: "/profile", label: t.navIdentity, icon: User2 },
+  ] as const;
+
   const handleLogout = async () => {
     await signOut();
     navigate({ to: "/login", replace: true });
@@ -47,7 +50,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 px-3 space-y-1">
-        <div className="px-3 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70">ECOSYSTEM</div>
+        <div className="px-3 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70">{t.ecosystem}</div>
         {nav.map(({ to, label, icon: Icon }) => {
           const active = pathname === to || pathname.startsWith(to + "/");
           return (
@@ -75,7 +78,7 @@ export function Sidebar() {
       <div className="p-4 border-t border-border/60">
         <div className="glass rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] tracking-[0.3em] text-muted-foreground">MOMENTUM</span>
+            <span className="text-[10px] tracking-[0.3em] text-muted-foreground">{t.momentum}</span>
             <span className="font-mono text-xs text-primary">{core?.streak ?? 0}</span>
           </div>
           <div className="h-1 rounded-full bg-secondary overflow-hidden">
@@ -86,7 +89,7 @@ export function Sidebar() {
           </div>
           <div className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            <span>{`${core?.streak ?? 0}-day streak`}</span>
+            <span>{t.streak(core?.streak ?? 0)}</span>
           </div>
         </div>
         <Link
@@ -94,7 +97,7 @@ export function Sidebar() {
           className="mt-3 flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           <Settings className="h-3.5 w-3.5" />
-          Preferences
+          {t.navPreferences}
         </Link>
         {session ? (
           <button
@@ -102,7 +105,7 @@ export function Sidebar() {
             className="mt-1 w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <LogOut className="h-3.5 w-3.5" />
-            Sign out
+            {t.signOut}
           </button>
         ) : (
           <Link
@@ -110,7 +113,7 @@ export function Sidebar() {
             className="mt-1 w-full flex items-center gap-2 px-3 py-2 text-xs text-primary hover:text-foreground transition-colors"
           >
             <LogOut className="h-3.5 w-3.5" />
-            Sign in to unlock
+            {t.signInUnlock}
           </Link>
         )}
       </div>

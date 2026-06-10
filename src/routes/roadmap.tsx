@@ -55,6 +55,7 @@ function RoadmapPage() {
           industry: industry.label,
           level: core.current_level ?? "beginner",
           goal: focus ?? profile?.goal ?? undefined,
+          ritualProfile: core.ritual_profile ?? undefined,
         },
       });
       const taggedRoadmap = { ...generated, industryId, generated_at: new Date().toISOString() };
@@ -73,7 +74,7 @@ function RoadmapPage() {
     } finally {
       setLoading(false);
     }
-  }, [core, industry.label, profile?.goal, genRoadmap, updateCore, industryId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [core, industry.label, profile?.goal, core?.ritual_profile, genRoadmap, updateCore, industryId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load this industry's roadmap from the map — only generate if none exists for this mode
   useEffect(() => {

@@ -23,25 +23,9 @@ import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
 import { useAuth } from "@/hooks/useAuth";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-// Mirrors the desktop Sidebar exactly
-const primaryNav = [
-  { to: "/app", label: "Mission Control", icon: LayoutDashboard },
-  { to: "/roadmap", label: "30-Day Roadmap", icon: Map },
-  { to: "/intelligence", label: "Intelligence", icon: Radio },
-  { to: "/mentor", label: "AI Mentor", icon: Sparkles },
-  { to: "/academy", label: "Academy", icon: GraduationCap },
-  { to: "/tutor", label: "AI Tutor", icon: BookOpen },
-  { to: "/network", label: "Network", icon: Users },
-  { to: "/studio", label: "Content Studio", icon: Video },
-  { to: "/profile", label: "Identity", icon: User2 },
-] as const;
-
-const accountNav = [
-  { to: "/settings", label: "Preferences", icon: Settings },
-] as const;
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
@@ -49,9 +33,27 @@ export function MobileNav() {
   const { industry, setIndustry } = useIndustry();
   const { user, signOut } = useAuth();
   const { state: core } = useAurumCoreState();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [initials, setInitials] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
+
+  // Nav arrays inside component so they react to language changes
+  const primaryNav = [
+    { to: "/app", label: t.navDashboard, icon: LayoutDashboard },
+    { to: "/roadmap", label: t.navRoadmap, icon: Map },
+    { to: "/intelligence", label: t.navIntelligence, icon: Radio },
+    { to: "/mentor", label: t.navMentor, icon: Sparkles },
+    { to: "/academy", label: t.navAcademy, icon: GraduationCap },
+    { to: "/tutor", label: t.navTutor, icon: BookOpen },
+    { to: "/network", label: t.navNetwork, icon: Users },
+    { to: "/studio", label: t.navStudio, icon: Video },
+    { to: "/profile", label: t.navIdentity, icon: User2 },
+  ] as const;
+
+  const accountNav = [
+    { to: "/settings", label: t.navPreferences, icon: Settings },
+  ] as const;
 
   const handleLogout = async () => {
     setOpen(false);
@@ -146,7 +148,7 @@ export function MobileNav() {
           <div className="px-5 pb-3 shrink-0">
             <div className="px-2 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70 flex items-center gap-2">
               <Compass className="h-3 w-3" />
-              INDUSTRY MODE
+              {t.industryLabel}
             </div>
             <div className="grid grid-cols-4 gap-2">
               {INDUSTRY_LIST.map((opt) => {
@@ -158,7 +160,7 @@ export function MobileNav() {
                     onClick={() => {
                       if (!active) {
                         setIndustry(opt.id);
-                        toast(`Entering ${opt.modeLabel}`, { description: opt.tagline });
+                        toast(t.enteringMode(opt.modeLabel), { description: opt.tagline });
                       }
                     }}
                     style={{ WebkitTapHighlightColor: "transparent" }}
@@ -185,7 +187,7 @@ export function MobileNav() {
 
           {/* Nav — scrollable */}
           <nav className="flex-1 overflow-y-auto px-3 pt-2 pb-2">
-            <div className="px-3 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70">ECOSYSTEM</div>
+            <div className="px-3 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70">{t.ecosystem}</div>
             <div className="space-y-0.5">
               {primaryNav.map(({ to, label, icon: Icon }) => {
                 const active = pathname === to || pathname.startsWith(to + "/");
@@ -249,7 +251,7 @@ export function MobileNav() {
                 <span className="h-8 w-8 rounded-lg flex items-center justify-center bg-secondary/40 shrink-0">
                   <LogOut className="h-4 w-4 text-muted-foreground" />
                 </span>
-                <span className="tracking-wide flex-1 text-left">Sign out</span>
+                <span className="tracking-wide flex-1 text-left">{t.signOut}</span>
               </button>
             </div>
           </nav>
@@ -258,7 +260,7 @@ export function MobileNav() {
           <div className="px-5 pb-6 pt-3 border-t border-border/40 shrink-0">
             <div className="glass rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2.5">
-                <span className="text-[10px] tracking-[0.3em] text-muted-foreground">MOMENTUM</span>
+                <span className="text-[10px] tracking-[0.3em] text-muted-foreground">{t.momentum}</span>
                 <span className="font-mono text-xs text-primary">{core?.streak ?? 0}</span>
               </div>
               <div className="h-1 rounded-full bg-secondary overflow-hidden">
@@ -269,7 +271,7 @@ export function MobileNav() {
               </div>
               <div className="mt-2.5 flex items-center gap-2 text-[11px] text-muted-foreground">
                 <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                <span>{`${core?.streak ?? 0}-day streak · ${industry.modeLabel}`}</span>
+                <span>{`${t.streak(core?.streak ?? 0)} · ${industry.modeLabel}`}</span>
               </div>
             </div>
           </div>
