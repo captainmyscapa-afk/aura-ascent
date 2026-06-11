@@ -142,14 +142,16 @@ export async function requireServerAuth(): Promise<{ id: string; email: string |
   // project's JWKS. This is the most reliable path for ES256 (asymmetric)
   // tokens, since it doesn't depend on Supabase's /auth/v1/user endpoint
   // having an up-to-date verification cache.
+  let localVerifyError = "";
   try {
     const claims = await verifyEs256Jwt(token, supabaseUrl);
     if (claims.sub) {
       return { id: claims.sub, email: claims.email };
     }
+    localVerifyError = "no sub claim after verification";
   } catch (e) {
-    const reason = e instanceof Error ? e.message : String(e);
-    console.warn("requireServerAuth: local JWT verification failed, falling back:", reason);
+    localVerifyError = e instanceof Error ? e.message : String(e);
+    console.warn("requireServerAuth: local JWT verification failed, falling back:", localVerifyError);
   }
 
   const apikey =
@@ -191,12 +193,14 @@ export async function requireServerAuth(): Promise<{ id: string; email: string |
     );
     const detail = body.replace(/\s+/g, " ").trim().slice(0, 200);
     throw new Error(
-      `Unauthorized: invalid or expired token (auth/v1/user returned ${res.status}; ${headerInfo}${detail ? "; body=" + detail : ""})`,
+      `Unauthorized: invalid or expired token (local: ${localVerifyError}; auth/v1/user returned ${res.status}; ${headerInfo}${detail ? "; body=" + detail : ""})`,
     );
   } catch (e) {
     if (e instanceof Error && e.message.startsWith("Unauthorized")) throw e;
     const reason = e instanceof Error ? e.message : String(e);
     console.error("requireServerAuth: request to /auth/v1/user failed:", reason);
-    throw new Error(`Unauthorized: invalid or expired token (request failed: ${reason})`);
+    throw new Error(
+      `Unauthorized: invalid or expired token (local: ${localVerifyError}; request failed: ${reason})`,
+    );
   }
 }
