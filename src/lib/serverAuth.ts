@@ -24,6 +24,8 @@ export async function requireServerAuth(): Promise<{ id: string; email: string |
   }
 
   const supabaseUrl = process.env["SUPABASE_URL"] ?? "";
+  const reasons: string[] = [];
+  if (!supabaseUrl) reasons.push("SUPABASE_URL not set");
 
   // Primary path (unchanged from the previous fix): validate the token via
   // /auth/v1/user using the publishable (anon) key. This is what worked on
@@ -38,9 +40,13 @@ export async function requireServerAuth(): Promise<{ id: string; email: string |
     if (!error && data?.user?.id) {
       return { id: data.user.id, email: data.user.email };
     }
-    if (error) console.error("requireServerAuth: getUser via publishable key failed:", error.message);
+    if (error) {
+      console.error("requireServerAuth: getUser via publishable key failed:", error.message);
+      reasons.push("publishable: " + error.message);
+    }
   } else {
     console.error("requireServerAuth: SUPABASE_PUBLISHABLE_KEY is not set");
+    reasons.push("SUPABASE_PUBLISHABLE_KEY not set");
   }
 
   // Fallback path: only runs if the primary path above failed or
@@ -57,8 +63,13 @@ export async function requireServerAuth(): Promise<{ id: string; email: string |
     if (!error && data?.user?.id) {
       return { id: data.user.id, email: data.user.email };
     }
-    if (error) console.error("requireServerAuth: getUser via service-role key failed:", error.message);
+    if (error) {
+      console.error("requireServerAuth: getUser via service-role key failed:", error.message);
+      reasons.push("service-role: " + error.message);
+    }
+  } else {
+    reasons.push("SUPABASE_SERVICE_ROLE_KEY not set");
   }
 
-  throw new Error("Unauthorized: invalid or expired token");
+  throw new Error("Unauthorized: invalid or expired token (" + reasons.join("; ") + ")");
 }
