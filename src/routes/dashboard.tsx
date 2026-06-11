@@ -427,6 +427,33 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, industryId, core?.id, industry.label]);
 
+  // CAP-60 fix: restore today's completed-ritual checkmarks on reload by
+  // matching today's daily_ritual entries in aurum_tasks against dailyTasks.
+  useEffect(() => {
+    if (!user || dailyTasks.length === 0) return;
+    let alive = true;
+    (async () => {
+      const today = isoDay();
+      const { data, error } = await supabase
+        .from("aurum_tasks")
+        .select("title")
+        .eq("user_id", user.id)
+        .eq("source", "daily_ritual")
+        .gte("completed_at", today + "T00:00:00Z");
+      if (!alive || error || !data) return;
+      const completedTitles = new Set((data as { title: string }[]).map((r) => r.title));
+      if (completedTitles.size === 0) return;
+      setDone((d) => {
+        const next = { ...d };
+        dailyTasks.forEach((t, i) => {
+          if (completedTitles.has(t)) next[i] = true;
+        });
+        return next;
+      });
+    })();
+    return () => { alive = false; };
+  }, [user, dailyTasks]);
+
   async function toggle(i: number) {
     const wasDone = !!done[i];
     setDone((d) => ({ ...d, [i]: !d[i] }));
@@ -748,7 +775,7 @@ export default function Dashboard() {
 
         <AnimateIn delay={120}>
         <aside className="space-y-6 lg:space-y-8">
-      <div className="space-y-6">
+      <div className="space-y-6 lg:-mt-[5.5rem]">
         <div className="flex flex-col items-center gap-2">
           <button onClick={() => setCalFilter("all")} className={"px-4 py-1.5 rounded-full border text-xs tracking-[0.2em] uppercase transition-all " + (calFilter === "all" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
             All industries

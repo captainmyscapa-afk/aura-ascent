@@ -4,7 +4,7 @@
  * Throws "Unauthorized" if the request has no valid Bearer token.
  */
 import { getRequest } from "@tanstack/react-start/server";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { createClient } from "@supabase/supabase-js";
 
 export async function requireServerAuth(): Promise<{ id: string; email: string | undefined }> {
   const request = getRequest();
@@ -23,24 +23,42 @@ export async function requireServerAuth(): Promise<{ id: string; email: string |
     throw new Error("Unauthorized: empty token");
   }
 
-  // Use the admin (service-role) client for getUser() rather than building a
-  // fresh client from SUPABASE_PUBLISHABLE_KEY. getUser() hits the protected
-  // /auth/v1/user endpoint, which requires a valid `apikey` header - if
-  // SUPABASE_PUBLISHABLE_KEY is missing or misconfigured in this deploy
-  // environment, that call fails even for a perfectly valid user token.
-  // supabaseAdmin already throws loudly at construction if its env vars
-  // (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY) are missing, so reusing it
-  // here removes that failure mode. Note: getUser(token) still validates the
-  // *user's token* - using the service-role key only affects the apikey
-  // header, it does not bypass per-user auth.
-  const { data, error } = await supabaseAdmin.auth.getUser(token);
-  if (error || !data?.user?.id) {
-    if (error) console.error("requireServerAuth: getUser failed:", error.message);
-    throw new Error("Unauthorized: invalid or expired token");
+  const supabaseUrl = process.env["SUPABASE_URL"] ?? "";
+
+  // Primary path (unchanged from the previous fix): validate the token via
+  // /auth/v1/user using the publishable (anon) key. This is what worked on
+  // localhost.
+  const publishableKey = process.env["SUPABASE_PUBLISHABLE_KEY"] ?? "";
+  if (publishableKey) {
+    const client = createClient(supabaseUrl, publishableKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await client.auth.getUser(token);
+    if (!error && data?.user?.id) {
+      return { id: data.user.id, email: data.user.email };
+    }
+    if (error) console.error("requireServerAuth: getUser via publishable key failed:", error.message);
+  } else {
+    console.error("requireServerAuth: SUPABASE_PUBLISHABLE_KEY is not set");
   }
 
-  return {
-    id: data.user.id,
-    email: data.user.email,
-  };
+  // Fallback path: only runs if the primary path above failed or
+  // SUPABASE_PUBLISHABLE_KEY was missing. Lovable Cloud also injects
+  // SUPABASE_SERVICE_ROLE_KEY, so retry with that as the apikey. This is
+  // additive - if it's not set (e.g. local dev), it's skipped entirely and
+  // behavior is identical to before.
+  const serviceRoleKey = process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? "";
+  if (serviceRoleKey) {
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await adminClient.auth.getUser(token);
+    if (!error && data?.user?.id) {
+      return { id: data.user.id, email: data.user.email };
+    }
+    if (error) console.error("requireServerAuth: getUser via service-role key failed:", error.message);
+  }
+
+  throw new Error("Unauthorized: invalid or expired token");
 }

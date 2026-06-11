@@ -22,7 +22,7 @@ export type AurumCoreState = {
   // Daily content
   daily_brief: unknown | null;
   daily_brief_date: string | null;
-  daily_tasks: unknown[];
+  daily_tasks: { mode?: string; tasks?: string[] } | null;
   daily_tasks_date: string | null;
   // AI context
   ai_summary: unknown | null;
@@ -85,7 +85,21 @@ function fromRow(row: Record<string, unknown> | null): AurumCoreState | null {
       return v;
     })(),
     daily_brief_date: (row.today_brief_date as string | null) ?? null,
-    daily_tasks: Array.isArray(row.daily_tasks) ? (row.daily_tasks as unknown[]) : [],
+    daily_tasks: (() => {
+      const v = row.daily_tasks;
+      if (!v) return null;
+      if (typeof v === "string") {
+        try {
+          return JSON.parse(v);
+        } catch {
+          return null;
+        }
+      }
+      // Legacy rows may have stored a plain array — normalize to the
+      // { mode, tasks } shape the dashboard expects.
+      if (Array.isArray(v)) return { tasks: v as string[] };
+      return v as { mode?: string; tasks?: string[] };
+    })(),
     daily_tasks_date: (row.daily_tasks_date as string | null) ?? null,
     ai_summary: (() => {
       const v = row.ai_summary;
@@ -177,9 +191,6 @@ export function useAurumCoreState() {
       setState((s) => {
         if (!s) return s;
         const safe = { ...patch };
-        if ("daily_tasks" in safe && !Array.isArray(safe.daily_tasks)) {
-          delete safe.daily_tasks;
-        }
         if ("upcoming_events" in safe && !Array.isArray(safe.upcoming_events)) {
           delete safe.upcoming_events;
         }

@@ -63,8 +63,9 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
   ];
 
   useEffect(() => {
+    if (messages.length === 0 && !pending) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [displayMessages, pending]);
+  }, [messages, pending]);
 
   const scheduleSave = (msgs: ConversationMessage[], convId: string | null) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
