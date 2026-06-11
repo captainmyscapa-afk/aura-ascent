@@ -58,8 +58,9 @@ export async function requireServerAuth(): Promise<{ id: string; email: string |
 
     const body = await res.text().catch(() => "");
     console.error("requireServerAuth: /auth/v1/user failed:", res.status, body.slice(0, 300));
+    const detail = body.replace(/\s+/g, " ").trim().slice(0, 200);
     throw new Error(
-      `Unauthorized: invalid or expired token (auth/v1/user returned ${res.status})`,
+      `Unauthorized: invalid or expired token (auth/v1/user returned ${res.status}${detail ? ": " + detail : ""})`,
     );
   } catch (e) {
     if (e instanceof Error && e.message.startsWith("Unauthorized")) throw e;
