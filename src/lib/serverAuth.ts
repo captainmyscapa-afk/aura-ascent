@@ -37,8 +37,12 @@ async function getJwks(supabaseUrl: string, forceRefresh = false): Promise<Jwk[]
   if (!forceRefresh && jwksCache && now - jwksCache.fetchedAt < JWKS_TTL_MS) {
     return jwksCache.keys;
   }
-  const res = await fetch(`${supabaseUrl}/auth/v1/.well-known/jwks.json`, {
-    headers: { Accept: "application/json" },
+  // Cache-bust: Supabase's JWKS endpoint sits behind Cloudflare's edge cache,
+  // and some PoPs were observed serving a stale cached JWKS that's missing a
+  // recently-rotated signing key. Appending a unique query string forces a
+  // cache miss so we always get the current document from origin.
+  const res = await fetch(`${supabaseUrl}/auth/v1/.well-known/jwks.json?_=${now}`, {
+    headers: { Accept: "application/json", "Cache-Control": "no-cache" },
   });
   if (!res.ok) {
     throw new Error(`jwks fetch failed: ${res.status}`);
