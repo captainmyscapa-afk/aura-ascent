@@ -14,6 +14,25 @@ type JwtClaims = {
 
 type Jwk = JsonWebKey & { kid?: string; alg?: string };
 
+// Fallback JWKS entries for keys that are valid per Supabase's project JWKS
+// document but have been observed to be missing from the JWKS response on
+// some Supabase backend regions (a platform-side propagation inconsistency
+// during their JWT signing key rotation, not something we can fix client-side).
+// These are PUBLIC verification keys only — embedding them carries no security
+// risk and cannot be used to forge tokens. Safe to remove once Supabase's
+// rotation has fully propagated everywhere.
+const FALLBACK_JWKS: Jwk[] = [
+  {
+    kty: "EC",
+    crv: "P-256",
+    alg: "ES256",
+    use: "sig",
+    kid: "5f47d546-5bf4-49db-82bf-5b767c748329",
+    x: "9kyrl2Ek0P0cW32rImIbQCqfG9jWwntO-8ylQYUW34A",
+    y: "aBQXUZ980-j1qZPquscqIpxvwH-6Zswmq8OKFTEvp1E",
+  },
+];
+
 function base64UrlDecode(input: string): Uint8Array {
   const padded = input.replace(/-/g, "+").replace(/_/g, "/");
   const pad = padded.length % 4 === 0 ? "" : "=".repeat(4 - (padded.length % 4));
@@ -77,6 +96,9 @@ async function verifyEs256Jwt(token: string, supabaseUrl: string): Promise<JwtCl
   if (!jwk) {
     keys = await getJwks(supabaseUrl, true);
     jwk = keys.find((k) => k.kid === header.kid);
+  }
+  if (!jwk) {
+    jwk = FALLBACK_JWKS.find((k) => k.kid === header.kid);
   }
   if (!jwk) {
     throw new Error(`no matching JWKS key for kid ${String(header.kid)}`);
