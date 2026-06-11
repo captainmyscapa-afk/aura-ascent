@@ -45,6 +45,8 @@ export async function requireServerAuth(): Promise<{ id: string; email: string |
       headers: {
         Authorization: `Bearer ${token}`,
         apikey,
+        Accept: "application/json",
+        "User-Agent": "AuraAscent-Server/1.0 (+https://aurum-ascend.lovable.app)",
       },
     });
 
@@ -57,10 +59,16 @@ export async function requireServerAuth(): Promise<{ id: string; email: string |
     }
 
     const body = await res.text().catch(() => "");
-    console.error("requireServerAuth: /auth/v1/user failed:", res.status, body.slice(0, 300));
+    const headerInfo = `ct=${res.headers.get("content-type") ?? "?"};cf-ray=${res.headers.get("cf-ray") ?? "?"};cf-mitigated=${res.headers.get("cf-mitigated") ?? "?"};server=${res.headers.get("server") ?? "?"}`;
+    console.error(
+      "requireServerAuth: /auth/v1/user failed:",
+      res.status,
+      headerInfo,
+      body.slice(0, 300),
+    );
     const detail = body.replace(/\s+/g, " ").trim().slice(0, 200);
     throw new Error(
-      `Unauthorized: invalid or expired token (auth/v1/user returned ${res.status}${detail ? ": " + detail : ""})`,
+      `Unauthorized: invalid or expired token (auth/v1/user returned ${res.status}; ${headerInfo}${detail ? "; body=" + detail : ""})`,
     );
   } catch (e) {
     if (e instanceof Error && e.message.startsWith("Unauthorized")) throw e;
