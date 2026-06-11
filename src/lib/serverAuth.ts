@@ -4,7 +4,6 @@
  * Throws "Unauthorized" if the request has no valid Bearer token.
  */
 import { getRequest } from "@tanstack/react-start/server";
-import { createClient } from "@supabase/supabase-js";
 
 export async function requireServerAuth(): Promise<{ id: string; email: string | undefined }> {
   const request = getRequest();
@@ -24,52 +23,48 @@ export async function requireServerAuth(): Promise<{ id: string; email: string |
   }
 
   const supabaseUrl = process.env["SUPABASE_URL"] ?? "";
-  const reasons: string[] = [];
-  if (!supabaseUrl) reasons.push("SUPABASE_URL not set");
-
-  // Primary path (unchanged from the previous fix): validate the token via
-  // /auth/v1/user using the publishable (anon) key. This is what worked on
-  // localhost.
-  const publishableKey = process.env["SUPABASE_PUBLISHABLE_KEY"] ?? "";
-  if (publishableKey) {
-    const client = createClient(supabaseUrl, publishableKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-    });
-    const { data, error } = await client.auth.getUser(token);
-    if (!error && data?.user?.id) {
-      return { id: data.user.id, email: data.user.email };
-    }
-    if (error) {
-      console.error("requireServerAuth: getUser via publishable key failed:", error.message);
-      reasons.push("publishable: " + error.message);
-    }
-  } else {
-    console.error("requireServerAuth: SUPABASE_PUBLISHABLE_KEY is not set");
-    reasons.push("SUPABASE_PUBLISHABLE_KEY not set");
+  if (!supabaseUrl) {
+    throw new Error("Unauthorized: invalid or expired token (SUPABASE_URL not set)");
   }
 
-  // Fallback path: only runs if the primary path above failed or
-  // SUPABASE_PUBLISHABLE_KEY was missing. Lovable Cloud also injects
-  // SUPABASE_SERVICE_ROLE_KEY, so retry with that as the apikey. This is
-  // additive - if it's not set (e.g. local dev), it's skipped entirely and
-  // behavior is identical to before.
-  const serviceRoleKey = process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? "";
-  if (serviceRoleKey) {
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-    });
-    const { data, error } = await adminClient.auth.getUser(token);
-    if (!error && data?.user?.id) {
-      return { id: data.user.id, email: data.user.email };
-    }
-    if (error) {
-      console.error("requireServerAuth: getUser via service-role key failed:", error.message);
-      reasons.push("service-role: " + error.message);
-    }
-  } else {
-    reasons.push("SUPABASE_SERVICE_ROLE_KEY not set");
+  const apikey =
+    process.env["SUPABASE_PUBLISHABLE_KEY"] ?? process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? "";
+  if (!apikey) {
+    throw new Error(
+      "Unauthorized: invalid or expired token (SUPABASE_PUBLISHABLE_KEY / SUPABASE_SERVICE_ROLE_KEY not set)",
+    );
   }
 
-  throw new Error("Unauthorized: invalid or expired token (" + reasons.join("; ") + ")");
+  // Validate the token directly against Supabase Auth's REST endpoint.
+  // This always performs server-side verification on Supabase's end and
+  // avoids supabase-js's local JWKS-based verification, which can fail in
+  // edge runtimes (e.g. "unrecognized JWT kid ... for algorithm ES256")
+  // when the JWKS fetch/cache doesn't pick up newer asymmetric signing keys.
+  try {
+    const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey,
+      },
+    });
+
+    if (res.ok) {
+      const user = (await res.json()) as { id?: string; email?: string };
+      if (user?.id) {
+        return { id: user.id, email: user.email };
+      }
+      throw new Error("Unauthorized: invalid or expired token (no user id in response)");
+    }
+
+    const body = await res.text().catch(() => "");
+    console.error("requireServerAuth: /auth/v1/user failed:", res.status, body.slice(0, 300));
+    throw new Error(
+      `Unauthorized: invalid or expired token (auth/v1/user returned ${res.status})`,
+    );
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith("Unauthorized")) throw e;
+    const reason = e instanceof Error ? e.message : String(e);
+    console.error("requireServerAuth: request to /auth/v1/user failed:", reason);
+    throw new Error(`Unauthorized: invalid or expired token (request failed: ${reason})`);
+  }
 }
