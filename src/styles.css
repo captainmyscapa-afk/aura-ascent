@@ -133,10 +133,10 @@
   --ambient-accent: oklch(0.48 0.20 215 / 28%);
 }
 [data-industry="villas"] {
-  /* Jaguar British Racing Green — dark prestige, almost black-green */
-  --ambient-1: oklch(0.36 0.14 152 / 55%);
-  --ambient-2: oklch(0.09 0.030 150);
-  --ambient-accent: oklch(0.32 0.16 150 / 32%);
+  /* Warm golden yellow — sun-drenched villa prestige */
+  --ambient-1: oklch(0.58 0.16 95 / 55%);
+  --ambient-2: oklch(0.10 0.025 95);
+  --ambient-accent: oklch(0.65 0.18 95 / 32%);
 }
 [data-industry="jets"] {
   /* Rich violet-purple — twilight sky, premium aviation */
