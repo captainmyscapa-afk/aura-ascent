@@ -6,6 +6,7 @@
  *   network_drafts   — 2  (email/DM drafts)
  *   mentor_messages  — 5  (mentor AI)
  *   tutor_messages   — 5  (tutor AI)
+ *   roadmap_help     — 5  (per-task AI help on the 30-day roadmap)
  *   roadmap          — preview only (blurred week 2-4)
  *   academy          — module 1 only
  *   intelligence     — overview (can read, but limited signals)
@@ -22,6 +23,7 @@ export const FREE_LIMITS = {
   network_drafts:  2,
   mentor_messages: 5,
   tutor_messages:  5,
+  roadmap_help:    5,
 } as const;
 
 export type FreeTierKey = keyof typeof FREE_LIMITS;

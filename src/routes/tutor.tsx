@@ -10,6 +10,8 @@ import { useMentorConversations } from "@/hooks/useMentorConversations";
 import type { ConversationMessage } from "@/hooks/useMentorConversations";
 import { useProGate, UsageBar } from "@/components/aurum/ProGate";
 import { UpgradeModal } from "@/components/aurum/UpgradeModal";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import type { T } from "@/lib/i18n/translations";
 
 export const Route = createFileRoute("/tutor")({
   component: Tutor,
@@ -17,20 +19,22 @@ export const Route = createFileRoute("/tutor")({
 
 const promptIcons = [BookOpen, Lightbulb, ListChecks, HelpCircle];
 
-function formatDate(iso: string) {
+function formatDate(iso: string, t: T, dateLocale: string) {
   const d = new Date(iso);
   const now = new Date();
   const diff = now.getTime() - d.getTime();
   const mins = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
-  if (mins < 60) return mins + "m ago";
-  if (hours < 24) return hours + "h ago";
-  if (days === 1) return "Yesterday";
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  if (mins < 60) return t.tutMinsAgo(mins);
+  if (hours < 24) return t.tutHoursAgo(hours);
+  if (days === 1) return t.tutYesterday;
+  return d.toLocaleDateString(dateLocale, { day: "numeric", month: "short" });
 }
 
 function Tutor() {
+  const { t, lang } = useLanguage();
+  const dateLocale = lang === "fr" ? "fr-FR" : "en-GB";
   const { industry, industryId } = useIndustry();
   const ask = useServerFn(askGemini);
   const genTitle = useServerFn(generateConversationTitle);
@@ -51,16 +55,11 @@ function Tutor() {
 4) End with a short check-for-understanding question.
 Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep tone calm, precise, and encouraging. Reference industry terminology: client="${industry.terms.client}", asset="${industry.terms.asset}", market="${industry.terms.market}".`;
 
-  const opener = "Welcome to the " + industry.trackName + " track. I am your AI Tutor — ask me to explain any module, term, or concept and I will break it down step-by-step. Where would you like to start?";
+  const opener = t.tutOpener(industry.trackName);
   const seed: ConversationMessage[] = [{ r: "ai", t: opener }];
   const displayMessages = messages.length > 0 ? messages : seed;
 
-  const suggestions = [
-    "Explain the fundamentals of the " + industry.label.toLowerCase() + " " + industry.terms.market.toLowerCase(),
-    "Walk me through module 1 of the " + industry.trackName + " step-by-step",
-    "What insider terminology should I master first?",
-    "Quiz me on a key concept from this track",
-  ];
+  const suggestions = t.tutSuggestions(industryId);
 
   useEffect(() => {
     if (messages.length === 0 && !pending) return;
@@ -88,7 +87,7 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
   const send = async (override?: string) => {
     const text = (override ?? input).trim();
     if (!text || pending) return;
-    if (!tutorGate.gate("You've used your 5 free tutor messages. Upgrade to Pro for unlimited AI tutoring.")) return;
+    if (!tutorGate.gate(t.tutGateMessage)) return;
     const next: ConversationMessage[] = [...displayMessages, { r: "me", t: text }];
     setMessages(next);
     setInput("");
@@ -123,7 +122,7 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
 
   return (
     <AppShell>
-      <UpgradeModal open={tutorGate.showUpgrade} onClose={() => tutorGate.setShowUpgrade(false)} reason="You've used your 5 free tutor messages. Upgrade to Pro for unlimited AI tutoring." />
+      <UpgradeModal open={tutorGate.showUpgrade} onClose={() => tutorGate.setShowUpgrade(false)} reason={t.tutGateMessage} />
       <div className="grid lg:grid-cols-[1fr_320px] gap-6 h-[calc(100vh-7rem)]">
         <div className="glass rounded-xl flex flex-col overflow-hidden">
           <div className="flex items-center gap-3 px-6 py-5 border-b border-border/60">
@@ -131,12 +130,12 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
               <GraduationCap className="h-4 w-4 text-primary-foreground" />
             </div>
             <div>
-              <div className="font-serif text-lg leading-tight">AURUM AI Tutor</div>
-              <div className="text-[11px] text-muted-foreground">{industry.trackName} · step-by-step learning</div>
+              <div className="font-serif text-lg leading-tight">{t.tutTitle}</div>
+              <div className="text-[11px] text-muted-foreground">{t.tutSubtitle(industry.trackName)}</div>
             </div>
             <span className="ml-auto inline-flex items-center gap-1.5 text-[10px] tracking-[0.3em] text-emerald-400/90">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              ONLINE
+              {t.tutOnline}
             </span>
           </div>
 
@@ -148,7 +147,7 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
                 </div>
               </div>
             ))}
-            {pending && <div className="text-xs text-muted-foreground italic">Tutor is composing...</div>}
+            {pending && <div className="text-xs text-muted-foreground italic">{t.tutComposing}</div>}
             <div ref={messagesEndRef} />
           </div>
 
@@ -158,7 +157,7 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
-                placeholder={"Ask the tutor to explain a " + industry.label.toLowerCase() + " concept..."}
+                placeholder={t.tutPlaceholder(industryId)}
                 className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
               />
               <button onClick={() => void send()} disabled={pending} className="h-9 w-9 rounded-full flex items-center justify-center text-primary-foreground disabled:opacity-50" style={{ background: "var(--gradient-gold)" }}>
@@ -171,12 +170,12 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
         <aside className="space-y-4 overflow-y-auto">
           <button onClick={startFresh} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-border hover:border-primary/40 text-sm transition-colors">
             <Plus className="h-4 w-4" />
-            New lesson
+            {t.tutNewLesson}
           </button>
 
           {!convsLoading && tutorConversations.length > 0 && (
             <div className="glass rounded-xl p-5">
-              <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">RECENT LESSONS</div>
+              <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">{t.tutRecentLessons}</div>
               <div className="space-y-2">
                 {tutorConversations.map((conv) => (
                   <div key={conv.id} className={"flex items-start gap-1 rounded-lg border transition-colors " + (activeConvId === conv.id ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/40")}>
@@ -184,7 +183,7 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
                       <span className="font-medium leading-tight line-clamp-2">{conv.title}</span>
                       <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        {formatDate(conv.updated_at)} · {conv.messages.length} messages
+                        {formatDate(conv.updated_at, t, dateLocale)} · {t.tutMessagesCount(conv.messages.length)}
                       </span>
                     </button>
                     <button
@@ -194,7 +193,7 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
                         await deleteConversation(conv.id);
                       }}
                       className="shrink-0 p-2 mt-1.5 text-muted-foreground hover:text-destructive transition-colors"
-                      title="Delete lesson"
+                      title={t.tutDeleteLesson}
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -205,14 +204,14 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
           )}
 
           <div className="glass rounded-xl p-5">
-            <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-4">LESSON STARTERS</div>
+            <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-4">{t.tutLessonStarters}</div>
             <div className="space-y-2">
-              {suggestions.map((t, i) => {
+              {suggestions.map((s, i) => {
                 const I = promptIcons[i % promptIcons.length];
                 return (
-                  <button key={t} onClick={() => void send(t)} disabled={pending} className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/40 text-left text-sm transition-colors disabled:opacity-50">
+                  <button key={s} onClick={() => void send(s)} disabled={pending} className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/40 text-left text-sm transition-colors disabled:opacity-50">
                     <I className="h-4 w-4 text-primary shrink-0" />
-                    <span>{t}</span>
+                    <span>{s}</span>
                   </button>
                 );
               })}
@@ -220,12 +219,12 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
           </div>
 
           <div className="glass rounded-xl p-5">
-            <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">ACTIVE TRACK</div>
+            <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">{t.tutActiveTrackLabel}</div>
             <ul className="text-xs text-foreground/90 space-y-2">
               <li>· {industry.trackName}</li>
-              <li>· {industry.trackProgress}/{industry.trackModules} modules complete</li>
-              <li>· Mode · {industry.modeLabel}</li>
-              <li>· Phase · {industry.phaseLabel}</li>
+              <li>· {t.tutModulesComplete(industry.trackProgress, industry.trackModules)}</li>
+              <li>· {t.tutModeLine(industry.modeLabel)}</li>
+              <li>· {t.tutPhaseLine(industry.phaseLabel)}</li>
             </ul>
           </div>
         </aside>

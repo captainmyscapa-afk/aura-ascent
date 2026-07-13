@@ -241,8 +241,11 @@ export type Database = {
           completed_at: string | null
           created_at: string | null
           description: string | null
+          due_date: string | null
           id: string
           priority: string | null
+          remind_at: string | null
+          reminder_sent: boolean
           source: string | null
           status: string | null
           title: string | null
@@ -252,8 +255,11 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           description?: string | null
+          due_date?: string | null
           id?: string
           priority?: string | null
+          remind_at?: string | null
+          reminder_sent?: boolean
           source?: string | null
           status?: string | null
           title?: string | null
@@ -263,8 +269,11 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           description?: string | null
+          due_date?: string | null
           id?: string
           priority?: string | null
+          remind_at?: string | null
+          reminder_sent?: boolean
           source?: string | null
           status?: string | null
           title?: string | null
@@ -975,9 +984,3 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
-
-export const Constants = {
-  public: {
-    Enums: {},
-  },
-} as const

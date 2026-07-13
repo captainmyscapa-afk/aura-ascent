@@ -12,27 +12,34 @@ import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 import { useMentorConversations } from "@/hooks/useMentorConversations";
 import { generateConversationTitle } from "@/lib/mentor.functions";
 import type { ConversationMessage } from "@/hooks/useMentorConversations";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import type { T } from "@/lib/i18n/translations";
 
 export const Route = createFileRoute("/mentor")({
   component: Mentor,
+  validateSearch: (search: Record<string, unknown>) => ({
+    prompt: search.prompt as string | undefined,
+  }),
 });
 
 const promptIcons = [Target, Compass, Zap, MessageCircle];
 
-function formatDate(iso: string) {
+function formatDate(iso: string, t: T, dateLocale: string) {
   const d = new Date(iso);
   const now = new Date();
   const diff = now.getTime() - d.getTime();
   const mins = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
-  if (mins < 60) return mins + "m ago";
-  if (hours < 24) return hours + "h ago";
-  if (days === 1) return "Yesterday";
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  if (mins < 60) return t.mentorMinAgo(mins);
+  if (hours < 24) return t.mentorHourAgo(hours);
+  if (days === 1) return t.mentorYesterday;
+  return d.toLocaleDateString(dateLocale, { day: "numeric", month: "short" });
 }
 
 function Mentor() {
+  const { t, lang } = useLanguage();
+  const dateLocale = lang === "fr" ? "fr-FR" : "en-GB";
   const { industry, industryId } = useIndustry();
   const { state: core } = useAurumCoreState();
   const { profile: userProfile } = useUserProfile();
@@ -42,19 +49,23 @@ function Mentor() {
   const { conversations, loading: convsLoading, createConversation, updateConversation, deleteConversation } = useMentorConversations();
   const mentorConversations = conversations.filter((c) => !c.industry.endsWith("-tutor"));
 
+  const mentorContent = t.mentorContent(industryId);
+
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const mentorGate = useProGate("mentor_messages");
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
-  const [prompts, setPrompts] = useState<string[]>([...industry.mentorPrompts]);
+  const [prompts, setPrompts] = useState<string[]>([...mentorContent.prompts]);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { prompt: seedPrompt } = Route.useSearch();
+  const firedSeedPrompt = useRef(false);
 
   const userName = userProfile?.full_name?.split(" ")[0] ?? "Operator";
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
-  const opener = "Good " + greeting + ", " + userName + ". I am your AURUM " + industry.mentorPersona.replace("AURUM · ", "") + " — here to help you break into " + industry.label.toLowerCase() + " at the highest level. What is your most pressing challenge right now?";
+  const greetingPeriod = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
+  const opener = t.mentorOpener(t.greeting(greetingPeriod), userName, mentorContent.persona.replace("AURUM · ", ""), industry.label);
 
   const seed: ConversationMessage[] = [{ r: "ai", t: opener }];
   const displayMessages = messages.length > 0 ? messages : seed;
@@ -82,10 +93,10 @@ function Mentor() {
     setInput("");
   };
 
-  const send = async () => {
-    const text = input.trim();
+  const send = async (overrideText?: string) => {
+    const text = (overrideText ?? input).trim();
     if (!text || pending) return;
-    if (!mentorGate.gate("You've used your 5 free mentor messages. Upgrade to Pro for unlimited access.")) return;
+    if (!mentorGate.gate(t.mentorGateMessage)) return;
     const next: ConversationMessage[] = [...displayMessages, { r: "me", t: text }];
     setMessages(next);
     setInput("");
@@ -109,19 +120,28 @@ function Mentor() {
         scheduleSave(final, activeConvId);
       }
     } catch (e) {
-      const errMsg = "Error: " + (e instanceof Error ? e.message : "Request failed");
+      const errMsg = t.mentorErrorPrefix + (e instanceof Error ? e.message : "Request failed");
       setMessages([...next, { r: "ai", t: errMsg }]);
     } finally {
       setPending(false);
     }
   };
 
+  // Deep-link support: ?prompt= arrives from Roadmap's "get help" action and
+  // auto-sends once, so the user lands with an answer already forming.
+  useEffect(() => {
+    if (!seedPrompt || firedSeedPrompt.current) return;
+    firedSeedPrompt.current = true;
+    void send(seedPrompt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedPrompt]);
+
   return (
     <AppShell>
       <UpgradeModal
         open={mentorGate.showUpgrade}
         onClose={() => mentorGate.setShowUpgrade(false)}
-        reason="You've used your 5 free mentor messages. Upgrade to Pro for unlimited AI mentorship."
+        reason={t.mentorGateMessageModal}
       />
       <div className="grid lg:grid-cols-[1fr_320px] gap-6 h-[calc(100vh-7rem)]">
         <div className="glass rounded-xl flex flex-col overflow-hidden">
@@ -130,16 +150,16 @@ function Mentor() {
               <Sparkles className="h-4 w-4 text-primary-foreground" />
             </div>
             <div>
-              <div className="font-serif text-lg leading-tight">{industry.mentorPersona}</div>
-              <div className="text-[11px] text-muted-foreground">{industry.mentorSpecialty}</div>
+              <div className="font-serif text-lg leading-tight">{mentorContent.persona}</div>
+              <div className="text-[11px] text-muted-foreground">{mentorContent.specialty}</div>
             </div>
             <div className="ml-auto flex items-center gap-3">
               {!mentorGate.isPro && (
-                <UsageBar used={mentorGate.limit - mentorGate.remaining} limit={mentorGate.limit} label="free messages" />
+                <UsageBar used={mentorGate.limit - mentorGate.remaining} limit={mentorGate.limit} label={t.mentorFreeMessages} />
               )}
               <span className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.3em] text-emerald-400/90">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                ONLINE
+                {t.mentorOnline}
               </span>
             </div>
           </div>
@@ -151,7 +171,7 @@ function Mentor() {
                 </div>
               </div>
             ))}
-            {pending && <div className="text-xs text-muted-foreground italic">AURUM is thinking...</div>}
+            {pending && <div className="text-xs text-muted-foreground italic">{t.mentorThinking}</div>}
             <div ref={messagesEndRef} />
           </div>
           <div className="border-t border-border/60 p-4">
@@ -160,7 +180,7 @@ function Mentor() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
-                placeholder={"Ask AURUM about " + industry.label.toLowerCase() + " — strategy, outreach, the market..."}
+                placeholder={t.mentorPlaceholder(industry.label)}
                 className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
               />
               <button onClick={() => void send()} disabled={pending} className="h-9 w-9 rounded-full flex items-center justify-center text-primary-foreground disabled:opacity-50" style={{ background: "var(--gradient-gold)" }}>
@@ -173,12 +193,12 @@ function Mentor() {
         <aside className="space-y-4 overflow-y-auto">
           <button onClick={startFresh} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-border hover:border-primary/40 text-sm transition-colors">
             <Plus className="h-4 w-4" />
-            New conversation
+            {t.mentorNewConversation}
           </button>
 
           {!convsLoading && mentorConversations.length > 0 && (
             <div className="glass rounded-xl p-5">
-              <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">RECENT CONVERSATIONS</div>
+              <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">{t.mentorRecentConversations}</div>
               <div className="space-y-2">
                 {mentorConversations.map((conv) => (
                   <div key={conv.id} className={"flex items-start gap-1 rounded-lg border transition-colors " + (activeConvId === conv.id ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/40")}>
@@ -186,7 +206,7 @@ function Mentor() {
                       <span className="font-medium leading-tight line-clamp-2">{conv.title}</span>
                       <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        {formatDate(conv.updated_at)} · {conv.messages.length} messages
+                        {t.mentorConvMeta(formatDate(conv.updated_at, t, dateLocale), conv.messages.length)}
                       </span>
                     </button>
                     <button
@@ -196,7 +216,7 @@ function Mentor() {
                         await deleteConversation(conv.id);
                       }}
                       className="shrink-0 p-2 mt-1.5 text-muted-foreground hover:text-destructive transition-colors"
-                      title="Delete conversation"
+                      title={t.mentorDeleteConversation}
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -208,18 +228,18 @@ function Mentor() {
 
           <div className="glass rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <div className="text-[10px] tracking-[0.34em] text-muted-foreground">QUICK INVOCATIONS</div>
-              <button onClick={() => setPrompts([...industry.mentorPrompts].sort(() => Math.random() - 0.5))} className="text-muted-foreground hover:text-primary transition-colors">
+              <div className="text-[10px] tracking-[0.34em] text-muted-foreground">{t.mentorQuickInvocations}</div>
+              <button onClick={() => setPrompts([...mentorContent.prompts].sort(() => Math.random() - 0.5))} className="text-muted-foreground hover:text-primary transition-colors">
                 <RefreshCw className="h-3.5 w-3.5" />
               </button>
             </div>
             <div className="space-y-2">
-              {prompts.map((t, i) => {
+              {prompts.map((p, i) => {
                 const I = promptIcons[i % promptIcons.length];
                 return (
-                  <button key={t} onClick={() => setInput(t)} className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/40 text-left text-sm transition-colors">
+                  <button key={p} onClick={() => setInput(p)} className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/40 text-left text-sm transition-colors">
                     <I className="h-4 w-4 text-primary shrink-0" />
-                    <span>{t}</span>
+                    <span>{p}</span>
                   </button>
                 );
               })}
@@ -227,11 +247,11 @@ function Mentor() {
           </div>
 
           <div className="glass rounded-xl p-5">
-            <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">CONTEXT LOADED</div>
+            <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">{t.mentorContextLoaded}</div>
             <ul className="text-xs text-foreground/90 space-y-2">
               <li>· {industry.modeLabel} · {industry.phaseLabel}</li>
-              <li>· {(core?.streak ?? 0) + "-day execution streak"}</li>
-              <li>· {(core?.execution_score ?? 0) + " tasks completed today"}</li>
+              <li>· {t.mentorExecutionStreak(core?.streak ?? 0)}</li>
+              <li>· {t.mentorTasksCompletedToday(core?.execution_score ?? 0)}</li>
             </ul>
           </div>
         </aside>

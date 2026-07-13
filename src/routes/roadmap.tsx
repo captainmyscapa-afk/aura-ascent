@@ -1,33 +1,145 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
-import { Sparkles, RefreshCw, CheckCircle2, Circle, Users, BookOpen, Send, Brain, Trophy } from "lucide-react";
+import { Sparkles, RefreshCw, CheckCircle2, Circle, Users, BookOpen, Send, Brain, Trophy, Loader2, ArrowUpRight } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { askGemini } from "@/lib/gemini.functions";
+import { useProGate } from "@/components/aurum/ProGate";
+import { UpgradeModal } from "@/components/aurum/UpgradeModal";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import type { T } from "@/lib/i18n/translations";
 import { generateRoadmap, type Roadmap, type RoadmapTask } from "@/lib/identity.functions";
 
 export const Route = createFileRoute("/roadmap")({
   component: RoadmapPage,
 });
 
-const TYPE_CONFIG: Record<RoadmapTask["type"], { label: string; icon: typeof Users; color: string; bg: string }> = {
-  networking: { label: "Networking", icon: Users,    color: "text-blue-400",    bg: "bg-blue-400/10 border-blue-400/20" },
-  content:    { label: "Content",    icon: Sparkles, color: "text-violet-400",  bg: "bg-violet-400/10 border-violet-400/20" },
-  learning:   { label: "Learning",   icon: BookOpen, color: "text-emerald-400", bg: "bg-emerald-400/10 border-emerald-400/20" },
-  outreach:   { label: "Outreach",   icon: Send,     color: "text-amber-400",   bg: "bg-amber-400/10 border-amber-400/20" },
-  mindset:    { label: "Mindset",    icon: Brain,    color: "text-rose-400",    bg: "bg-rose-400/10 border-rose-400/20" },
+const TYPE_CONFIG: Record<RoadmapTask["type"], { icon: typeof Users; color: string; bg: string }> = {
+  networking: { icon: Users,    color: "text-blue-400",    bg: "bg-blue-400/10 border-blue-400/20" },
+  content:    { icon: Sparkles, color: "text-violet-400",  bg: "bg-violet-400/10 border-violet-400/20" },
+  learning:   { icon: BookOpen, color: "text-emerald-400", bg: "bg-emerald-400/10 border-emerald-400/20" },
+  outreach:   { icon: Send,     color: "text-amber-400",   bg: "bg-amber-400/10 border-amber-400/20" },
+  mindset:    { icon: Brain,    color: "text-rose-400",    bg: "bg-rose-400/10 border-rose-400/20" },
 };
 
 const WEEK_BORDER = ["border-blue-400/30", "border-violet-400/30", "border-emerald-400/30", "border-amber-400/30"];
 const WEEK_BG     = ["bg-blue-400/5",      "bg-violet-400/5",      "bg-emerald-400/5",      "bg-amber-400/5"];
 
+/**
+ * A brand-new user staring at "Research the global luxury yacht market size and
+ * growth rates" doesn't need a link to another page — they need the answer.
+ * Clicking "Get help" generates task-specific guidance right there: facts if
+ * it's research, a concrete mini-plan if it's an action, a short exercise if
+ * it's mindset. "Continue in Mentor" is offered for anyone who wants to go deeper.
+ */
+function TaskHelp({
+  task,
+  industryLabel,
+  lang,
+  t,
+  gate,
+  onUsed,
+}: {
+  task: RoadmapTask;
+  industryLabel: string;
+  lang: "en" | "fr";
+  t: T;
+  gate: (reason?: string) => boolean;
+  onUsed: () => void;
+}) {
+  const ask = useServerFn(askGemini);
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const toggle = async () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    setOpen(true);
+    if (text || loading) return;
+    if (!gate(t.roadmapHelpGateMessage)) {
+      setOpen(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const { text: reply } = await ask({
+        data: {
+          system: `You are AURUM, an expert mentor for someone breaking into the ${industryLabel} industry. A user on their 30-day roadmap is stuck on one task and needs real help completing it right now — not encouragement, not a link to click. If it's research, give real facts, figures, or estimates and how to verify them. If it's an action (outreach, content, networking), give a concrete step-by-step mini-plan or a short template they can use immediately. If it's a mindset task, give one short concrete exercise. Be specific, no generic advice, never say "it depends". Keep it under 180 words, plain text, short paragraphs or a tight numbered list. ${lang === "fr" ? "Respond in French." : "Respond in English."}`,
+          messages: [{ role: "user" as const, text: `Task: "${task.title}". ${task.detail}` }],
+        },
+      });
+      setText(reply || null);
+      onUsed();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t.roadmapHelpFailed);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mt-2">
+      <button
+        onClick={() => void toggle()}
+        className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-primary/80 hover:text-primary transition-colors"
+      >
+        <Sparkles className="h-3 w-3" />
+        {open ? t.roadmapHideHelp : t.roadmapGetHelp}
+      </button>
+      {open && (
+        <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 p-3.5 animate-fade-up">
+          {loading ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+              {t.roadmapHelpLoading}
+            </div>
+          ) : error ? (
+            <div className="text-xs text-destructive">{error}</div>
+          ) : (
+            <>
+              <p className="text-sm leading-relaxed whitespace-pre-line text-foreground/90">{text}</p>
+              <Link
+                to="/mentor"
+                search={{ prompt: `Continue helping me with this roadmap task: "${task.title}" — ${task.detail}` }}
+                className="mt-3 inline-flex items-center gap-1 text-[10px] tracking-[0.2em] uppercase text-primary/80 hover:text-primary transition-colors"
+              >
+                {t.roadmapContinueInMentor}
+                <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RoadmapPage() {
   const { industry, industryId } = useIndustry();
   const { state: core, update: updateCore } = useAurumCoreState();
   const { profile } = useUserProfile();
+  const { user } = useAuth();
+  const { t, lang } = useLanguage();
+  const helpGate = useProGate("roadmap_help");
   const genRoadmap = useServerFn(generateRoadmap);
+
+  const typeLabels: Record<RoadmapTask["type"], string> = {
+    networking: t.typeNetworking,
+    content: t.typeContent,
+    learning: t.typeLearning,
+    outreach: t.typeOutreach,
+    mindset: t.typeMindset,
+  };
 
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,6 +168,7 @@ function RoadmapPage() {
           level: core.current_level ?? "beginner",
           goal: focus ?? profile?.goal ?? undefined,
           ritualProfile: core.ritual_profile ?? undefined,
+          language: lang,
         },
       });
       const taggedRoadmap = { ...generated, industryId, generated_at: new Date().toISOString() };
@@ -74,7 +187,7 @@ function RoadmapPage() {
     } finally {
       setLoading(false);
     }
-  }, [core, industry.label, profile?.goal, core?.ritual_profile, genRoadmap, updateCore, industryId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [core, industry.label, profile?.goal, core?.ritual_profile, genRoadmap, updateCore, industryId, lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load this industry's roadmap from the map — only generate if none exists for this mode
   useEffect(() => {
@@ -91,14 +204,30 @@ function RoadmapPage() {
     }
   }, [core?.id, industryId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const toggleTask = useCallback(async (taskId: string) => {
+  const toggleTask = useCallback(async (task: RoadmapTask) => {
+    const nowDone = !completed[task.id];
     setCompleted((prev) => {
-      const next = { ...prev, [taskId]: !prev[taskId] };
+      const next = { ...prev, [task.id]: nowDone };
       const progressMap = getProgressMap();
       updateCore({ roadmap_progress: { ...progressMap, [industryId]: next } as unknown as null });
       return next;
     });
-  }, [updateCore, core?.roadmap_progress, industryId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Mirror onto aurum_tasks so completions also show up on the Calendar page (CAP-85).
+    if (!user) return;
+    await supabase.from("aurum_tasks").delete().eq("user_id", user.id).eq("source", "roadmap").eq("title", task.title);
+    if (nowDone) {
+      await supabase.from("aurum_tasks").insert({
+        user_id: user.id,
+        title: task.title,
+        description: task.detail,
+        status: "completed",
+        priority: "medium",
+        source: "roadmap",
+        completed_at: new Date().toISOString(),
+      });
+    }
+  }, [updateCore, core?.roadmap_progress, industryId, completed, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalTasks = roadmap?.weeks.flatMap(w => w.days.flatMap(d => d.tasks)).length ?? 0;
   const completedCount = Object.values(completed).filter(Boolean).length;
@@ -113,19 +242,23 @@ function RoadmapPage() {
 
   return (
     <AppShell>
+      <UpgradeModal
+        open={helpGate.showUpgrade}
+        onClose={() => helpGate.setShowUpgrade(false)}
+        reason={t.roadmapHelpGateMessage}
+      />
       {/* Header */}
       <div className="mb-8 animate-fade-up">
         <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">
-          ROADMAP · {industry.modeLabel.toUpperCase()}
+          {t.roadmapEyebrow(industry.modeLabel)}
         </div>
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="font-serif text-4xl sm:text-5xl leading-tight">
-              {loading ? "Building your roadmap…" : (roadmap?.headline ?? "Your 30-Day Plan")}
+              {loading ? t.roadmapBuilding : (roadmap?.headline ?? t.roadmapDefaultHeadline)}
             </h1>
             <p className="mt-3 text-sm text-muted-foreground max-w-xl">
-              A personalized 30-day entry plan built around your industry, level, and goals.
-              Specific daily actions — check them off as you go.
+              {t.roadmapDescription}
             </p>
             {error && (
               <div className="mt-3 text-sm text-destructive border border-destructive/30 rounded-lg px-4 py-2.5 bg-destructive/5 max-w-xl">
@@ -139,7 +272,7 @@ function RoadmapPage() {
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:border-primary/40 text-sm text-muted-foreground hover:text-foreground transition-all disabled:opacity-50 shrink-0"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            {loading ? "Generating…" : "Regenerate"}
+            {loading ? t.roadmapGenerating : t.roadmapRegenerate}
           </button>
         </div>
       </div>
@@ -148,7 +281,7 @@ function RoadmapPage() {
       {roadmap && !loading && (
         <div className="glass rounded-xl p-5 mb-8 animate-fade-up">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-[10px] tracking-[0.3em] text-muted-foreground uppercase">Overall progress</div>
+            <div className="text-[10px] tracking-[0.3em] text-muted-foreground uppercase">{t.roadmapOverallProgress}</div>
             <div className="font-mono text-sm text-primary">{completedCount} / {totalTasks} · {pct}%</div>
           </div>
           <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
@@ -162,7 +295,7 @@ function RoadmapPage() {
               const Icon = cfg.icon;
               return (
                 <div key={type} className={`flex items-center gap-1.5 text-[11px] ${cfg.color}`}>
-                  <Icon className="h-3 w-3" />{cfg.label}
+                  <Icon className="h-3 w-3" />{typeLabels[type]}
                 </div>
               );
             })}
@@ -179,10 +312,9 @@ function RoadmapPage() {
               <Sparkles className="h-5 w-5 text-primary-foreground" />
             </div>
           </div>
-          <p className="font-serif text-2xl mb-2">Architecting your roadmap…</p>
+          <p className="font-serif text-2xl mb-2">{t.roadmapArchitecting}</p>
           <p className="text-sm text-muted-foreground">
-            AURUM is building 30 days of precision execution for {industry.label}.
-            This takes about 15 seconds.
+            {t.roadmapArchitectingDesc(industry.label)}
           </p>
         </div>
       )}
@@ -202,7 +334,7 @@ function RoadmapPage() {
                     : "border-border text-muted-foreground hover:border-primary/30"
                 }`}
               >
-                <span className="hidden sm:inline">Week {week.week} · </span>{week.theme}
+                <span className="hidden sm:inline">{t.roadmapWeekLabel(week.week)}</span>{week.theme}
               </button>
             ))}
           </div>
@@ -212,7 +344,7 @@ function RoadmapPage() {
             <div className={`glass rounded-2xl border ${WEEK_BORDER[activeWeek]} p-1 animate-fade-up`}>
               {/* Week header */}
               <div className={`rounded-xl p-6 mb-1 ${WEEK_BG[activeWeek]}`}>
-                <div className="text-[10px] tracking-[0.3em] text-primary/80 mb-1">WEEK {roadmap.weeks[activeWeek].week}</div>
+                <div className="text-[10px] tracking-[0.3em] text-primary/80 mb-1">{t.roadmapWeekHeader(roadmap.weeks[activeWeek].week)}</div>
                 <div className="font-serif text-2xl mb-1">{roadmap.weeks[activeWeek].theme}</div>
                 <p className="text-sm text-muted-foreground">{roadmap.weeks[activeWeek].focus}</p>
               </div>
@@ -248,8 +380,8 @@ function RoadmapPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <span className="text-sm font-medium">{day.theme}</span>
-                            {isToday && <span className="text-[9px] tracking-[0.25em] text-primary bg-primary/10 px-2 py-0.5 rounded-full">TODAY</span>}
-                            {isMilestone && <span className="flex items-center gap-1 text-[9px] tracking-[0.2em] text-primary"><Trophy className="h-3 w-3" /> MILESTONE</span>}
+                            {isToday && <span className="text-[9px] tracking-[0.25em] text-primary bg-primary/10 px-2 py-0.5 rounded-full">{t.today}</span>}
+                            {isMilestone && <span className="flex items-center gap-1 text-[9px] tracking-[0.2em] text-primary"><Trophy className="h-3 w-3" /> {t.roadmapMilestone}</span>}
                           </div>
                           {isMilestone && <p className="text-xs text-primary/80 italic mb-3">{day.milestone}</p>}
 
@@ -260,30 +392,43 @@ function RoadmapPage() {
                               const Icon = cfg.icon;
                               const done = !!completed[task.id];
                               return (
-                                <button
+                                <div
                                   key={task.id}
-                                  onClick={() => toggleTask(task.id)}
-                                  className={`w-full text-left flex items-start gap-3 p-3 rounded-lg border transition-all ${
-                                    done ? "bg-secondary/20 border-border/30 opacity-60" : `${cfg.bg} hover:opacity-90`
+                                  className={`flex items-start gap-3 p-3 rounded-lg border transition-all ${
+                                    done ? "bg-secondary/20 border-border/30 opacity-60" : cfg.bg
                                   }`}
                                 >
-                                  <div className="mt-0.5 shrink-0">
+                                  <button
+                                    onClick={() => void toggleTask(task)}
+                                    className="mt-0.5 shrink-0"
+                                    aria-label={done ? t.roadmapMarkIncomplete : t.roadmapMarkComplete}
+                                  >
                                     {done
                                       ? <CheckCircle2 className="h-4 w-4 text-primary" />
                                       : <Circle className={`h-4 w-4 ${cfg.color}`} />
                                     }
-                                  </div>
+                                  </button>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                                       <span className={`flex items-center gap-1 text-[9px] tracking-[0.2em] uppercase ${cfg.color}`}>
-                                        <Icon className="h-2.5 w-2.5" />{cfg.label}
+                                        <Icon className="h-2.5 w-2.5" />{typeLabels[task.type] ?? typeLabels.learning}
                                       </span>
                                       <span className="text-[10px] text-muted-foreground font-mono">{task.duration}</span>
                                     </div>
                                     <div className={`text-sm font-medium ${done ? "line-through text-muted-foreground" : ""}`}>{task.title}</div>
                                     <div className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{task.detail}</div>
+                                    {!done && (
+                                      <TaskHelp
+                                        task={task}
+                                        industryLabel={industry.label}
+                                        lang={lang}
+                                        t={t}
+                                        gate={helpGate.gate}
+                                        onUsed={() => void helpGate.increment("roadmap_help")}
+                                      />
+                                    )}
                                   </div>
-                                </button>
+                                </div>
                               );
                             })}
                           </div>
@@ -300,11 +445,11 @@ function RoadmapPage() {
           <div className="flex justify-between mt-6">
             <button onClick={() => setActiveWeek(w => Math.max(0, w - 1))} disabled={activeWeek === 0}
               className="px-4 py-2 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all disabled:opacity-30">
-              ← Previous week
+              {t.roadmapPrevWeek}
             </button>
             <button onClick={() => setActiveWeek(w => Math.min(3, w + 1))} disabled={activeWeek === 3}
               className="px-4 py-2 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all disabled:opacity-30">
-              Next week →
+              {t.roadmapNextWeek}
             </button>
           </div>
         </>

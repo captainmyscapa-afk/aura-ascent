@@ -11,6 +11,8 @@ import type { IndustryId } from "@/lib/industry/types";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import type { T } from "@/lib/i18n/translations";
 
 // Admin status comes from user_profiles.is_admin in Supabase — no email in client bundle
 const PASS_SCORE = 3;
@@ -89,6 +91,7 @@ export const Route = createFileRoute("/academy")({
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 function Academy() {
+  const { t } = useLanguage();
   const { industry, industryId, setIndustry } = useIndustry();
   const { user } = useAuth();
   const { track } = Route.useSearch();
@@ -313,26 +316,26 @@ function Academy() {
     <AppShell>
       <div className="mb-10 animate-fade-up">
         <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">
-          ACADEMY · {industry.modeLabel.toUpperCase()}
+          {t.acadEyebrow(industry.modeLabel.toUpperCase())}
         </div>
         <h1 className="font-serif text-4xl sm:text-5xl">
-          Become an insider — <span className="italic text-gold-gradient">methodically.</span>
+          {t.acadHeroPre} <span className="italic text-gold-gradient">{t.acadHeroEm}</span>
         </h1>
       </div>
 
       {/* Track selector — unchanged */}
-      <SectionHeading eyebrow="TRACKS" title="Industry curricula" />
+      <SectionHeading eyebrow={t.acadTracks} title={t.acadIndustryCurricula} />
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-14">
-        {INDUSTRY_LIST.map((t) => {
-          const active = t.id === industryId;
+        {INDUSTRY_LIST.map((ind) => {
+          const active = ind.id === industryId;
           return (
             <button
-              key={t.id}
-              onClick={() => { setIndustry(t.id); goBack(); }}
+              key={ind.id}
+              onClick={() => { setIndustry(ind.id); goBack(); }}
               className={`text-left glass rounded-xl overflow-hidden group cursor-pointer ${active ? "ring-gold" : ""}`}
             >
               <div className="relative h-40 overflow-hidden">
-                <img src={t.ambientImage} alt={t.trackName} className="h-full w-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" loading="lazy" width={800} height={600} />
+                <img src={ind.ambientImage} alt={ind.trackName} className="h-full w-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" loading="lazy" width={800} height={600} />
                 <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
               </div>
               <div className="p-5">
@@ -342,18 +345,18 @@ function Academy() {
                   const pct = total > 0 ? (totalDone / total) * 100 : 0;
                   return (
                     <>
-                      <div className="font-serif text-lg">{t.trackName}</div>
-                      {t.id === "yachts" ? (
+                      <div className="font-serif text-lg">{ind.trackName}</div>
+                      {ind.id === "yachts" ? (
                         <>
-                          <div className="mt-1 text-xs text-muted-foreground">{total > 0 ? `${total} modules` : "10 modules"}</div>
+                          <div className="mt-1 text-xs text-muted-foreground">{t.acadModules(total > 0 ? total : 10)}</div>
                           <div className="mt-4 h-1 bg-secondary rounded-full overflow-hidden">
                             <div className="h-full bg-[var(--gradient-gold)]" style={{ width: `${pct}%` }} />
                           </div>
-                          <div className="mt-2 text-[11px] text-muted-foreground font-mono">{totalDone}/{total || 10} complete</div>
+                          <div className="mt-2 text-[11px] text-muted-foreground font-mono">{t.acadComplete(totalDone, total || 10)}</div>
                         </>
                       ) : (
                         <>
-                          <div className="mt-1 text-xs text-muted-foreground">Coming soon</div>
+                          <div className="mt-1 text-xs text-muted-foreground">{t.acadComingSoon}</div>
                           <div className="mt-4 h-1 bg-secondary/40 rounded-full overflow-hidden" />
                           <div className="mt-2 text-[11px] text-muted-foreground font-mono">—</div>
                         </>
@@ -377,14 +380,15 @@ function Academy() {
               <Sparkles className="h-5 w-5 text-primary-foreground" />
             </div>
           </div>
-          <p className="font-serif text-2xl mb-2">{industry.trackName} — Coming Soon</p>
+          <p className="font-serif text-2xl mb-2">{t.acadComingSoonTitle(industry.trackName)}</p>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-            This curriculum is being crafted by industry insiders. Switch to the Yacht Brokerage track to start learning now.
+            {t.acadComingSoonDesc}
           </p>
         </div>
       ) : view === "list" ? (
         <>
           <ModuleList
+            t={t}
             phases={phases}
             modules={modules}
             progress={progress}
@@ -400,14 +404,15 @@ function Academy() {
           <div className="glass rounded-xl mt-8 p-6 flex items-start gap-4">
             <Sparkles className="h-5 w-5 text-primary mt-0.5" />
             <div>
-              <div className="font-serif text-lg">AI tutor for this module</div>
-              <p className="text-sm text-muted-foreground mt-1 max-w-2xl">{industry.tutorBlurb}</p>
-              <Link to="/tutor" className="mt-3 inline-block text-sm text-primary hover:underline">Begin role-play →</Link>
+              <div className="font-serif text-lg">{t.acadAiTutorTitle}</div>
+              <p className="text-sm text-muted-foreground mt-1 max-w-2xl">{t.acadTutorBlurb(industryId)}</p>
+              <Link to="/tutor" className="mt-3 inline-block text-sm text-primary hover:underline">{t.acadBeginRolePlay}</Link>
             </div>
           </div>
         </>
       ) : view === "quiz" ? (
         <QuizView
+          t={t}
           module={activeModule!}
           questions={activeQuestions}
           answers={quizAnswers}
@@ -421,6 +426,7 @@ function Academy() {
         />
       ) : (
         <ModuleDetail
+          t={t}
           module={activeModule!}
           pdfs={activePdfs}
           questions={activeQuestions}
@@ -461,8 +467,9 @@ function ComingSoon({ trackName }: { trackName: string }) {
 // ─── Module List ─────────────────────────────────────────────────────────────
 
 function ModuleList({
-  phases, modules, progress, getState, isAdmin, adminMode, isTrackLocked, onToggleAdmin, onOpenModule, loading, totalDone,
+  t, phases, modules, progress, getState, isAdmin, adminMode, isTrackLocked, onToggleAdmin, onOpenModule, loading, totalDone,
 }: {
+  t: T;
   phases: Record<number, { title: string; mods: DbModule[] }>;
   modules: DbModule[];
   progress: Record<string, ModuleProgress>;
@@ -484,8 +491,8 @@ function ModuleList({
             <Lock className="h-4 w-4 text-primary-foreground" />
           </div>
           <div>
-            <div className="font-medium text-sm">Course coming soon</div>
-            <p className="text-xs text-muted-foreground mt-0.5">This curriculum is being built. Switch to Yacht Brokerage to start learning now.</p>
+            <div className="font-medium text-sm">{t.acadCourseComingSoon}</div>
+            <p className="text-xs text-muted-foreground mt-0.5">{t.acadCourseComingSoonDesc}</p>
           </div>
         </div>
       )}
@@ -493,23 +500,23 @@ function ModuleList({
       {/* Admin notice for non-yacht tracks */}
       {isAdmin && adminMode && modules.length > 0 && modules[0].track !== "yachts" && (
         <div className="glass rounded-xl p-4 mb-5 border border-amber-400/30 bg-amber-400/5 text-xs text-amber-400/90 animate-fade-up">
-          ⚠ Admin view — this track is locked for users. Add content and quizzes here to prepare for launch.
+          {t.acadAdminViewNotice}
         </div>
       )}
 
       <div className="flex items-center justify-between mb-5">
         <div>
-          <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-1">ACTIVE TRACK · {modules.length > 0 ? modules[0].track.toUpperCase() : "YACHT BROKERAGE"}</div>
-          <h2 className="font-serif text-xl sm:text-[22px] leading-tight">Your 10-module programme</h2>
+          <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-1">{t.acadActiveTrack(modules.length > 0 ? modules[0].track.toUpperCase() : t.acadYachtBrokerage)}</div>
+          <h2 className="font-serif text-xl sm:text-[22px] leading-tight">{t.acadYourProgramme}</h2>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground font-mono">{totalDone}/10 complete</span>
+          <span className="text-xs text-muted-foreground font-mono">{t.acadOfTenComplete(totalDone)}</span>
           {isAdmin && (
             <button
               onClick={onToggleAdmin}
               className={`flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 rounded-lg border transition-all ${adminMode ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:border-primary/40"}`}
             >
-              <Settings className="h-3 w-3" /> Admin
+              <Settings className="h-3 w-3" /> {t.acadAdmin}
             </button>
           )}
         </div>
@@ -525,9 +532,9 @@ function ModuleList({
               <Sparkles className="h-5 w-5 text-primary-foreground" />
             </div>
           </div>
-          <p className="font-serif text-2xl mb-2">Coming Soon</p>
+          <p className="font-serif text-2xl mb-2">{t.acadComingSoon}</p>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-            This curriculum is being crafted by industry insiders. Switch to the Yacht Brokerage track to start learning now.
+            {t.acadComingSoonDesc}
           </p>
         </div>
       ) : (
@@ -535,7 +542,7 @@ function ModuleList({
           {Object.entries(phases).sort(([a], [b]) => +a - +b).map(([phaseNum, { title, mods }]) => (
             <div key={phaseNum}>
               <div className="text-[10px] tracking-[0.34em] text-primary/70 uppercase mb-2 px-1">
-                Phase {phaseNum} — {title}
+                {t.acadPhase(phaseNum, t.acadPhaseTitle(+phaseNum, title))}
               </div>
               <div className="glass rounded-xl divide-y divide-border/60">
                 {mods.map((mod) => {
@@ -553,14 +560,14 @@ function ModuleList({
                         {String(mod.module_number).padStart(2, "0")}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-foreground text-sm">{mod.title}</div>
-                        {mod.video_url && <div className="text-[11px] text-muted-foreground mt-0.5">Video available</div>}
-                        {!mod.video_url && adminMode && <div className="text-[11px] text-amber-400/80 mt-0.5">No video yet</div>}
+                        <div className="text-foreground text-sm">{t.acadModuleTitle(mod.track, mod.module_number, mod.title)}</div>
+                        {mod.video_url && <div className="text-[11px] text-muted-foreground mt-0.5">{t.acadVideoAvailable}</div>}
+                        {!mod.video_url && adminMode && <div className="text-[11px] text-amber-400/80 mt-0.5">{t.acadNoVideoYet}</div>}
                       </div>
                       {state === "done" && <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />}
                       {state === "current" && !adminMode && (
                         <span className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.2em] text-primary shrink-0">
-                          <Play className="h-3 w-3" /> Start
+                          <Play className="h-3 w-3" /> {t.acadStart}
                         </span>
                       )}
                       {state === "locked" && !isAdmin && <Lock className="h-4 w-4 text-muted-foreground shrink-0" />}
@@ -580,9 +587,10 @@ function ModuleList({
 // ─── Module Detail ────────────────────────────────────────────────────────────
 
 function ModuleDetail({
-  module, pdfs, questions, progress, isAdmin, adminMode, editingModule,
+  t, module, pdfs, questions, progress, isAdmin, adminMode, editingModule,
   onSetEditing, onBack, onStartQuiz, onMarkWatched, onReloadAll,
 }: {
+  t: T;
   module: DbModule;
   pdfs: DbPdf[];
   questions: DbQuestion[];
@@ -606,21 +614,21 @@ function ModuleDetail({
   return (
     <div className="animate-fade-up">
       <button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6">
-        <ChevronLeft className="h-4 w-4" /> Back to modules
+        <ChevronLeft className="h-4 w-4" /> {t.acadBackToModules}
       </button>
 
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
           <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-1">
-            MODULE {String(module.module_number).padStart(2, "0")} · PHASE {module.phase_number}
+            {t.acadModuleOf(String(module.module_number).padStart(2, "0"), module.phase_number)}
           </div>
-          <h2 className="font-serif text-2xl sm:text-3xl leading-tight">{module.title}</h2>
-          <div className="text-xs text-muted-foreground mt-1 tracking-wider uppercase">{module.phase_title}</div>
+          <h2 className="font-serif text-2xl sm:text-3xl leading-tight">{t.acadModuleTitle(module.track, module.module_number, module.title)}</h2>
+          <div className="text-xs text-muted-foreground mt-1 tracking-wider uppercase">{t.acadPhaseTitle(module.phase_number, module.phase_title)}</div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {quizPassed && (
             <span className="inline-flex items-center gap-1 text-[10px] tracking-[0.2em] text-primary">
-              <CheckCircle2 className="h-3.5 w-3.5" /> COMPLETED
+              <CheckCircle2 className="h-3.5 w-3.5" /> {t.acadCompleted}
             </span>
           )}
           {isAdmin && adminMode && (
@@ -628,7 +636,7 @@ function ModuleDetail({
               onClick={() => onSetEditing(isEditing ? null : module.id)}
               className={`flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 rounded-lg border transition-all ${isEditing ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:border-primary/40"}`}
             >
-              <Settings className="h-3 w-3" /> {isEditing ? "Close" : "Edit"}
+              <Settings className="h-3 w-3" /> {isEditing ? t.acadClose : t.acadEdit}
             </button>
           )}
         </div>
@@ -647,7 +655,7 @@ function ModuleDetail({
               className="absolute inset-0 w-full h-full"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              title={module.title}
+              title={t.acadModuleTitle(module.track, module.module_number, module.title)}
             />
           </div>
         ) : (
@@ -655,8 +663,8 @@ function ModuleDetail({
             <div className="h-14 w-14 rounded-full border border-border/60 flex items-center justify-center">
               <Play className="h-6 w-6 text-muted-foreground" />
             </div>
-            <p className="text-sm text-muted-foreground">Video content coming soon</p>
-            {isAdmin && adminMode && <p className="text-[11px] text-amber-400/80">Add a video URL in edit mode above</p>}
+            <p className="text-sm text-muted-foreground">{t.acadVideoComingSoon}</p>
+            {isAdmin && adminMode && <p className="text-[11px] text-amber-400/80">{t.acadAddVideoUrlHint}</p>}
           </div>
         )}
       </div>
@@ -666,14 +674,14 @@ function ModuleDetail({
           onClick={onMarkWatched}
           className="w-full mb-5 py-3 rounded-xl border border-border text-sm text-muted-foreground hover:border-primary/40 hover:text-foreground transition-all"
         >
-          Mark video as watched
+          {t.acadMarkWatched}
         </button>
       )}
 
       {/* PDFs */}
       {pdfs.length > 0 && (
         <div className="glass rounded-xl p-5 mb-6">
-          <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">DOWNLOADS</div>
+          <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">{t.acadDownloads}</div>
           <div className="space-y-2">
             {pdfs.map((pdf) => (
               <a
@@ -694,25 +702,25 @@ function ModuleDetail({
 
       {/* Quiz */}
       <div className="glass rounded-xl p-6">
-        <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">MODULE QUIZ</div>
+        <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">{t.acadModuleQuiz}</div>
         {quizPassed ? (
           <div className="flex items-center gap-3">
             <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
             <div>
-              <div className="font-medium text-sm">Quiz passed</div>
-              <div className="text-[11px] text-muted-foreground">Score: {progress?.quiz_score}/5 · Next module unlocked</div>
+              <div className="font-medium text-sm">{t.acadQuizPassed}</div>
+              <div className="text-[11px] text-muted-foreground">{t.acadScoreNextUnlocked(progress?.quiz_score ?? 0)}</div>
             </div>
           </div>
         ) : !hasQuiz ? (
           <p className="text-sm text-muted-foreground">
-            {isAdmin ? "Add 5 questions in edit mode to enable the quiz." : "Quiz coming soon."}
+            {isAdmin ? t.acadAddQuestionsHint : t.acadQuizComingSoon}
           </p>
         ) : (
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <p className="text-sm">5 questions · Score 3/5 or higher to unlock the next module</p>
+              <p className="text-sm">{t.acadQuizInstructions}</p>
               {(progress?.attempts ?? 0) > 0 && (
-                <p className="text-[11px] text-muted-foreground mt-1">Last score: {progress?.quiz_score}/5 · Attempts: {progress?.attempts}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{t.acadLastScore(progress?.quiz_score ?? 0, progress?.attempts)}</p>
               )}
             </div>
             <button
@@ -721,7 +729,7 @@ function ModuleDetail({
               style={{ background: "var(--gradient-gold)" }}
             >
               <Play className="h-3.5 w-3.5" />
-              {(progress?.attempts ?? 0) > 0 ? "Retry quiz" : "Take quiz"}
+              {(progress?.attempts ?? 0) > 0 ? t.acadRetryQuiz : t.acadTakeQuiz}
             </button>
           </div>
         )}
@@ -733,9 +741,10 @@ function ModuleDetail({
 // ─── Quiz View ────────────────────────────────────────────────────────────────
 
 function QuizView({
-  module, questions, answers, submitted, result,
+  t, module, questions, answers, submitted, result,
   onAnswer, onSubmit, onRetry, onBack, onContinue,
 }: {
+  t: T;
   module: DbModule;
   questions: DbQuestion[];
   answers: Record<string, string>;
@@ -753,13 +762,13 @@ function QuizView({
   return (
     <div className="animate-fade-up">
       <button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6">
-        <ChevronLeft className="h-4 w-4" /> Back to module
+        <ChevronLeft className="h-4 w-4" /> {t.acadBackToModule}
       </button>
 
       <div className="mb-6">
-        <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-1">QUIZ · MODULE {String(module.module_number).padStart(2, "0")}</div>
-        <h2 className="font-serif text-2xl">{module.title}</h2>
-        <p className="text-sm text-muted-foreground mt-1">Answer all 5 questions · Score 3/5 or higher to pass.</p>
+        <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-1">{t.acadQuizModule(String(module.module_number).padStart(2, "0"))}</div>
+        <h2 className="font-serif text-2xl">{t.acadModuleTitle(module.track, module.module_number, module.title)}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{t.acadAnswerAll}</p>
       </div>
 
       {submitted && result && (
@@ -767,19 +776,19 @@ function QuizView({
           {result.passed ? (
             <>
               <div className="text-4xl mb-3">🏆</div>
-              <div className="font-serif text-2xl mb-1">Module Complete!</div>
-              <div className="text-sm text-muted-foreground mb-5">You scored {result.score}/5 — next module is now unlocked.</div>
+              <div className="font-serif text-2xl mb-1">{t.acadModuleComplete}</div>
+              <div className="text-sm text-muted-foreground mb-5">{t.acadScoredUnlocked(result.score)}</div>
               <button onClick={onContinue} className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-primary-foreground text-sm font-medium" style={{ background: "var(--gradient-gold)" }}>
-                Continue →
+                {t.acadContinue}
               </button>
             </>
           ) : (
             <>
               <div className="text-4xl mb-3">📚</div>
-              <div className="font-serif text-2xl mb-1">Not quite</div>
-              <div className="text-sm text-muted-foreground mb-5">You scored {result.score}/5 — you need {PASS_SCORE} correct to pass. Review the module and try again.</div>
+              <div className="font-serif text-2xl mb-1">{t.acadNotQuite}</div>
+              <div className="text-sm text-muted-foreground mb-5">{t.acadScoredRetry(result.score, PASS_SCORE)}</div>
               <button onClick={onRetry} className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-border text-sm hover:border-primary/40 transition-colors">
-                <RefreshCw className="h-4 w-4" /> Try again
+                <RefreshCw className="h-4 w-4" /> {t.acadTryAgain}
               </button>
             </>
           )}
@@ -832,7 +841,7 @@ function QuizView({
           className="w-full mt-6 h-12 rounded-xl text-primary-foreground font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
           style={{ background: "var(--gradient-gold)" }}
         >
-          Submit answers
+          {t.acadSubmitAnswers}
         </button>
       )}
     </div>

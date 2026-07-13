@@ -409,6 +409,8 @@ type RoadmapInput = {
   ambitions?: string[];
   // CAP-78: personalize the 30-day roadmap with the same ritual profile used for daily rituals
   ritualProfile?: RitualProfileInput;
+  // CAP-80: generate the roadmap content in the user's selected language
+  language?: "en" | "fr";
 };
 
 // CAP-78: how many tasks/day and roughly how long each should take, given the user's daily time budget
@@ -427,8 +429,16 @@ const WEEK_THEMES = [
   "Positioning & Closing",
 ];
 
+// CAP-80: French versions of the week themes, used when language === "fr"
+const WEEK_THEMES_FR = [
+  "Fondations & Orientation",
+  "Premiers Pas & Entrée en Réseau",
+  "Accélération & Visibilité",
+  "Positionnement & Conclusion",
+];
+
 // Parse roadmap JSON from plain text response (more reliable than tool calling on Llama)
-function parseWeekJson(text: string, weekNum: number, baseDay: number): RoadmapWeek | null {
+function parseWeekJson(text: string, weekNum: number, baseDay: number, themes: string[], isFrench: boolean): RoadmapWeek | null {
   try {
     const cleaned = text.replace(/```json|```/g, "").trim();
     // Find the first { ... } block
@@ -448,8 +458,10 @@ function parseWeekJson(text: string, weekNum: number, baseDay: number): RoadmapW
       })),
     }));
     parsed.week = weekNum;
-    if (!parsed.theme) parsed.theme = WEEK_THEMES[weekNum - 1];
-    if (!parsed.focus) parsed.focus = `Week ${weekNum} of your ${WEEK_THEMES[weekNum - 1]} journey.`;
+    if (!parsed.theme) parsed.theme = themes[weekNum - 1];
+    if (!parsed.focus) parsed.focus = isFrench
+      ? `Semaine ${weekNum} de votre parcours « ${themes[weekNum - 1]} ».`
+      : `Week ${weekNum} of your ${themes[weekNum - 1]} journey.`;
     return parsed;
   } catch {
     return null;
@@ -461,6 +473,8 @@ export const generateRoadmap = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await requireServerAuth();
     const ritual = data.ritualProfile;
+    const isFrench = data.language === "fr";
+    const themes = isFrench ? WEEK_THEMES_FR : WEEK_THEMES;
     const timeConfig = (ritual?.timeBudget && ROADMAP_TIME_CONFIG[ritual.timeBudget]) || DEFAULT_ROADMAP_TIME;
 
     const baseContext = [
@@ -486,18 +500,18 @@ export const generateRoadmap = createServerFn({ method: "POST" })
       const { text } = await ai.chat([
         {
           role: "system",
-          content: `You are AURUM — elite luxury industry strategist. Return ONLY valid JSON, no markdown, no explanation. Tasks must use real ${data.industry} industry terms, platforms, and actions. Tasks must feel achievable in the time the person actually has, and relevant to their real life and experience — not generic busywork.`,
+          content: `You are AURUM — elite luxury industry strategist. Return ONLY valid JSON, no markdown, no explanation. Tasks must use real ${data.industry} industry terms, platforms, and actions. Tasks must feel achievable in the time the person actually has, and relevant to their real life and experience — not generic busywork.${isFrench ? " Write every text value (theme, focus, day theme, task title, task detail, milestone) in natural, native French — not a literal word-for-word translation. JSON keys and the \"type\" enum values must remain in English exactly as specified." : ""}`,
         },
         {
           role: "user",
           content: `${baseContext}
 
-Generate Week ${w} of 4: "${WEEK_THEMES[w - 1]}" (Days ${baseDay}–${baseDay + 6}).
+Generate Week ${w} of 4: "${themes[w - 1]}" (Days ${baseDay}–${baseDay + 6}).
 
 Return this exact JSON structure:
 {
   "week": ${w},
-  "theme": "${WEEK_THEMES[w - 1]}",
+  "theme": "${themes[w - 1]}",
   "focus": "one sentence on the week's core intent",
   "days": [
     {
@@ -512,14 +526,18 @@ ${taskLines}
 }
 
 Each day must have exactly ${timeConfig.tasksPerDay} task${timeConfig.tasksPerDay === 1 ? "" : "s"}, each taking roughly ${timeConfig.duration}, so the whole day's rituals fit within ${timeConfig.total}.
-Types: networking, content, learning, outreach, mindset. Mix them across the week${ritual?.focusAreas?.length ? `, leaning toward: ${ritual.focusAreas.join(", ")}` : ""}. Be specific to ${data.industry}${ritual?.background ? `, and where natural connect tasks to their background (${ritual.background})` : ""}.`,
+Types: networking, content, learning, outreach, mindset (keep these "type" values in English). Mix them across the week${ritual?.focusAreas?.length ? `, leaning toward: ${ritual.focusAreas.join(", ")}` : ""}. Be specific to ${data.industry}${ritual?.background ? `, and where natural connect tasks to their background (${ritual.background})` : ""}.`,
         },
       ]);
 
-      const weekData = parseWeekJson(text, w, baseDay);
+      const weekData = parseWeekJson(text, w, baseDay, themes, isFrench);
       if (!weekData) {
         // Fallback: create a basic week structure if parse fails
-        const fallbackTasks = [
+        const fallbackTasks = isFrench ? [
+          { id: "t1", type: "learning" as const, title: `Étudier les fondamentaux du secteur ${data.industry}`, detail: `Renseignez-vous sur les acteurs clés, le vocabulaire et les types d'accords dans le secteur ${data.industry}.`, duration: timeConfig.duration },
+          { id: "t2", type: "networking" as const, title: "Contacter un professionnel du secteur", detail: `Trouvez un professionnel du secteur ${data.industry} sur LinkedIn et envoyez-lui un message personnalisé.`, duration: timeConfig.duration },
+          { id: "t3", type: "content" as const, title: "Partager une observation sur le secteur", detail: `Publiez une courte réflexion sur ce que vous avez appris cette semaine dans le secteur ${data.industry}.`, duration: timeConfig.duration },
+        ].slice(0, timeConfig.tasksPerDay) : [
           { id: "t1", type: "learning" as const, title: `Study ${data.industry} fundamentals`, detail: `Research key players, terminology and deal structures in ${data.industry}.`, duration: timeConfig.duration },
           { id: "t2", type: "networking" as const, title: "Reach out to one industry professional", detail: `Find and connect with a ${data.industry} professional on LinkedIn with a personalised message.`, duration: timeConfig.duration },
           { id: "t3", type: "content" as const, title: "Share an industry observation", detail: `Post a short, thoughtful note about something you learned in ${data.industry} this week.`, duration: timeConfig.duration },
@@ -527,12 +545,14 @@ Types: networking, content, learning, outreach, mindset. Mix them across the wee
 
         const fallback: RoadmapWeek = {
           week: w,
-          theme: WEEK_THEMES[w - 1],
-          focus: `Build momentum in ${data.industry} through consistent daily action.`,
+          theme: themes[w - 1],
+          focus: isFrench
+            ? `Construisez votre élan dans le secteur ${data.industry} grâce à des actions quotidiennes régulières.`
+            : `Build momentum in ${data.industry} through consistent daily action.`,
           days: Array.from({ length: 7 }, (_, i) => ({
             day: baseDay + i,
-            theme: `Day ${baseDay + i}`,
-            milestone: i === 6 ? `Week ${w} complete — you're building real momentum.` : undefined,
+            theme: isFrench ? `Jour ${baseDay + i}` : `Day ${baseDay + i}`,
+            milestone: i === 6 ? (isFrench ? `Semaine ${w} terminée — votre élan est bien réel.` : `Week ${w} complete — you're building real momentum.`) : undefined,
             tasks: fallbackTasks.map((t, ti) => ({ ...t, id: `w${w}d${i + 1}-t${ti + 1}` })),
           })),
         };
@@ -542,7 +562,9 @@ Types: networking, content, learning, outreach, mindset. Mix them across the wee
       }
     }
 
-    const headline = `Your 30-Day Entry into ${data.industry}`;
+    const headline = isFrench
+      ? `Votre programme de 30 jours dans le secteur ${data.industry}`
+      : `Your 30-Day Entry into ${data.industry}`;
 
     return {
       roadmap: {

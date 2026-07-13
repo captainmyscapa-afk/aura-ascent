@@ -35,6 +35,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import type { T } from "@/lib/i18n/translations";
 
 export const Route = createFileRoute("/profile")({
   component: Profile,
@@ -90,6 +92,7 @@ function computeCompleteness(p: UserProfile) {
 }
 
 function Profile() {
+  const { t } = useLanguage();
   const { user, loading: authLoading } = useAuth();
   const { industry } = useIndustry();
   const { profile, loading, update: updateProfile } = useUserProfile();
@@ -128,45 +131,45 @@ function Profile() {
       {
         key: "knowledge",
         emoji: "🎓",
-        label: "Knowledge",
+        label: t.profKnowledge,
         score: knowledgeScore,
-        hint: "Complete Academy modules",
+        hint: t.profKnowledgeHint,
         to: "/academy" as const,
       },
       {
         key: "network",
         emoji: "🤝",
-        label: "Network",
+        label: t.profNetwork,
         score: networkScore,
-        hint: "Make connections and introductions",
+        hint: t.profNetworkHint,
         to: "/network" as const,
       },
       {
         key: "visibility",
         emoji: "📢",
-        label: "Visibility",
+        label: t.profVisibility,
         score: visibilityScore,
-        hint: "Publish content and insights",
+        hint: t.profVisibilityHint,
         to: "/studio" as const,
       },
       {
         key: "execution",
         emoji: "⚡",
-        label: "Execution",
+        label: t.profExecution,
         score: executionScore,
-        hint: "Complete daily tasks",
+        hint: t.profExecutionHint,
         to: "/dashboard" as const,
       },
       {
         key: "identity",
         emoji: "👤",
-        label: "Identity",
+        label: t.profIdentity,
         score: identityScore,
-        hint: "Complete your profile",
+        hint: t.profIdentityHint,
         to: "/profile" as const,
       },
     ];
-  }, [completeness, core, socials]);
+  }, [completeness, core, socials, t]);
 
   const aurumScore = useMemo(
     () => Math.round(scoreBreakdown.reduce((acc, b) => acc + b.score, 0) / scoreBreakdown.length),
@@ -211,14 +214,14 @@ function Profile() {
     return (
       <AppShell>
         <div className="flex items-center justify-center py-32 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading dossier…
+          <Loader2 className="h-5 w-5 animate-spin mr-2" /> {t.profLoadingDossier}
         </div>
       </AppShell>
     );
   }
 
   const hasName = !!profile.full_name;
-  const displayName = profile.full_name || "Unnamed Operator";
+  const displayName = profile.full_name || t.profUnnamedOperator;
   const computedTitle = `${titleFor(industry.id, core?.current_level ?? "initiate")} · ${profile.location || industry.label}`;
   const phaseProgress = Math.min(100, Math.round(((core?.execution_score ?? 0) / 100) * 100));
 
@@ -264,7 +267,7 @@ function Profile() {
             <div className="mt-5 flex items-center gap-3 flex-wrap">
               <h1 className="font-serif text-3xl sm:text-4xl">{displayName}</h1>
               <span className="text-[10px] tracking-[0.3em] px-3 py-1 rounded-full ring-1 ring-primary/40 text-primary uppercase">
-                {industry.shortLabel} Mode
+                {t.profModeBadge(industry.shortLabel)}
               </span>
             </div>
             <p className="text-muted-foreground text-sm mt-1.5">{computedTitle}</p>
@@ -286,7 +289,7 @@ function Profile() {
               )}
             </div>
             <div className="mt-6 rounded-xl border border-border/60 bg-background/40 p-4 max-w-2xl">
-              <div className="text-[9px] tracking-[0.34em] text-muted-foreground mb-1.5">MY MISSION</div>
+              <div className="text-[9px] tracking-[0.34em] text-muted-foreground mb-1.5">{t.profMyMission}</div>
               {profile.mission ? (
                 <p className="font-serif text-lg leading-snug">{profile.mission}</p>
               ) : (
@@ -294,7 +297,7 @@ function Profile() {
                   onClick={() => setEditOpen(true)}
                   className="text-sm text-muted-foreground italic hover:text-foreground transition-colors"
                 >
-                  Add your mission — e.g. "Break into Monaco yacht brokerage by Q4"
+                  {t.profMissionPlaceholder}
                 </button>
               )}
             </div>
@@ -302,32 +305,32 @@ function Profile() {
               onClick={() => setEditOpen(true)}
               className="mt-6 inline-flex items-center gap-2 text-xs glass rounded-full px-4 py-2 tracking-[0.2em] hover:ring-gold transition-all"
             >
-              <Pencil className="h-3 w-3" /> EDIT IDENTITY
+              <Pencil className="h-3 w-3" /> {t.profEditIdentity}
             </button>
             {!hasName && (
               <p className="text-xs text-primary/80 mt-3">
-                Start by adding your name and mission to unlock your dossier.
+                {t.profUnlockDossier}
               </p>
             )}
           </div>
           <div className="flex flex-col gap-3">
             <div className="glass rounded-xl p-5">
-              <div className="text-[9px] tracking-[0.34em] text-muted-foreground">AURUM SCORE</div>
+              <div className="text-[9px] tracking-[0.34em] text-muted-foreground">{t.profAurumScore}</div>
               <div className="font-serif text-5xl mt-2 text-gold-gradient">{aurumScore}</div>
-              <div className="text-xs text-muted-foreground mt-1">Your readiness index</div>
+              <div className="text-xs text-muted-foreground mt-1">{t.profReadinessIndex}</div>
             </div>
             <div className="glass rounded-xl p-5">
-              <div className="text-[9px] tracking-[0.34em] text-muted-foreground">MOMENTUM</div>
+              <div className="text-[9px] tracking-[0.34em] text-muted-foreground">{t.profMomentum}</div>
               <div className="mt-2 flex items-baseline gap-2">
                 <span className="font-serif text-4xl text-gold-gradient">{core?.streak ?? 0}</span>
-                <span className="text-xs text-muted-foreground">day streak</span>
+                <span className="text-xs text-muted-foreground">{t.profDayStreak}</span>
                 <Flame className="h-4 w-4 text-primary ml-auto" />
               </div>
             </div>
             <div className="glass rounded-xl p-5">
-              <div className="text-[9px] tracking-[0.34em] text-muted-foreground">PHASE</div>
+              <div className="text-[9px] tracking-[0.34em] text-muted-foreground">{t.profPhase}</div>
               <div className="font-serif text-lg mt-1.5 capitalize">
-                {typeof core?.current_focus === "string" ? core.current_focus : "Onboarding"}
+                {typeof core?.current_focus === "string" ? core.current_focus : t.profOnboarding}
               </div>
               <div className="mt-3 h-1.5 rounded-full bg-border/60 overflow-hidden">
                 <div
@@ -335,14 +338,14 @@ function Profile() {
                   style={{ width: `${phaseProgress}%`, transition: "width 800ms ease" }}
                 />
               </div>
-              <div className="text-[10px] text-muted-foreground mt-2">{phaseProgress}% to next phase</div>
+              <div className="text-[10px] text-muted-foreground mt-2">{t.profToNextPhase(phaseProgress)}</div>
             </div>
           </div>
         </div>
       </div>
 
       <div className="glass rounded-2xl p-6 sm:p-8 mb-10 animate-fade-up" style={{ animationDelay: "80ms" }}>
-        <SectionHeading eyebrow="AURUM SCORE BREAKDOWN" title="What's building your score." />
+        <SectionHeading eyebrow={t.profScoreBreakdownEyebrow} title={t.profScoreBreakdownTitle} />
         <div className="space-y-4 mt-4">
           {scoreBreakdown.map((b, i) => (
             <Link key={b.key} to={b.to} className="block group" style={{ animationDelay: `${i * 60}ms` }}>
@@ -366,9 +369,9 @@ function Profile() {
       </div>
 
       <div className="glass rounded-2xl p-6 sm:p-8 mb-10 animate-fade-up" style={{ animationDelay: "240ms" }}>
-        <SectionHeading eyebrow="CONNECTED ACCOUNTS" title="Your publishing network." />
+        <SectionHeading eyebrow={t.profConnectedAccountsEyebrow} title={t.profConnectedAccountsTitle} />
         <p className="text-sm text-muted-foreground -mt-2 mb-1">
-          Connect your accounts so AURUM can publish directly on your behalf.
+          {t.profConnectDesc}
         </p>
         <div className="grid sm:grid-cols-2 gap-3 mt-5">
           {PLATFORMS.map((p) => {
@@ -388,10 +391,10 @@ function Profile() {
                     {connected ? (
                       <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        CONNECTED
+                        {t.profConnected}
                       </span>
                     ) : (
-                      <span className="text-[10px] text-muted-foreground">NOT CONNECTED</span>
+                      <span className="text-[10px] text-muted-foreground">{t.profNotConnected}</span>
                     )}
                   </div>
                   {connected?.username && (
@@ -403,14 +406,14 @@ function Profile() {
                     onClick={() => disconnectSocial(p.key)}
                     className="text-xs text-muted-foreground hover:text-foreground"
                   >
-                    Disconnect
+                    {t.profDisconnect}
                   </button>
                 ) : (
                   <button
                     onClick={() => setConnectPlatform(p.key)}
                     className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                   >
-                    <Plug className="h-3 w-3" /> Connect
+                    <Plug className="h-3 w-3" /> {t.profConnect}
                   </button>
                 )}
               </div>
@@ -419,8 +422,8 @@ function Profile() {
         </div>
       </div>
 
-      <EditIdentitySheet open={editOpen} onClose={() => setEditOpen(false)} profile={profile} onSave={saveProfile} />
-      <ConnectDialog platform={connectPlatform} onClose={() => setConnectPlatform(null)} onConfirm={connectSocial} />
+      <EditIdentitySheet open={editOpen} onClose={() => setEditOpen(false)} profile={profile} onSave={saveProfile} t={t} />
+      <ConnectDialog platform={connectPlatform} onClose={() => setConnectPlatform(null)} onConfirm={connectSocial} t={t} />
     </AppShell>
   );
 }
@@ -430,11 +433,13 @@ function EditIdentitySheet({
   onClose,
   profile,
   onSave,
+  t,
 }: {
   open: boolean;
   onClose: () => void;
   profile: UserProfile;
   onSave: (p: Partial<UserProfile>) => Promise<void>;
+  t: T;
 }) {
   const [form, setForm] = useState(profile);
   const [saving, setSaving] = useState(false);
@@ -445,43 +450,43 @@ function EditIdentitySheet({
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader>
-          <SheetTitle className="font-serif text-2xl">Edit identity</SheetTitle>
-          <SheetDescription>Your dossier shapes every recommendation AURUM makes.</SheetDescription>
+          <SheetTitle className="font-serif text-2xl">{t.profEditIdentityTitle}</SheetTitle>
+          <SheetDescription>{t.profEditIdentityDesc}</SheetDescription>
         </SheetHeader>
         <div className="space-y-4 mt-6">
-          <Field label="Full name">
+          <Field label={t.profFieldFullName}>
             <Input
               value={form.full_name ?? ""}
               onChange={(e) => set("full_name", e.target.value)}
               placeholder="Alexander Kovac"
             />
           </Field>
-          <Field label="Current profession">
+          <Field label={t.profFieldProfession}>
             <Input
               value={form.current_profession ?? ""}
               onChange={(e) => set("current_profession", e.target.value)}
-              placeholder="Yacht brokerage analyst"
+              placeholder={t.profPlaceholderProfession}
             />
           </Field>
-          <Field label="Location">
+          <Field label={t.profFieldLocation}>
             <Input value={form.location ?? ""} onChange={(e) => set("location", e.target.value)} placeholder="Monaco" />
           </Field>
-          <Field label="My mission">
+          <Field label={t.profFieldMission}>
             <Textarea
               value={form.mission ?? ""}
               onChange={(e) => set("mission", e.target.value)}
-              placeholder="Break into Monaco yacht brokerage by Q4"
+              placeholder={t.profPlaceholderMission}
               rows={3}
             />
           </Field>
-          <Field label="Goal">
+          <Field label={t.profFieldGoal}>
             <Input
               value={form.goal ?? ""}
               onChange={(e) => set("goal", e.target.value)}
-              placeholder="Sign first brokerage mandate"
+              placeholder={t.profPlaceholderGoal}
             />
           </Field>
-          <Field label="Photo URL">
+          <Field label={t.profFieldPhotoUrl}>
             <Input
               value={form.photo_url ?? ""}
               onChange={(e) => set("photo_url", e.target.value)}
@@ -489,14 +494,14 @@ function EditIdentitySheet({
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="LinkedIn URL">
+            <Field label={t.profFieldLinkedinUrl}>
               <Input
                 value={form.linkedin_url ?? ""}
                 onChange={(e) => set("linkedin_url", e.target.value)}
                 placeholder="https://linkedin.com/in/…"
               />
             </Field>
-            <Field label="Instagram URL">
+            <Field label={t.profFieldInstagramUrl}>
               <Input
                 value={form.instagram_url ?? ""}
                 onChange={(e) => set("instagram_url", e.target.value)}
@@ -507,7 +512,7 @@ function EditIdentitySheet({
         </div>
         <div className="mt-8 flex gap-3 justify-end">
           <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancel
+            {t.profCancel}
           </Button>
           <Button
             onClick={async () => {
@@ -517,7 +522,7 @@ function EditIdentitySheet({
             }}
             disabled={saving}
           >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}Save
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}{t.profSave}
           </Button>
         </div>
       </SheetContent>
@@ -534,30 +539,34 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const PLATFORM_META: Record<string, { label: string; placeholder: string; hint: string }> = {
-  linkedin:  { label: "PROFILE URL OR USERNAME", placeholder: "linkedin.com/in/yourname or yourname", hint: "Your LinkedIn profile URL or username" },
-  instagram: { label: "USERNAME", placeholder: "@yourhandle", hint: "Your Instagram handle (without @)" },
-  twitter:   { label: "USERNAME", placeholder: "@yourhandle", hint: "Your X / Twitter handle" },
-  tiktok:    { label: "USERNAME", placeholder: "@yourhandle", hint: "Your TikTok handle" },
-  youtube:   { label: "CHANNEL NAME OR URL", placeholder: "youtube.com/@yourchannel", hint: "Your YouTube channel name or URL" },
-  substack:  { label: "SUBSTACK URL", placeholder: "https://you.substack.com", hint: "Your full Substack publication URL" },
-};
+function getPlatformMeta(t: T): Record<string, { label: string; placeholder: string; hint: string }> {
+  return {
+    linkedin:  { label: t.profPlatformLinkedinLabel, placeholder: "linkedin.com/in/yourname or yourname", hint: t.profPlatformLinkedinHint },
+    instagram: { label: t.profPlatformUsernameLabel, placeholder: "@yourhandle", hint: t.profPlatformInstagramHint },
+    twitter:   { label: t.profPlatformUsernameLabel, placeholder: "@yourhandle", hint: t.profPlatformTwitterHint },
+    tiktok:    { label: t.profPlatformUsernameLabel, placeholder: "@yourhandle", hint: t.profPlatformTiktokHint },
+    youtube:   { label: t.profPlatformYoutubeLabel, placeholder: "youtube.com/@yourchannel", hint: t.profPlatformYoutubeHint },
+    substack:  { label: t.profPlatformSubstackLabel, placeholder: "https://you.substack.com", hint: t.profPlatformSubstackHint },
+  };
+}
 
 function ConnectDialog({
   platform,
   onClose,
   onConfirm,
+  t,
 }: {
   platform: string | null;
   onClose: () => void;
   onConfirm: (platform: string, username: string) => Promise<void>;
+  t: T;
 }) {
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
   useEffect(() => { setValue(""); setSaving(false); }, [platform]);
   if (!platform) return null;
   const meta = PLATFORMS.find((p) => p.key === platform);
-  const fieldMeta = PLATFORM_META[platform] ?? { label: "USERNAME", placeholder: "yourhandle", hint: "" };
+  const fieldMeta = getPlatformMeta(t)[platform] ?? { label: t.profPlatformUsernameLabel, placeholder: "yourhandle", hint: "" };
 
   const handleConfirm = async () => {
     if (!value.trim()) return;
@@ -570,9 +579,9 @@ function ConnectDialog({
     <Dialog open={!!platform} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="font-serif text-2xl">Connect {meta?.name}</DialogTitle>
+          <DialogTitle className="font-serif text-2xl">{t.profConnectPlatform(meta?.name ?? "")}</DialogTitle>
           <DialogDescription>
-            {fieldMeta.hint} — AURUM will use this to redirect your content to the right platform.
+            {fieldMeta.hint}{t.profConnectHintSuffix}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
@@ -586,9 +595,9 @@ function ConnectDialog({
           />
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={onClose}>{t.profCancel}</Button>
           <Button onClick={handleConfirm} disabled={!value.trim() || saving}>
-            {saving ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Connecting…</> : "Connect"}
+            {saving ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />{t.profConnecting}</> : t.profConnect}
           </Button>
         </DialogFooter>
       </DialogContent>

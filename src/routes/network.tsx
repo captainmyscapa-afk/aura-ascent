@@ -6,7 +6,7 @@ import { SectionHeading } from "@/components/aurum/SectionHeading";
 import {
   Users, Plus, Mail, Linkedin, Instagram, Facebook,
   Sparkles, Copy, Check, Loader2, Send, Trash2, Clock,
-  X, Phone, Building, User, FileText,
+  X, Phone, Building, User, FileText, Pencil,
 } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -15,9 +15,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { generateIntroMessage } from "@/lib/network.functions";
 import { useProGate } from "@/components/aurum/ProGate";
 import { UpgradeModal } from "@/components/aurum/UpgradeModal";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import type { T } from "@/lib/i18n/translations";
 
 export const Route = createFileRoute("/network")({
   component: Network,
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: search.tab as string | undefined,
+    openAdd: search.openAdd as string | undefined,
+  }),
 });
 
 type Contact = {
@@ -36,6 +42,7 @@ type Contact = {
 
 type Draft = {
   id: string;
+  contact_id: string | null;
   contact_name: string | null;
   platform: string;
   category: string | null;
@@ -53,33 +60,29 @@ const PLATFORMS = [
   { key: "facebook",  label: "Facebook",  icon: Facebook },
 ] as const;
 
-const CATEGORIES: Record<string, string[]> = {
-  yachts: ["Charter Broker", "Sales Broker", "Captain / Crew", "Shipyard", "Marina", "Charter Management", "Insurance", "Survey / Refit"],
-  villas: ["Developer", "Prime Agent", "Property Manager", "Interior Designer", "Insurance", "Legal / Tax", "Private Bank"],
-  jets:   ["Broker", "Charter Operator", "Maintenance (MRO)", "FBO", "Insurance", "Family Office", "Management Co."],
-  cars:   ["Dealer", "Auction House", "Collector", "Specialist / Restorer", "Insurance", "Transport", "Concours Organiser"],
-};
-
-const DEFAULT_CATEGORIES = ["Management", "Broker", "Insurance", "Agency", "Owner", "Investor", "Media"];
-
-function formatDate(iso: string) {
+function formatDate(iso: string, t: T, dateLocale: string) {
   const d = new Date(iso);
   const diff = Date.now() - d.getTime();
   const h = Math.floor(diff / 3_600_000);
-  if (h < 1) return "Just now";
-  if (h < 24) return `${h}h ago`;
+  if (h < 1) return t.netJustNow;
+  if (h < 24) return t.netHoursAgo(h);
   const days = Math.floor(h / 24);
-  if (days === 1) return "Yesterday";
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  if (days === 1) return t.netYesterday;
+  return d.toLocaleDateString(dateLocale, { day: "numeric", month: "short" });
 }
 
 function Network() {
+  const { t, lang } = useLanguage();
+  const dateLocale = lang === "fr" ? "fr-FR" : "en-GB";
   const { industry, industryId } = useIndustry();
   const { profile } = useUserProfile();
   const { user } = useAuth();
   const genIntro = useServerFn(generateIntroMessage);
 
-  const [tab, setTab] = useState<"contacts" | "compose" | "drafts">("contacts");
+  const { tab: seedTab, openAdd: seedOpenAdd } = Route.useSearch();
+  const [tab, setTab] = useState<"contacts" | "compose" | "drafts">(
+    seedTab === "compose" || seedTab === "drafts" ? seedTab : "contacts",
+  );
 
   // Contacts
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -133,6 +136,12 @@ function Network() {
   useEffect(() => { loadContacts(); }, [loadContacts]);
   useEffect(() => { loadDrafts(); }, [loadDrafts]);
 
+  // Deep-link support: Roadmap's "get help" action for networking/outreach
+  // tasks lands here and can pop the add-contact form straight away.
+  useEffect(() => {
+    if (seedOpenAdd) setShowAddContact(true);
+  }, [seedOpenAdd]);
+
   async function saveContact() {
     if (!user || !newContact.name?.trim()) return;
     setSavingContact(true);
@@ -161,12 +170,28 @@ function Network() {
     setContacts(c => c.filter(x => x.id !== id));
   }
 
+  async function deleteDraft(id: string) {
+    if (!user) return;
+    await supabase.from("message_drafts" as any).delete().eq("id", id).eq("user_id", user.id);
+    setDrafts(d => d.filter(x => x.id !== id));
+  }
+
+  function modifyDraft(d: Draft) {
+    const contact = contacts.find(c => c.id === d.contact_id) ?? contacts.find(c => c.name === d.contact_name) ?? null;
+    setSelectedContact(contact);
+    setPlatform(d.platform);
+    setCategory(d.category ?? "");
+    setSubject(d.subject ?? "");
+    setBody(d.body);
+    setTab("compose");
+  }
+
   async function draftMessage() {
     if (!selectedContact) {
-      setDraftError("Select a contact first.");
+      setDraftError(t.netSelectContactFirstError);
       return;
     }
-    if (!networkGate.gate("You've used your 2 free message drafts. Upgrade to Pro for unlimited outreach.")) return;
+    if (!networkGate.gate(t.netGateMessage)) return;
     setDrafting(true);
     setDraftError(null);
     try {
@@ -181,6 +206,7 @@ function Network() {
             : industry.introContext,
           userGoal: profile?.goal ?? undefined,
           userName: profile?.full_name ?? undefined,
+          language: lang,
         },
       });
       setBody(message);
@@ -189,7 +215,7 @@ function Network() {
         setSubject(`Introduction — ${selectedContact.name}`);
       }
     } catch (e) {
-      setDraftError(e instanceof Error ? e.message : "Draft generation failed. Try again.");
+      setDraftError(e instanceof Error ? e.message : t.netDraftFailed);
     } finally {
       setDrafting(false);
     }
@@ -197,6 +223,20 @@ function Network() {
 
   async function saveDraft(status: "draft" | "sent") {
     if (!user || !body.trim()) return;
+
+    if (status === "sent") {
+      // Open the platform FIRST and synchronously — must happen directly in the
+      // click handler, before any `await`, or browsers (Safari especially) will
+      // block window.open() as a popup once the user-gesture context is lost.
+      if (platform === "linkedin") window.open(selectedContact?.linkedin_url || "https://www.linkedin.com/messaging/", "_blank");
+      else if (platform === "instagram") window.open(selectedContact?.instagram_url || "https://www.instagram.com/direct/inbox/", "_blank");
+      else if (platform === "facebook") window.open(selectedContact?.facebook_url || "https://www.facebook.com/messages/", "_blank");
+      else if (platform === "email") window.open(`mailto:${selectedContact?.email ?? ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, "_blank");
+
+      // Copy message to clipboard
+      navigator.clipboard.writeText(body).catch(() => {});
+    }
+
     setSaving(true);
     await supabase.from("message_drafts" as any).insert({
       user_id: user.id,
@@ -211,13 +251,6 @@ function Network() {
     });
     setSaving(false);
     loadDrafts();
-    if (status === "sent") {
-      // Open platform
-      if (platform === "linkedin" && selectedContact?.linkedin_url) window.open(selectedContact.linkedin_url, "_blank");
-      else if (platform === "instagram" && selectedContact?.instagram_url) window.open(selectedContact.instagram_url, "_blank");
-      else if (platform === "facebook" && selectedContact?.facebook_url) window.open(selectedContact.facebook_url, "_blank");
-      else if (platform === "email" && selectedContact?.email) window.open(`mailto:${selectedContact.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, "_blank");
-    }
     setTab("drafts");
   }
 
@@ -227,35 +260,35 @@ function Network() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const cats = CATEGORIES[industryId] ?? DEFAULT_CATEGORIES;
+  const cats = t.netCategories(industryId);
 
   return (
     <AppShell>
-      <UpgradeModal open={networkGate.showUpgrade} onClose={() => networkGate.setShowUpgrade(false)} reason="You've used your 2 free message drafts. Upgrade to Pro for unlimited outreach." />
+      <UpgradeModal open={networkGate.showUpgrade} onClose={() => networkGate.setShowUpgrade(false)} reason={t.netGateMessage} />
       {/* Header */}
       <div className="mb-8 animate-fade-up">
         <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">
-          NETWORK · {industry.modeLabel.toUpperCase()}
+          {t.netEyebrow(industry.modeLabel.toUpperCase())}
         </div>
         <h1 className="font-serif text-4xl sm:text-5xl">
-          The room you're <span className="italic text-gold-gradient">already in.</span>
+          {t.netHeroPre} <span className="italic text-gold-gradient">{t.netHeroEm}</span>
         </h1>
         <p className="mt-3 text-muted-foreground max-w-xl text-sm">
-          Manage your contacts, draft tailored outreach for every category, and track every message sent.
+          {t.netSubtitle}
         </p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 mb-8 border-b border-border/60">
-        {(["contacts", "compose", "drafts"] as const).map((t) => (
+        {(["contacts", "compose", "drafts"] as const).map((tabKey) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={tabKey}
+            onClick={() => setTab(tabKey)}
             className={`px-5 py-2.5 text-sm font-medium transition-colors capitalize border-b-2 -mb-px ${
-              tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+              tab === tabKey ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "contacts" ? `Contacts (${contacts.length})` : t === "drafts" ? `Drafts & Sent (${drafts.length})` : "Compose"}
+            {tabKey === "contacts" ? t.netTabContacts(contacts.length) : tabKey === "drafts" ? t.netTabDrafts(drafts.length) : t.netTabCompose}
           </button>
         ))}
       </div>
@@ -264,13 +297,13 @@ function Network() {
       {tab === "contacts" && (
         <div>
           <div className="flex justify-between items-center mb-5">
-            <SectionHeading eyebrow="YOUR NETWORK" title="Contacts" />
+            <SectionHeading eyebrow={t.netYourNetwork} title={t.netContacts} />
             <button
               onClick={() => setShowAddContact(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
               style={{ background: "var(--gradient-gold)", color: "#080808" }}
             >
-              <Plus className="h-4 w-4" /> Add contact
+              <Plus className="h-4 w-4" /> {t.netAddContact}
             </button>
           </div>
 
@@ -278,7 +311,7 @@ function Network() {
           {showAddContact && (
             <div className="glass rounded-xl p-6 mb-6 border border-primary/20 animate-fade-up">
               <div className="flex items-center justify-between mb-4">
-                <div className="font-serif text-lg">New contact</div>
+                <div className="font-serif text-lg">{t.netNewContact}</div>
                 <button onClick={() => setShowAddContact(false)}><X className="h-4 w-4 text-muted-foreground" /></button>
               </div>
               <div className="grid sm:grid-cols-2 gap-3">
@@ -307,14 +340,14 @@ function Network() {
                   <textarea
                     value={newContact.notes ?? ""}
                     onChange={e => setNewContact(prev => ({ ...prev, notes: e.target.value }))}
-                    placeholder="Notes…"
+                    placeholder={t.netNotesPlaceholder}
                     rows={2}
                     className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50 resize-none"
                   />
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
-                <button onClick={() => setShowAddContact(false)} className="px-4 py-2 text-sm border border-border rounded-lg text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+                <button onClick={() => setShowAddContact(false)} className="px-4 py-2 text-sm border border-border rounded-lg text-muted-foreground hover:text-foreground transition-colors">{t.netCancel}</button>
                 <button
                   onClick={saveContact}
                   disabled={!newContact.name?.trim() || savingContact}
@@ -322,19 +355,19 @@ function Network() {
                   style={{ background: "var(--gradient-gold)", color: "#080808" }}
                 >
                   {savingContact ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                  Save contact
+                  {t.netSaveContact}
                 </button>
               </div>
             </div>
           )}
 
-          {contactsLoading && <div className="text-sm text-muted-foreground py-8 text-center">Loading contacts…</div>}
+          {contactsLoading && <div className="text-sm text-muted-foreground py-8 text-center">{t.netLoadingContacts}</div>}
 
           {!contactsLoading && contacts.length === 0 && (
             <div className="glass rounded-xl p-12 text-center">
               <Users className="h-8 w-8 mx-auto text-muted-foreground/40 mb-3" />
-              <p className="font-serif text-lg mb-1">No contacts yet</p>
-              <p className="text-sm text-muted-foreground">Add your first contact to start drafting tailored outreach.</p>
+              <p className="font-serif text-lg mb-1">{t.netNoContacts}</p>
+              <p className="text-sm text-muted-foreground">{t.netNoContactsDesc}</p>
             </div>
           )}
 
@@ -358,7 +391,7 @@ function Network() {
                     onClick={() => { setSelectedContact(c); setTab("compose"); }}
                     className="flex-1 flex items-center justify-center gap-1.5 text-xs py-2 rounded-lg border border-border hover:border-primary/40 transition-colors"
                   >
-                    <Sparkles className="h-3 w-3 text-primary" /> Draft message
+                    <Sparkles className="h-3 w-3 text-primary" /> {t.netDraftMessage}
                   </button>
                   <div className="flex gap-1">
                     {c.linkedin_url  && <a href={c.linkedin_url}  target="_blank" rel="noreferrer" className="h-8 w-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"><Linkedin  className="h-3.5 w-3.5" /></a>}
@@ -375,14 +408,14 @@ function Network() {
       {/* ── COMPOSE TAB ──────────────────────────────────── */}
       {tab === "compose" && (
         <div className="max-w-2xl animate-fade-up">
-          <SectionHeading eyebrow="OUTREACH" title="Draft a message" />
+          <SectionHeading eyebrow={t.netOutreach} title={t.netDraftAMessage} />
 
           {/* Contact selector */}
           <div className="mb-5">
-            <div className="text-[10px] tracking-[0.3em] text-muted-foreground mb-2">TO</div>
+            <div className="text-[10px] tracking-[0.3em] text-muted-foreground mb-2">{t.netTo}</div>
             <div className="flex flex-wrap gap-2">
               {contacts.length === 0 ? (
-                <button onClick={() => setTab("contacts")} className="text-sm text-primary hover:underline">Add a contact first →</button>
+                <button onClick={() => setTab("contacts")} className="text-sm text-primary hover:underline">{t.netAddContactFirst}</button>
               ) : contacts.map(c => (
                 <button
                   key={c.id}
@@ -399,7 +432,7 @@ function Network() {
 
           {/* Platform */}
           <div className="mb-5">
-            <div className="text-[10px] tracking-[0.3em] text-muted-foreground mb-2">PLATFORM</div>
+            <div className="text-[10px] tracking-[0.3em] text-muted-foreground mb-2">{t.netPlatform}</div>
             <div className="flex gap-2 flex-wrap">
               {PLATFORMS.map(p => {
                 const Icon = p.icon;
@@ -420,7 +453,7 @@ function Network() {
 
           {/* Category */}
           <div className="mb-5">
-            <div className="text-[10px] tracking-[0.3em] text-muted-foreground mb-2">THEIR ROLE / CATEGORY</div>
+            <div className="text-[10px] tracking-[0.3em] text-muted-foreground mb-2">{t.netRoleCategory}</div>
             <div className="flex flex-wrap gap-2">
               {cats.map(c => (
                 <button
@@ -439,11 +472,11 @@ function Network() {
           {/* Subject (email only) */}
           {platform === "email" && (
             <div className="mb-4">
-              <div className="text-[10px] tracking-[0.3em] text-muted-foreground mb-2">SUBJECT</div>
+              <div className="text-[10px] tracking-[0.3em] text-muted-foreground mb-2">{t.netSubject}</div>
               <input
                 value={subject}
                 onChange={e => setSubject(e.target.value)}
-                placeholder="Introduction — Your Name"
+                placeholder={t.netSubjectPlaceholder}
                 className="w-full glass rounded-lg px-4 py-2.5 text-sm outline-none border border-border/60 focus:border-primary/40 transition-colors"
               />
             </div>
@@ -452,7 +485,7 @@ function Network() {
           {/* Generate button */}
           {!selectedContact && (
             <p className="mb-3 text-xs text-amber-400/80 border border-amber-400/20 bg-amber-400/5 rounded-lg px-3 py-2">
-              ↑ Select a contact above to generate a tailored message
+              {t.netSelectContactHint}
             </p>
           )}
           {draftError && (
@@ -467,16 +500,16 @@ function Network() {
             style={{ background: "var(--gradient-gold)", color: "#080808" }}
           >
             {drafting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {drafting ? "Drafting…" : selectedContact ? `Draft message to ${selectedContact.name}` : "Select a contact first"}
+            {drafting ? t.netDrafting : selectedContact ? t.netDraftMessageTo(selectedContact.name) : t.netSelectContactFirstBtn}
           </button>
 
           {/* Message body */}
           <div className="mb-4">
-            <div className="text-[10px] tracking-[0.3em] text-muted-foreground mb-2">MESSAGE</div>
+            <div className="text-[10px] tracking-[0.3em] text-muted-foreground mb-2">{t.netMessage}</div>
             <textarea
               value={body}
               onChange={e => setBody(e.target.value)}
-              placeholder="Your message will appear here after generation, or type directly…"
+              placeholder={t.netMessagePlaceholder}
               rows={10}
               className="w-full glass rounded-lg px-4 py-3 text-sm outline-none border border-border/60 focus:border-primary/40 transition-colors resize-none leading-relaxed"
             />
@@ -489,14 +522,14 @@ function Network() {
               disabled={!body.trim()}
               className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-30"
             >
-              {copied ? <><Check className="h-3.5 w-3.5 text-primary" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy</>}
+              {copied ? <><Check className="h-3.5 w-3.5 text-primary" /> {t.netCopied}</> : <><Copy className="h-3.5 w-3.5" /> {t.netCopy}</>}
             </button>
             <button
               onClick={() => saveDraft("draft")}
               disabled={!body.trim() || saving}
               className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-30"
             >
-              <FileText className="h-3.5 w-3.5" /> Save draft
+              <FileText className="h-3.5 w-3.5" /> {t.netSaveDraft}
             </button>
             <button
               onClick={() => saveDraft("sent")}
@@ -504,7 +537,7 @@ function Network() {
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm disabled:opacity-30 transition-all hover:opacity-90"
               style={{ background: "var(--gradient-gold)", color: "#080808" }}
             >
-              <Send className="h-3.5 w-3.5" /> Mark sent & open platform
+              <Send className="h-3.5 w-3.5" /> {t.netSend}
             </button>
           </div>
         </div>
@@ -513,19 +546,19 @@ function Network() {
       {/* ── DRAFTS & SENT TAB ─────────────────────────────── */}
       {tab === "drafts" && (
         <div>
-          <SectionHeading eyebrow="HISTORY" title="Drafts & Sent" />
+          <SectionHeading eyebrow={t.netHistory} title={t.netDraftsTitle} />
 
-          {draftsLoading && <div className="text-sm text-muted-foreground py-8 text-center">Loading…</div>}
+          {draftsLoading && <div className="text-sm text-muted-foreground py-8 text-center">{t.netLoading}</div>}
 
           {!draftsLoading && drafts.length === 0 && (
             <div className="glass rounded-xl p-12 text-center">
               <FileText className="h-8 w-8 mx-auto text-muted-foreground/40 mb-3" />
-              <p className="font-serif text-lg mb-1">No messages yet</p>
-              <p className="text-sm text-muted-foreground">Draft and send messages from the Compose tab.</p>
+              <p className="font-serif text-lg mb-1">{t.netNoMessages}</p>
+              <p className="text-sm text-muted-foreground">{t.netNoMessagesDesc}</p>
             </div>
           )}
 
-          <DraftsList drafts={drafts} platforms={PLATFORMS} />
+          <DraftsList drafts={drafts} platforms={PLATFORMS} onDelete={deleteDraft} onModify={modifyDraft} t={t} dateLocale={dateLocale} />
         </div>
       )}
     </AppShell>
@@ -535,9 +568,17 @@ function Network() {
 function DraftsList({
   drafts,
   platforms,
+  onDelete,
+  onModify,
+  t,
+  dateLocale,
 }: {
   drafts: Draft[];
   platforms: typeof PLATFORMS;
+  onDelete: (id: string) => void;
+  onModify: (draft: Draft) => void;
+  t: T;
+  dateLocale: string;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -557,9 +598,12 @@ function DraftsList({
         return (
           <div key={d.id} className="glass rounded-xl overflow-hidden">
             {/* Header row — always visible, clickable to expand */}
-            <button
+            <div
+              role="button"
+              tabIndex={0}
               onClick={() => setExpanded(isExpanded ? null : d.id)}
-              className="w-full flex items-start gap-4 p-5 text-left hover:bg-secondary/20 transition-colors"
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setExpanded(isExpanded ? null : d.id); }}
+              className="w-full flex items-start gap-4 p-5 text-left hover:bg-secondary/20 transition-colors cursor-pointer"
             >
               <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
                 d.status === "sent" ? "bg-emerald-400/10" : "bg-secondary"
@@ -577,13 +621,27 @@ function DraftsList({
                   <span className={`text-[9px] tracking-[0.25em] px-2 py-0.5 rounded-full uppercase ${
                     d.status === "sent" ? "text-emerald-400 bg-emerald-400/10" : "text-muted-foreground bg-secondary"
                   }`}>
-                    {d.status}
+                    {d.status === "sent" ? t.netStatusSent : t.netStatusDraft}
                   </span>
                   <span className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground font-mono shrink-0">
-                    <Clock className="h-3 w-3" />{formatDate(d.created_at)}
+                    <Clock className="h-3 w-3" />{formatDate(d.created_at, t, dateLocale)}
                   </span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onModify(d); }}
+                    className="text-muted-foreground hover:text-primary transition-colors shrink-0"
+                    title={t.netModifyDraft}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDelete(d.id); }}
+                    className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                    title={t.netDeleteDraft}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-                {d.subject && <div className="text-xs text-muted-foreground mb-1">Re: {d.subject}</div>}
+                {d.subject && <div className="text-xs text-muted-foreground mb-1">{t.netRe(d.subject)}</div>}
                 <p className={`text-sm text-foreground/70 leading-relaxed ${isExpanded ? "" : "line-clamp-1"}`}>
                   {d.body}
                 </p>
@@ -591,7 +649,7 @@ function DraftsList({
               <span className="text-muted-foreground text-xs shrink-0 mt-1">
                 {isExpanded ? "▲" : "▼"}
               </span>
-            </button>
+            </div>
 
             {/* Expanded body */}
             {isExpanded && (
@@ -604,7 +662,7 @@ function DraftsList({
                     onClick={() => copy(d.id, d.body)}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
                   >
-                    {copied === d.id ? <><Check className="h-3 w-3 text-primary" /> Copied</> : <><Copy className="h-3 w-3" /> Copy</>}
+                    {copied === d.id ? <><Check className="h-3 w-3 text-primary" /> {t.netCopied}</> : <><Copy className="h-3 w-3" /> {t.netCopy}</>}
                   </button>
                 </div>
               </div>

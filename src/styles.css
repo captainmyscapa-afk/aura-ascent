@@ -267,6 +267,20 @@
     box-shadow: 0 0 0 1px oklch(0.82 0.09 85 / 40%),
       0 0 24px -4px oklch(0.82 0.09 85 / 25%);
   }
+
+  /* ── 3D / interactive layer ─────────────────────── */
+  .tilt-card {
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+
+  .magnetic-glow {
+    background: radial-gradient(
+      circle at var(--mx, 50%) var(--my, 50%),
+      oklch(1 0 0 / 35%),
+      transparent 55%
+    );
+  }
 }
 
 @keyframes shimmer {
@@ -297,6 +311,37 @@
   animation: shimmer 2.4s linear infinite;
 }
 .animate-pulse-gold { animation: pulse-gold 2s ease-in-out infinite; }
+
+@keyframes orb-drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -22px) scale(1.08); }
+  66% { transform: translate(-22px, 16px) scale(0.95); }
+}
+@keyframes orb-drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-26px, 20px) scale(1.1); }
+}
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.94); }
+  70% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+@keyframes sparkle-float {
+  0% { transform: translateY(0) scale(0.5); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(-46px) scale(1); opacity: 0; }
+}
+
+.animate-orb-a { animation: orb-drift-a 14s ease-in-out infinite; }
+.animate-orb-b { animation: orb-drift-b 18s ease-in-out infinite; }
+.animate-pop { animation: pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.animate-sparkle { animation: sparkle-float 2.6s ease-in infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tilt-card { transform: none !important; }
+  .animate-orb-a, .animate-orb-b, .animate-pop, .animate-sparkle { animation: none !important; }
+}
 
 /* ── View Transitions ─────────────────────────────── */
 @keyframes aurum-page-out {

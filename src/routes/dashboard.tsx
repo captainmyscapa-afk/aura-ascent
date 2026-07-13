@@ -16,21 +16,11 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { generateRecommendation, generateDailyTasks } from "@/lib/identity.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { UpgradeModal } from "@/components/aurum/UpgradeModal";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
-
-const WELCOMES = [
-  "Today is a quiet step toward an extraordinary life.",
-  "The world rewards those who show up with intention. Begin.",
-  "Elite operators do today what others postpone. Move first.",
-  "A single conversation today can reshape your next decade.",
-  "Refinement is built in silence, before the world notices.",
-  "Your network is watching. Give them something worth remembering.",
-  "Discipline is the architecture of luxury. Build deliberately.",
-  "Make today undeniable — in craft, in presence, in execution.",
-];
 
 const INDUSTRY_TO_TRACK: Record<IndustryId, string> = {
   yachts: "yachting",
@@ -38,49 +28,6 @@ const INDUSTRY_TO_TRACK: Record<IndustryId, string> = {
   jets: "aviation",
   cars: "automotive",
 };
-
-const COMPLETION_MESSAGES = [
-  "🎉 Excellent work! You've completed all 5 daily rituals today. Keep building momentum and come back tomorrow for another step forward.",
-  "🏆 Daily mission accomplished! Every ritual completed. Rest, recharge, and come back tomorrow to continue your streak.",
-  "✨ Great job! You've shown up for yourself and completed everything today. Come back tomorrow and do it again.",
-  "🔥 You're on fire! All 5 rituals are complete. Small daily actions create big results — see you tomorrow.",
-  "💪 Another day, another victory. You've completed every ritual. Come back tomorrow and keep the momentum going.",
-  "🌟 Outstanding! Consistency is your superpower. All tasks completed — come back tomorrow for the next challenge.",
-  "🚀 Progress unlocked! You've completed today's rituals and moved one step closer to your goals. Come back tomorrow.",
-  "👏 Well done! Today's work is finished. Keep stacking these wins and return tomorrow for another successful day.",
-  "🎯 Target hit! All 5 rituals completed successfully. Take pride in today's effort and come back tomorrow.",
-  "⚡ Momentum builds one day at a time. You've completed every ritual today. Come back tomorrow and keep growing.",
-  "🏅 Success! You've finished all of today's rituals. The journey continues — come back tomorrow.",
-  "🌱 Growth happens daily, and today you've done your part. All rituals complete. Come back tomorrow and keep evolving.",
-  "💎 Discipline achieved. Every ritual completed. Your future self will thank you — come back tomorrow.",
-  "🎖️ Another perfect day. All 5 rituals are complete. Keep the streak alive and come back tomorrow.",
-  "🔥 Streak secured! You've completed everything on today's list. See you tomorrow for the next round.",
-  "🌄 A productive day comes to a close. Every ritual is complete. Rest well and come back tomorrow.",
-  "⭐ Fantastic work! You've earned today's victory. Come back tomorrow and continue building something great.",
-  "🛡️ You kept your commitment to yourself today. All rituals complete. Come back tomorrow and do it again.",
-  "📈 Progress never stops. You've completed all 5 rituals today. Come back tomorrow for another step upward.",
-  "👑 Congratulations! Today's rituals are complete. Stay consistent, stay focused, and come back tomorrow for the next level.",
-  "✅ Daily ritual complete. Five tasks finished, one step closer to the life you're building. Come back tomorrow.",
-  "🌟 You've done the work today. Your future self is already benefiting. Come back tomorrow and keep going.",
-  "🏆 Another successful day in the books. All five rituals completed. Come back tomorrow for your next win.",
-  "🔥 Consistency beats motivation. You've completed all five rituals today. Come back tomorrow and continue the streak.",
-  "⚡ Progress confirmed. Every ritual is complete. Rest well and return tomorrow stronger than before.",
-  "🎯 Mission accomplished. Today's rituals are complete. Tomorrow is another opportunity to level up.",
-  "🚀 Momentum is growing. Five rituals complete. Come back tomorrow and keep moving forward.",
-  "💪 Discipline wins again. Every task completed. Come back tomorrow and build on today's success.",
-  "🌱 Small actions. Big future. All rituals complete. Come back tomorrow and plant another seed.",
-  "🏅 You kept your promise to yourself today. Five rituals complete. Come back tomorrow and do it again.",
-  "⭐ Another brick added to the foundation. All five rituals completed. Come back tomorrow to keep building.",
-  "🔥 Streak protected. Progress secured. Come back tomorrow and continue your journey.",
-  "💎 Excellence is built daily. Today's rituals are complete. Come back tomorrow for another step forward.",
-  "🎖️ You've earned today's victory. All five rituals are done. Come back tomorrow for the next challenge.",
-  "⚔️ The battle for your goals continues. Today's round is won. Come back tomorrow.",
-  "🌄 Day complete. Rituals complete. Progress complete. Come back tomorrow and keep climbing.",
-  "🚩 Checkpoint reached. All five rituals completed successfully. Come back tomorrow and continue the adventure.",
-  "📈 Growth recorded. Every ritual finished. Come back tomorrow and keep raising the standard.",
-  "🏔️ Great achievements are built one day at a time. Today's work is done. Come back tomorrow.",
-  "👑 Another day conquered. Five rituals complete. Return tomorrow and continue your ascent.",
-];
 
 type CalendarEvent = {
   id: string;
@@ -286,6 +233,8 @@ function weekStartIso(d = new Date()) {
 }
 
 export default function Dashboard() {
+  const { t, lang } = useLanguage();
+  const dateLocale = lang === "fr" ? "fr-FR" : "en-US";
   const { industry, industryId, setIndustry } = useIndustry();
   const { session, user } = useAuth();
   const isDemo = !session;
@@ -327,10 +276,10 @@ export default function Dashboard() {
     const key = `aurum:ritualMsg:${user?.id ?? "demo"}:${todayStr}`;
     const stored = typeof window !== "undefined" ? localStorage.getItem(key) : null;
     if (stored) { setCompletionMsg(stored); return; }
-    const msg = COMPLETION_MESSAGES[Math.floor(Math.random() * COMPLETION_MESSAGES.length)];
+    const msg = t.dashCompletionMessages[Math.floor(Math.random() * t.dashCompletionMessages.length)];
     if (typeof window !== "undefined") localStorage.setItem(key, msg);
     setCompletionMsg(msg);
-  }, [allDone, todayStr, user?.id]);
+  }, [allDone, todayStr, user?.id, t]);
 
   useEffect(() => {
     if (!user) return;
@@ -558,12 +507,12 @@ export default function Dashboard() {
 
   const welcome = useMemo(() => {
     const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86_400_000);
-    return WELCOMES[dayOfYear % WELCOMES.length];
-  }, [now]);
+    return t.dashWelcomes[dayOfYear % t.dashWelcomes.length];
+  }, [now, t]);
 
-  const dayName = now.toLocaleDateString("en-US", { weekday: "long" });
-  const dateLong = now.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-  const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+  const dayName = now.toLocaleDateString(dateLocale, { weekday: "long" });
+  const dateLong = now.toLocaleDateString(dateLocale, { month: "long", day: "numeric" });
+  const timeStr = now.toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", hour12: false });
 
   const hubs = INDUSTRY_LIST.map((m) => ({
     ...m,
@@ -581,9 +530,9 @@ export default function Dashboard() {
           <div className="flex items-center gap-3 min-w-0">
             <Lock className="h-4 w-4 text-primary shrink-0" />
             <div className="min-w-0">
-              <div className="text-[10px] tracking-[0.32em] text-primary/80 uppercase">Demo mode</div>
+              <div className="text-[10px] tracking-[0.32em] text-primary/80 uppercase">{t.dashDemoMode}</div>
               <div className="text-sm text-foreground/90 truncate">
-                Sign in to unlock the full experience — memory, persistence, unlimited AI.
+                {t.dashDemoMessage}
               </div>
             </div>
           </div>
@@ -592,7 +541,7 @@ export default function Dashboard() {
             className="shrink-0 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs tracking-wide text-primary-foreground shadow-[var(--shadow-gold)]"
             style={{ background: "var(--gradient-gold)" }}
           >
-            Sign in
+            {t.dashSignIn}
           </Link>
         </div>
       )}
@@ -602,9 +551,9 @@ export default function Dashboard() {
           <div className="flex items-center gap-3 min-w-0">
             <Sparkles className="h-4 w-4 text-primary shrink-0" />
             <div className="min-w-0">
-              <div className="text-[10px] tracking-[0.32em] text-primary/80 uppercase">Free plan</div>
+              <div className="text-[10px] tracking-[0.32em] text-primary/80 uppercase">{t.dashFreePlan}</div>
               <div className="text-sm text-foreground/90 truncate">
-                Upgrade to Pro — unlock full Academy, unlimited mentor, content studio & more.
+                {t.dashUpgradeMessage}
               </div>
             </div>
           </div>
@@ -613,7 +562,7 @@ export default function Dashboard() {
             className="shrink-0 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs tracking-wide text-primary-foreground shadow-[var(--shadow-gold)]"
             style={{ background: "var(--gradient-gold)" }}
           >
-            Upgrade · £29/mo
+            {t.dashUpgradeCta}
           </button>
         </div>
       )}
@@ -628,7 +577,7 @@ export default function Dashboard() {
               <div className="font-mono text-xs tracking-[0.3em] text-muted-foreground lg:hidden">{timeStr}</div>
             </div>
             <h1 className="font-serif text-[34px] sm:text-[52px] leading-[1.05] tracking-tight">
-              Good {now.getHours() < 12 ? "morning" : now.getHours() < 18 ? "afternoon" : "evening"},
+              {t.greeting(now.getHours() < 12 ? "morning" : now.getHours() < 18 ? "afternoon" : "evening")},
               <br />
               <span className="text-gold-gradient italic">
                 {profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Operator"}.
@@ -638,16 +587,17 @@ export default function Dashboard() {
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
                 to="/mentor"
+                search={{ prompt: undefined }}
                 className="inline-flex items-center gap-2 text-primary-foreground rounded-full px-5 py-2.5 text-sm shadow-[var(--shadow-gold)]"
                 style={{ background: "var(--gradient-gold)" }}
               >
-                <Sparkles className="h-4 w-4 text-primary-foreground" /> Speak with AURUM
+                <Sparkles className="h-4 w-4 text-primary-foreground" /> {t.dashSpeakWithAurum}
               </Link>
               <Link
                 to="/intelligence"
                 className="inline-flex items-center gap-2 glass rounded-full px-5 py-2.5 text-sm border border-border/60 hover:border-primary/50 transition-colors"
               >
-                <Radio className="h-4 w-4 text-primary" /> Open Intelligence
+                <Radio className="h-4 w-4 text-primary" /> {t.dashOpenIntelligence}
               </Link>
             </div>
           </div>
@@ -668,14 +618,14 @@ export default function Dashboard() {
             {/* CAP-59: custom header with completion badge + banner */}
             <div className="flex items-start justify-between mb-5 gap-4">
               <div>
-                <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">TODAY · {industry.modeLabel.toUpperCase()}</div>
-                <h2 className="font-serif text-xl sm:text-[22px] leading-tight">Daily ritual</h2>
+                <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">{t.dashTodayEyebrow(industry.modeLabel)}</div>
+                <h2 className="font-serif text-xl sm:text-[22px] leading-tight">{t.dashDailyRitual}</h2>
               </div>
               <div className="shrink-0 text-right">
-                <div className="text-xs text-muted-foreground font-mono mb-1">{tasksLoading ? "…" : `${completed} of ${total}`}</div>
+                <div className="text-xs text-muted-foreground font-mono mb-1">{tasksLoading ? "…" : t.dashOfCount(completed, total)}</div>
                 {allDone && (
                   <span className="inline-flex items-center gap-1 text-[9px] tracking-[0.25em] text-primary animate-pulse">
-                    <Sparkles className="h-2.5 w-2.5" /> ALL COMPLETE
+                    <Sparkles className="h-2.5 w-2.5" /> {t.dashAllComplete}
                   </span>
                 )}
               </div>
@@ -711,12 +661,12 @@ export default function Dashboard() {
               />
             </div>
             <div className="mt-3 text-[11px] tracking-[0.3em] text-muted-foreground uppercase">
-              Momentum · {Math.round((completed / total) * 100)}%
+              {t.dashMomentumLabel(Math.round((completed / total) * 100))}
             </div>
           </Card>
 
           <div>
-            <SubHeading eyebrow="ACADEMY" title="Your tracks" />
+            <SubHeading eyebrow={t.dashAcademyEyebrow} title={t.dashYourTracks} />
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               {hubs.map((m) => {
                 const Icon = m.icon;
@@ -757,11 +707,11 @@ export default function Dashboard() {
                               <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: "var(--gradient-gold)" }} />
                             </div>
                             <div className="mt-1.5 text-[10px] tracking-wider text-muted-foreground uppercase">
-                              {m.id === "yachts" ? `${trackDone}/${trackTotal} complete` : "Coming soon"}
+                              {m.id === "yachts" ? t.dashTrackComplete(trackDone, trackTotal) : t.dashComingSoon}
                             </div>
                           </>
                         ) : (
-                          <div className="mt-1 text-[10px] tracking-wider text-muted-foreground uppercase">Coming soon</div>
+                          <div className="mt-1 text-[10px] tracking-wider text-muted-foreground uppercase">{t.dashComingSoon}</div>
                         )}
                       </div>
                     </div>
@@ -778,7 +728,7 @@ export default function Dashboard() {
       <div className="space-y-6 lg:-mt-[5.5rem]">
         <div className="flex flex-col items-center gap-2">
           <button onClick={() => setCalFilter("all")} className={"px-4 py-1.5 rounded-full border text-xs tracking-[0.2em] uppercase transition-all " + (calFilter === "all" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
-            All industries
+            {t.dashAllIndustries}
           </button>
           <div className="flex gap-2">
             {(["yachts", "villas", "jets", "cars"] as const).map((f) => (
@@ -792,11 +742,11 @@ export default function Dashboard() {
           <div className="glass rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <button onClick={() => { if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); } else setViewMonth((m) => m - 1); }} className="p-1 rounded hover:bg-primary/10 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
-              <span className="text-sm font-semibold">{["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][viewMonth]} {viewYear}</span>
+              <span className="text-sm font-semibold">{t.monthShort[viewMonth]} {viewYear}</span>
               <button onClick={() => { if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1); } else setViewMonth((m) => m + 1); }} className="p-1 rounded hover:bg-primary/10 transition-colors"><ChevronRight className="w-4 h-4" /></button>
             </div>
             <div className="grid grid-cols-7 mb-1">
-              {["M","T","W","T","F","S","S"].map((d, i) => <div key={i} className="text-center text-[10px] text-muted-foreground/50 py-1">{d}</div>)}
+              {t.weekdayLetters.map((d, i) => <div key={i} className="text-center text-[10px] text-muted-foreground/50 py-1">{d}</div>)}
             </div>
             <div className="grid grid-cols-7 gap-px">
               {(() => {
@@ -860,49 +810,49 @@ export default function Dashboard() {
                   if (daysUntil > 0) return (
                     <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-2 w-fit">
                       <Clock className="w-3.5 h-3.5 text-primary" />
-                      <span className="text-sm font-semibold text-primary">{daysUntil} days away</span>
+                      <span className="text-sm font-semibold text-primary">{t.dashDaysAway(daysUntil)}</span>
                     </div>
                   );
                   if (daysUntil === 0) return (
                     <div className="flex items-center gap-2 bg-emerald-400/10 border border-emerald-400/30 rounded-lg px-3 py-2 w-fit">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-sm font-semibold text-emerald-400">Happening today</span>
+                      <span className="text-sm font-semibold text-emerald-400">{t.dashHappeningToday}</span>
                     </div>
                   );
                   return (
                     <div className="flex items-center gap-2 bg-muted/40 border border-border/60 rounded-lg px-3 py-2 w-fit">
-                      <span className="text-sm text-muted-foreground">Event has passed</span>
+                      <span className="text-sm text-muted-foreground">{t.dashEventPassed}</span>
                     </div>
                   );
                 })()}
                 <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{selectedEvent.location}</span>
-                  <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{new Date(selectedEvent.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}{selectedEvent.startDate !== selectedEvent.endDate && " - " + new Date(selectedEvent.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                  <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{new Date(selectedEvent.startDate).toLocaleDateString(dateLocale, { month: "short", day: "numeric", year: "numeric" })}{selectedEvent.startDate !== selectedEvent.endDate && " - " + new Date(selectedEvent.endDate).toLocaleDateString(dateLocale, { month: "short", day: "numeric", year: "numeric" })}</span>
                 </div>
                 <p className="text-sm leading-relaxed">{selectedEvent.description}</p>
                 <div className="bg-primary/5 rounded-lg p-4 space-y-2">
                   <div className="flex items-center gap-2 text-xs font-semibold tracking-[0.15em] uppercase text-primary">
-                    <Sparkles className="w-3.5 h-3.5" />CONTENT PREP WINDOW
+                    <Sparkles className="w-3.5 h-3.5" />{t.dashContentPrepWindow}
                   </div>
-                  <p className="text-sm text-muted-foreground">Start posting {selectedEvent.contentPrepWeeks} weeks before the event.</p>
+                  <p className="text-sm text-muted-foreground">{t.dashStartPosting(selectedEvent.contentPrepWeeks)}</p>
                   <div className="text-xs">
                     {(() => {
                       const prepStart = new Date(selectedEvent.startDate);
                       prepStart.setDate(prepStart.getDate() - selectedEvent.contentPrepWeeks * 7);
                       const diff = Math.ceil((prepStart.getTime() - new Date().setHours(0,0,0,0)) / 86_400_000);
-                      if (diff > 0) return "Content window opens in " + diff + " days — " + prepStart.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-                      if (Math.ceil((new Date(selectedEvent.startDate).getTime() - new Date().setHours(0,0,0,0)) / 86_400_000) > 0) return "Content window is open right now. Start posting today.";
-                      return "This event has passed.";
+                      if (diff > 0) return t.dashContentWindowOpensIn(diff, prepStart.toLocaleDateString(dateLocale, { month: "short", day: "numeric", year: "numeric" }));
+                      if (Math.ceil((new Date(selectedEvent.startDate).getTime() - new Date().setHours(0,0,0,0)) / 86_400_000) > 0) return t.dashContentWindowOpenNow;
+                      return t.dashEventHasPassed;
                     })()}
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 pt-2">
                   <Link to="/studio" search={{ idea: selectedEvent.title + " — " + selectedEvent.location + ". " + selectedEvent.description, intel: undefined }} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
-                    <Sparkles className="w-3.5 h-3.5" />Create content for this event
+                    <Sparkles className="w-3.5 h-3.5" />{t.dashCreateContentForEvent}
                   </Link>
                   {selectedEvent.url && (
                     <a href={selectedEvent.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium hover:border-primary/40 transition-colors">
-                      Visit official site
+                      {t.dashVisitOfficialSite}
                     </a>
                   )}
                 </div>
@@ -910,8 +860,8 @@ export default function Dashboard() {
             ) : (
               <div className="glass rounded-xl p-8 text-center space-y-3">
                 <Calendar className="w-8 h-8 mx-auto text-muted-foreground/50" />
-                <div className="font-medium">Select an event</div>
-                <p className="text-sm text-muted-foreground">Click any event on the calendar to see details, content prep timing and create posts.</p>
+                <div className="font-medium">{t.dashSelectEvent}</div>
+                <p className="text-sm text-muted-foreground">{t.dashSelectEventDesc}</p>
               </div>
             )}
           </div>

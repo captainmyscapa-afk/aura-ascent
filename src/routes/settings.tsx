@@ -28,6 +28,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { IndustryId } from "@/lib/industry/types";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import type { T } from "@/lib/i18n/translations";
 
 export const Route = createFileRoute("/settings")({
   component: Settings,
@@ -42,15 +44,17 @@ type Section = {
   soon: boolean;
 };
 
-const SECTIONS: Section[] = [
-  { id: "account", label: "Account", icon: User, soon: false },
-  { id: "aurum", label: "My AURUM", icon: Sparkles, soon: false },
-  { id: "content", label: "Content", icon: ChevronRight, soon: false },
-  { id: "notifications", label: "Notifications", icon: Bell, soon: false },
-  { id: "privacy", label: "Privacy", icon: Shield, soon: true },
-  { id: "billing", label: "Billing", icon: CreditCard, soon: true },
-  { id: "danger", label: "Danger Zone", icon: AlertTriangle, soon: false },
-];
+function getSections(t: T): Section[] {
+  return [
+    { id: "account", label: t.setSectionAccount, icon: User, soon: false },
+    { id: "aurum", label: t.setSectionAurum, icon: Sparkles, soon: false },
+    { id: "content", label: t.setSectionContent, icon: ChevronRight, soon: false },
+    { id: "notifications", label: t.setSectionNotifications, icon: Bell, soon: false },
+    { id: "privacy", label: t.setSectionPrivacy, icon: Shield, soon: true },
+    { id: "billing", label: t.setSectionBilling, icon: CreditCard, soon: true },
+    { id: "danger", label: t.setSectionDanger, icon: AlertTriangle, soon: false },
+  ];
+}
 
 const MODES = [
   { id: "yachts", label: "Yachts" },
@@ -59,39 +63,56 @@ const MODES = [
   { id: "cars", label: "Cars" },
 ] as const;
 
-const LEVELS = [
-  { id: "beginner", label: "Beginner", desc: "Exploring, building foundation" },
-  { id: "intermediate", label: "Intermediate", desc: "In the industry, accelerating" },
-  { id: "experienced", label: "Experienced", desc: "Established, scaling reach" },
-] as const;
+function getLevels(t: T) {
+  return [
+    { id: "beginner", label: t.setLevelBeginner, desc: t.setLevelBeginnerDesc },
+    { id: "intermediate", label: t.setLevelIntermediate, desc: t.setLevelIntermediateDesc },
+    { id: "experienced", label: t.setLevelExperienced, desc: t.setLevelExperiencedDesc },
+  ] as const;
+}
 
-const TONES = [
-  { id: "Strategic · Calm · Direct", label: "Strategic", desc: "Calm, direct, no fluff" },
-  { id: "Warm · Encouraging · Supportive", label: "Warm", desc: "Encouraging and supportive" },
-  { id: "Socratic · Challenging · Sharp", label: "Socratic", desc: "Challenges your thinking" },
-] as const;
+function getTones(t: T) {
+  return [
+    { id: "Strategic · Calm · Direct", label: t.setToneStrategic, desc: t.setToneStrategicDesc },
+    { id: "Warm · Encouraging · Supportive", label: t.setToneWarm, desc: t.setToneWarmDesc },
+    { id: "Socratic · Challenging · Sharp", label: t.setToneSocratic, desc: t.setToneSocraticDesc },
+  ] as const;
+}
 
-const AI_STYLES = [
-  { id: "Concise", label: "Concise", desc: "Short, sharp answers" },
-  { id: "Detailed", label: "Detailed", desc: "In-depth explanations" },
-] as const;
+function getAiStyles(t: T) {
+  return [
+    { id: "Concise", label: t.setStyleConcise, desc: t.setStyleConciseDesc },
+    { id: "Detailed", label: t.setStyleDetailed, desc: t.setStyleDetailedDesc },
+  ] as const;
+}
 
 const TASK_COUNTS = [5, 7, 10] as const;
 
-const CONTENT_TONES = [
-  { id: "Professional", label: "Professional" },
-  { id: "Conversational", label: "Conversational" },
-  { id: "Bold", label: "Bold" },
-] as const;
+function getContentTones(t: T) {
+  return [
+    { id: "Professional", label: t.setToneProfessional },
+    { id: "Conversational", label: t.setToneConversational },
+    { id: "Bold", label: t.setToneBold },
+  ] as const;
+}
 
-const PLATFORMS = [
-  { id: "All", label: "All platforms" },
-  { id: "LinkedIn", label: "LinkedIn only" },
-  { id: "Instagram", label: "Instagram only" },
-  { id: "LinkedIn,Instagram", label: "LinkedIn + Instagram" },
-] as const;
+function getPlatformOptions(t: T) {
+  return [
+    { id: "All", label: t.setPlatformAll },
+    { id: "LinkedIn", label: t.setPlatformLinkedinOnly },
+    { id: "Instagram", label: t.setPlatformInstagramOnly },
+    { id: "LinkedIn,Instagram", label: t.setPlatformLinkedinInstagram },
+  ] as const;
+}
 
 function Settings() {
+  const { t } = useLanguage();
+  const SECTIONS = getSections(t);
+  const LEVELS = getLevels(t);
+  const TONES = getTones(t);
+  const AI_STYLES = getAiStyles(t);
+  const CONTENT_TONES = getContentTones(t);
+  const PLATFORMS = getPlatformOptions(t);
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { profile, update: updateProfile } = useUserProfile();
@@ -141,11 +162,11 @@ function Settings() {
   function timeAgo(iso: string) {
     const diff = Date.now() - new Date(iso).getTime();
     const m = Math.floor(diff / 60000);
-    if (m < 1) return "just now";
-    if (m < 60) return `${m}m ago`;
+    if (m < 1) return t.setTimeJustNow;
+    if (m < 60) return t.setTimeMinAgo(m);
     const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
+    if (h < 24) return t.setTimeHourAgo(h);
+    return t.setTimeDayAgo(Math.floor(h / 24));
   }
 
   const handleSignOut = async () => {
@@ -165,12 +186,12 @@ function Settings() {
       if (email !== user?.email) {
         const { error } = await supabase.auth.updateUser({ email });
         if (error) throw error;
-        toast.success("Check your new email to confirm the change.");
+        toast.success(t.setEmailChangeToast);
       } else {
-        toast.success("Account updated.");
+        toast.success(t.setAccountUpdatedToast);
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to save");
+      toast.error(e instanceof Error ? e.message : t.setSaveFailedToast);
     } finally {
       setSaving(false);
     }
@@ -183,14 +204,14 @@ function Settings() {
       toast.error(error.message);
       return;
     }
-    toast.success("Password reset email sent. Check your inbox.");
+    toast.success(t.setPasswordResetSentToast);
   };
 
   return (
     <AppShell>
       <div className="mb-8">
-        <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">PREFERENCES</div>
-        <h1 className="font-serif text-4xl">Tune your operating system</h1>
+        <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">{t.setPreferencesEyebrow}</div>
+        <h1 className="font-serif text-4xl">{t.setTuneTitle}</h1>
       </div>
 
       <div className="grid lg:grid-cols-[220px_1fr] gap-6">
@@ -215,7 +236,7 @@ function Settings() {
               </div>
               {soon && (
                 <span className="text-[9px] tracking-[0.2em] px-1.5 py-0.5 rounded bg-secondary/60 text-muted-foreground/60">
-                  SOON
+                  {t.setSoon}
                 </span>
               )}
               {activeSection === id && !soon && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
@@ -226,29 +247,29 @@ function Settings() {
         <div className="glass rounded-2xl p-6 sm:p-8">
           {activeSection === "account" && (
             <div className="space-y-6">
-              <SectionTitle title="Account" desc="Manage your personal information and login credentials." />
-              <Field label="Full name">
-                <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your name" />
+              <SectionTitle title={t.setAccountTitle} desc={t.setAccountDesc} />
+              <Field label={t.setFieldFullName}>
+                <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.setFullNamePlaceholder} />
               </Field>
-              <Field label="Email address">
+              <Field label={t.setFieldEmail}>
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@domain.com"
+                  placeholder={t.setEmailPlaceholder}
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Changing your email requires confirmation from the new address.
+                  {t.setEmailChangeHint}
                 </p>
               </Field>
               <Button onClick={handleSaveAccount} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save changes"}
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : t.setSaveChanges}
               </Button>
               <div className="pt-4 border-t border-border/60">
-                <Field label="Password">
-                  <p className="text-sm text-muted-foreground mb-3">We'll send a reset link to your email address.</p>
+                <Field label={t.setFieldPassword}>
+                  <p className="text-sm text-muted-foreground mb-3">{t.setPasswordResetDesc}</p>
                   <Button variant="outline" onClick={handlePasswordReset}>
-                    Send password reset email
+                    {t.setSendPasswordReset}
                   </Button>
                 </Field>
               </div>
@@ -257,8 +278,8 @@ function Settings() {
 
           {activeSection === "aurum" && (
             <div className="space-y-8">
-              <SectionTitle title="My AURUM" desc="Personalise your AI mentor, daily rituals and operating system." />
-              <Field label="Active mode">
+              <SectionTitle title={t.setAurumTitle} desc={t.setAurumDesc} />
+              <Field label={t.setActiveMode}>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
                   {MODES.map((m) => (
                     <button
@@ -266,7 +287,7 @@ function Settings() {
                       onClick={() => {
                         setIndustry(m.id as IndustryId);
                         updateCore({ active_mode: m.id });
-                        toast.success(`Switched to ${m.label} mode`);
+                        toast.success(t.setModeSwitchedToast(m.label));
                       }}
                       className={`py-2 px-3 rounded-lg border text-sm transition-all ${industryId === m.id ? "border-primary/60 bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:border-primary/40"}`}
                     >
@@ -275,14 +296,14 @@ function Settings() {
                   ))}
                 </div>
               </Field>
-              <Field label="Experience level">
+              <Field label={t.setExperienceLevel}>
                 <div className="space-y-2 mt-1">
                   {LEVELS.map((l) => (
                     <button
                       key={l.id}
                       onClick={() => {
                         updateCore({ current_level: l.id });
-                        toast.success("Level updated");
+                        toast.success(t.setLevelUpdatedToast);
                       }}
                       className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${core?.current_level === l.id ? "border-primary/60 bg-primary/10" : "border-border hover:border-primary/40"}`}
                     >
@@ -295,67 +316,67 @@ function Settings() {
                   ))}
                 </div>
               </Field>
-              <Field label="My goal">
+              <Field label={t.setMyGoal}>
                 <Input
                   defaultValue={typeof core?.current_focus === "string" ? core.current_focus : ""}
-                  placeholder="e.g. Sign first brokerage mandate by Q4"
+                  placeholder={t.setGoalPlaceholder}
                   onBlur={(e) => {
                     if (e.target.value) {
                       updateCore({ current_focus: e.target.value });
-                      toast.success("Goal saved");
+                      toast.success(t.setGoalSavedToast);
                     }
                   }}
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Used by your AI mentor to personalise every recommendation.
+                  {t.setGoalHint}
                 </p>
               </Field>
-              <Field label="Daily ritual intensity">
+              <Field label={t.setDailyRitualIntensity}>
                 <div className="flex gap-2 mt-1">
                   {TASK_COUNTS.map((n) => (
                     <button
                       key={n}
                       onClick={() => {
                         updateProfile({ daily_task_count: n });
-                        toast.success(`Daily tasks set to ${n}`);
+                        toast.success(t.setDailyTasksToast(n));
                       }}
                       className={`flex-1 py-2 rounded-lg border text-sm transition-all ${(profile?.daily_task_count ?? 5) === n ? "border-primary/60 bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:border-primary/40"}`}
                     >
-                      {n} tasks
+                      {t.setTasksLabel(n)}
                     </button>
                   ))}
                 </div>
               </Field>
-              <Field label="Mentor tone">
+              <Field label={t.setMentorTone}>
                 <div className="space-y-2 mt-1">
-                  {TONES.map((t) => (
+                  {TONES.map((tone) => (
                     <button
-                      key={t.id}
+                      key={tone.id}
                       onClick={() => {
-                        updateProfile({ mentor_tone: t.id });
-                        toast.success("Mentor tone updated");
+                        updateProfile({ mentor_tone: tone.id });
+                        toast.success(t.setMentorToneToast);
                       }}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${(profile?.mentor_tone ?? "Strategic · Calm · Direct") === t.id ? "border-primary/60 bg-primary/10" : "border-border hover:border-primary/40"}`}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${(profile?.mentor_tone ?? "Strategic · Calm · Direct") === tone.id ? "border-primary/60 bg-primary/10" : "border-border hover:border-primary/40"}`}
                     >
                       <div className="text-left">
-                        <div className="text-sm font-medium">{t.label}</div>
-                        <div className="text-xs text-muted-foreground">{t.desc}</div>
+                        <div className="text-sm font-medium">{tone.label}</div>
+                        <div className="text-xs text-muted-foreground">{tone.desc}</div>
                       </div>
-                      {(profile?.mentor_tone ?? "Strategic · Calm · Direct") === t.id && (
+                      {(profile?.mentor_tone ?? "Strategic · Calm · Direct") === tone.id && (
                         <Check className="h-4 w-4 text-primary" />
                       )}
                     </button>
                   ))}
                 </div>
               </Field>
-              <Field label="AI response style">
+              <Field label={t.setAiResponseStyle}>
                 <div className="grid grid-cols-2 gap-2 mt-1">
                   {AI_STYLES.map((s) => (
                     <button
                       key={s.id}
                       onClick={() => {
                         updateProfile({ ai_response_style: s.id });
-                        toast.success("AI style updated");
+                        toast.success(t.setAiStyleToast);
                       }}
                       className={`py-3 px-4 rounded-lg border text-left transition-all ${(profile?.ai_response_style ?? "Concise") === s.id ? "border-primary/60 bg-primary/10" : "border-border hover:border-primary/40"}`}
                     >
@@ -366,12 +387,12 @@ function Settings() {
                 </div>
               </Field>
               <div className="pt-4 border-t border-border/60">
-                <Field label="Reset onboarding">
+                <Field label={t.setResetOnboarding}>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Redo your setup to change your industry and goals from scratch.
+                    {t.setResetOnboardingDesc}
                   </p>
                   <Button variant="outline" onClick={() => navigate({ to: "/onboarding" })}>
-                    <RotateCcw className="h-4 w-4 mr-2" /> Redo onboarding
+                    <RotateCcw className="h-4 w-4 mr-2" /> {t.setRedoOnboarding}
                   </Button>
                 </Field>
               </div>
@@ -380,15 +401,15 @@ function Settings() {
 
           {activeSection === "content" && (
             <div className="space-y-8">
-              <SectionTitle title="Content & Intelligence" desc="Control how AURUM generates content for you." />
-              <Field label="Preferred platforms">
+              <SectionTitle title={t.setContentTitle} desc={t.setContentDesc} />
+              <Field label={t.setPreferredPlatforms}>
                 <div className="space-y-2 mt-1">
                   {PLATFORMS.map((p) => (
                     <button
                       key={p.id}
                       onClick={() => {
                         updateProfile({ preferred_platforms: p.id });
-                        toast.success("Platforms updated");
+                        toast.success(t.setPlatformsUpdatedToast);
                       }}
                       className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${(profile?.preferred_platforms ?? "All") === p.id ? "border-primary/60 bg-primary/10" : "border-border hover:border-primary/40"}`}
                     >
@@ -398,33 +419,33 @@ function Settings() {
                   ))}
                 </div>
               </Field>
-              <Field label="Content tone">
+              <Field label={t.setContentTone}>
                 <div className="grid grid-cols-3 gap-2 mt-1">
-                  {CONTENT_TONES.map((t) => (
+                  {CONTENT_TONES.map((ct) => (
                     <button
-                      key={t.id}
+                      key={ct.id}
                       onClick={() => {
-                        updateProfile({ content_tone: t.id });
-                        toast.success("Content tone updated");
+                        updateProfile({ content_tone: ct.id });
+                        toast.success(t.setContentToneUpdatedToast);
                       }}
-                      className={`py-2 px-3 rounded-lg border text-sm transition-all ${(profile?.content_tone ?? "Professional") === t.id ? "border-primary/60 bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:border-primary/40"}`}
+                      className={`py-2 px-3 rounded-lg border text-sm transition-all ${(profile?.content_tone ?? "Professional") === ct.id ? "border-primary/60 bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:border-primary/40"}`}
                     >
-                      {t.label}
+                      {ct.label}
                     </button>
                   ))}
                 </div>
               </Field>
-              <Field label="Auto-generate daily brief">
+              <Field label={t.setAutoGenerateDailyBrief}>
                 <div className="flex items-center justify-between px-4 py-3 rounded-lg border border-border mt-1">
                   <div>
-                    <div className="text-sm">Daily brief</div>
-                    <div className="text-xs text-muted-foreground">Automatically generate your brief each morning</div>
+                    <div className="text-sm">{t.setDailyBrief}</div>
+                    <div className="text-xs text-muted-foreground">{t.setDailyBriefDesc}</div>
                   </div>
                   <button
                     onClick={() => {
                       const next = !(profile?.auto_daily_brief ?? true);
                       updateProfile({ auto_daily_brief: next });
-                      toast.success(next ? "Daily brief enabled" : "Daily brief disabled");
+                      toast.success(next ? t.setDailyBriefEnabledToast : t.setDailyBriefDisabledToast);
                     }}
                     className={`relative h-6 w-11 rounded-full transition-colors ${(profile?.auto_daily_brief ?? true) ? "bg-primary" : "bg-border"}`}
                   >
@@ -440,18 +461,18 @@ function Settings() {
           {activeSection === "notifications" && (
             <div className="space-y-8">
               <SectionTitle
-                title="Notifications"
-                desc="Choose what alerts you receive inside AURUM OS."
+                title={t.setNotificationsTitle}
+                desc={t.setNotificationsDesc}
               />
 
               {/* Preference toggles */}
               <div className="space-y-3">
                 {[
-                  { key: "streak", icon: Flame, label: "Streak reminders", desc: "Daily nudge to keep your momentum going", color: "text-orange-400" },
-                  { key: "academy", icon: GraduationCap, label: "Academy progress", desc: "When a new module unlocks or you complete one", color: "text-primary" },
-                  { key: "intelligence", icon: Radio, label: "Intelligence feed", desc: "Fresh luxury industry news available", color: "text-blue-400" },
-                  { key: "mentor", icon: Sparkles, label: "Mentor sessions", desc: "Reminders to check in with your AI mentor", color: "text-primary" },
-                  { key: "system", icon: Bell, label: "System & announcements", desc: "Platform updates and important alerts", color: "text-muted-foreground" },
+                  { key: "streak", icon: Flame, label: t.setNotifStreakLabel, desc: t.setNotifStreakDesc, color: "text-orange-400" },
+                  { key: "academy", icon: GraduationCap, label: t.setNotifAcademyLabel, desc: t.setNotifAcademyDesc, color: "text-primary" },
+                  { key: "intelligence", icon: Radio, label: t.setNotifIntelligenceLabel, desc: t.setNotifIntelligenceDesc, color: "text-blue-400" },
+                  { key: "mentor", icon: Sparkles, label: t.setNotifMentorLabel, desc: t.setNotifMentorDesc, color: "text-primary" },
+                  { key: "system", icon: Bell, label: t.setNotifSystemLabel, desc: t.setNotifSystemDesc, color: "text-muted-foreground" },
                 ].map(({ key, icon: Icon, label, desc, color }) => (
                   <div key={key} className="flex items-center justify-between gap-4 rounded-xl border border-border/50 px-4 py-3.5">
                     <div className="flex items-center gap-3">
@@ -476,7 +497,7 @@ function Settings() {
               {/* Recent notifications */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-[10px] tracking-[0.3em] text-muted-foreground">RECENT</span>
+                  <span className="text-[10px] tracking-[0.3em] text-muted-foreground">{t.setRecent}</span>
                   {recentNotifs.some((n) => !n.read) && (
                     <button
                       onClick={markAllRead}
@@ -484,14 +505,14 @@ function Settings() {
                       className="flex items-center gap-1.5 text-[11px] text-primary hover:text-primary/80 transition-colors"
                     >
                       <CheckCheck className="h-3.5 w-3.5" />
-                      Mark all read
+                      {t.setMarkAllRead}
                     </button>
                   )}
                 </div>
 
                 {recentNotifs.length === 0 ? (
                   <div className="rounded-xl border border-border/40 px-4 py-8 text-center text-muted-foreground text-sm">
-                    No notifications yet
+                    {t.setNoNotifications}
                   </div>
                 ) : (
                   <div className="rounded-xl border border-border/50 overflow-hidden divide-y divide-border/40">
@@ -516,31 +537,31 @@ function Settings() {
             </div>
           )}
           {activeSection === "privacy" && (
-            <ComingSoon title="Privacy" desc="Control who can see your profile, streak and activity. Coming soon." />
+            <ComingSoon title={t.setPrivacyTitle} desc={t.setPrivacyDesc} />
           )}
           {activeSection === "billing" && (
-            <ComingSoon title="Billing" desc="Manage your plan, payment method and invoice history. Coming soon." />
+            <ComingSoon title={t.setBillingTitle} desc={t.setBillingDesc} />
           )}
 
           {activeSection === "danger" && (
             <div className="space-y-4">
-              <SectionTitle title="Danger Zone" desc="Irreversible actions. Proceed with caution." />
+              <SectionTitle title={t.setDangerTitle} desc={t.setDangerDesc} />
               <div className="rounded-xl border border-border/60 p-5 flex items-center justify-between">
                 <div>
-                  <div className="text-sm">Sign out</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">Sign out of this device</div>
+                  <div className="text-sm">{t.setSignOut}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{t.setSignOutDesc}</div>
                 </div>
                 <Button variant="outline" onClick={handleSignOut}>
-                  <LogOut className="h-4 w-4 mr-2" /> Sign out
+                  <LogOut className="h-4 w-4 mr-2" /> {t.setSignOut}
                 </Button>
               </div>
               <div className="rounded-xl border border-border/60 p-5 flex items-center justify-between">
                 <div>
-                  <div className="text-sm">Sign out everywhere</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">Sign out of all devices and sessions</div>
+                  <div className="text-sm">{t.setSignOutAll}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{t.setSignOutAllDesc}</div>
                 </div>
                 <Button variant="outline" onClick={handleSignOutAll}>
-                  <LogOut className="h-4 w-4 mr-2" /> Sign out all
+                  <LogOut className="h-4 w-4 mr-2" /> {t.setSignOutAll}
                 </Button>
               </div>
             </div>

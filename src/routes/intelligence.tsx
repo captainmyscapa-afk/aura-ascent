@@ -6,6 +6,8 @@ import { ArrowUpRight, Radio, TrendingUp, Globe2, Sparkles } from "lucide-react"
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_TO_CATEGORY } from "@/lib/industry/categoryMap";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import type { T } from "@/lib/i18n/translations";
 
 export const Route = createFileRoute("/intelligence")({
   component: Intelligence,
@@ -23,18 +25,19 @@ type Entry = {
   created_at: string;
 };
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, t: T): string {
   const diff = Math.max(0, Date.now() - new Date(iso).getTime());
   const m = Math.floor(diff / 60_000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
+  if (m < 1) return t.intelJustNow;
+  if (m < 60) return t.intelMinAgo(m);
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
+  if (h < 24) return t.intelHourAgo(h);
   const d = Math.floor(h / 24);
-  return `${d}d ago`;
+  return t.intelDayAgo(d);
 }
 
 function Intelligence() {
+  const { t } = useLanguage();
   const { industry, industryId } = useIndustry();
   const navigate = useNavigate();
   const category = INDUSTRY_TO_CATEGORY[industryId];
@@ -79,29 +82,29 @@ function Intelligence() {
       <div className="flex items-end justify-between flex-wrap gap-4 mb-8 animate-fade-up">
         <div>
           <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">
-            AURUM · {industry.modeLabel.toUpperCase()} · {category.toUpperCase()}
+            {t.intelEyebrow(industry.modeLabel, t.categoryLabel(category))}
           </div>
-          <h1 className="font-serif text-4xl sm:text-5xl">The signal beneath the noise.</h1>
+          <h1 className="font-serif text-4xl sm:text-5xl">{t.intelHeadline}</h1>
           <p className="mt-3 text-muted-foreground max-w-xl text-sm">
-            Real-time synthesis from the AURUM intelligence network — curated for{" "}
-            <span className="italic text-foreground">your</span> position in the {industry.label.toLowerCase()} market.
+            {t.intelDescPre}
+            <span className="italic text-foreground">{t.intelYour}</span>{t.intelDescPost(industry.label)}
           </p>
         </div>
         <div className="flex items-center gap-2 glass rounded-full px-4 py-2 text-xs">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="tracking-[0.3em] text-muted-foreground">LIVE</span>
+          <span className="tracking-[0.3em] text-muted-foreground">{t.intelLive}</span>
           <span className="text-muted-foreground/50">·</span>
           <span className="font-mono text-foreground">
-            {lastSync ? `Sync ${timeAgo(lastSync.toISOString())}` : "Syncing…"}
+            {lastSync ? t.intelSync(timeAgo(lastSync.toISOString(), t)) : t.intelSyncing}
           </span>
         </div>
       </div>
 
       <div className="grid sm:grid-cols-3 gap-4 mb-10">
         {[
-          { i: Radio, l: "Signals tracked", v: String(visible.length) },
-          { i: TrendingUp, l: "Sources", v: String(sourceCount) },
-          { i: Globe2, l: "Realtime", v: "ON" },
+          { i: Radio, l: t.intelSignalsTracked, v: String(visible.length) },
+          { i: TrendingUp, l: t.intelSources, v: String(sourceCount) },
+          { i: Globe2, l: t.intelRealtime, v: t.intelOn },
         ].map(({ i: I, l, v }) => (
           <div key={l} className="glass rounded-xl p-5 flex items-center gap-4">
             <I className="h-5 w-5 text-primary" />
@@ -113,7 +116,7 @@ function Intelligence() {
         ))}
       </div>
 
-      <SectionHeading eyebrow="LATEST" title={`Signals · ${category}`} />
+      <SectionHeading eyebrow={t.intelLatest} title={t.intelSignalsOf(t.categoryLabel(category))} />
 
       {loading && entries.length === 0 ? (
         <div className="space-y-2">
@@ -132,10 +135,10 @@ function Intelligence() {
                   </span>
                   {e.category && (
                     <span className="text-[9px] tracking-[0.3em] text-muted-foreground px-2 py-0.5 border border-border/50 rounded uppercase">
-                      {e.category}
+                      {t.categoryLabel(e.category)}
                     </span>
                   )}
-                  <span className="text-[11px] text-muted-foreground font-mono ml-auto">{timeAgo(e.created_at)}</span>
+                  <span className="text-[11px] text-muted-foreground font-mono ml-auto">{timeAgo(e.created_at, t)}</span>
                 </div>
                 <div className="text-[16px] text-foreground leading-snug group-hover:text-primary transition-colors">
                   {e.title}
@@ -149,7 +152,7 @@ function Intelligence() {
                 <div className="mt-3 flex items-center justify-between">
                   {e.url ? (
                     <div className="flex items-center gap-1 text-[11px] tracking-[0.2em] uppercase text-primary/80">
-                      Read brief
+                      {t.intelReadBrief}
                       <ArrowUpRight className="h-3 w-3" />
                     </div>
                   ) : (
@@ -164,7 +167,7 @@ function Intelligence() {
                     className="flex items-center gap-1 text-[11px] tracking-[0.2em] uppercase text-primary/80 hover:text-primary transition-colors"
                   >
                     <Sparkles className="h-3 w-3" />
-                    Generate content
+                    {t.intelGenerateContent}
                   </button>
                 </div>
               </div>
