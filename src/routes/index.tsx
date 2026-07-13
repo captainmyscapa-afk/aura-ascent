@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
@@ -178,42 +179,88 @@ const STYLES = `
   .l-strip-icon { font-size: 1.3rem; margin-bottom: 0.25rem; }
 
   /* Bento grid */
+  .l-bento-wrap { position: relative; }
+  .l-bento-ambient {
+    position: absolute; top: -100px; left: 5%; width: 520px; height: 520px;
+    background: radial-gradient(circle, rgba(201,168,76,0.10), transparent 70%);
+    filter: blur(70px); pointer-events: none; z-index: 0;
+  }
+  .l-bento-ambient-2 {
+    position: absolute; bottom: -120px; right: 5%; width: 460px; height: 460px;
+    background: radial-gradient(circle, rgba(201,168,76,0.07), transparent 70%);
+    filter: blur(70px); pointer-events: none; z-index: 0;
+  }
   .l-bento {
+    position: relative; z-index: 1;
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    grid-auto-rows: 200px;
+    grid-auto-rows: auto;
     gap: 1.5px;
-    background: rgba(201,168,76,0.12);
-    border: 1px solid rgba(201,168,76,0.12);
-    border-radius: 16px; overflow: hidden;
+    background: rgba(201,168,76,0.14);
+    border: 1px solid rgba(201,168,76,0.14);
+    border-radius: 20px; overflow: hidden;
   }
   .l-bento-cell {
-    background: #0d0d0d; padding: 2.25rem;
+    position: relative; overflow: hidden;
+    background: #0d0d0d; padding: 1.85rem 2rem;
     display: flex; flex-direction: column;
-    transition: background 0.2s;
+    opacity: 0; transform: translateY(26px);
   }
-  .l-bento-cell:hover { background: #111; }
-  .l-bento-wide { grid-column: span 7; }
+  .l-bento.is-visible .l-bento-cell {
+    opacity: 1; transform: translateY(0);
+    transition: opacity 0.7s ease var(--delay, 0s), transform 0.7s cubic-bezier(0.16,1,0.3,1) var(--delay, 0s),
+      background 0.3s, box-shadow 0.4s;
+  }
+  .l-bento.is-visible .l-bento-cell:hover {
+    transform: translateY(-5px);
+    background: #121212;
+    box-shadow: 0 24px 48px -24px rgba(0,0,0,0.7), 0 0 0 1px rgba(201,168,76,0.4) inset;
+    z-index: 2;
+  }
+  .l-bento-cell::before {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(201,168,76,0.16), transparent 55%);
+    opacity: 0; transition: opacity 0.4s; pointer-events: none;
+  }
+  .l-bento-cell:hover::before { opacity: 1; }
+  .l-bento-arrow {
+    position: absolute; top: 1.6rem; right: 1.6rem;
+    font-size: 13px; color: #C9A84C;
+    opacity: 0; transform: translate(-4px, 4px);
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  .l-bento-cell:hover .l-bento-arrow { opacity: 0.85; transform: translate(0,0); }
+  .l-bento-wide { grid-column: span 7; grid-row: span 2; }
   .l-bento-narrow { grid-column: span 5; }
-  .l-bento-full { grid-column: span 12; grid-row: span 1; }
   .l-bento-third { grid-column: span 4; }
+  .l-bento-half { grid-column: span 6; }
   .l-bento-tag {
     font-size: 10px; letter-spacing: 0.3em; color: #C9A84C;
-    text-transform: uppercase; margin-bottom: 1rem; font-weight: 500;
+    text-transform: uppercase; margin-bottom: 0.85rem; font-weight: 500;
   }
   .l-bento-title {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 1.6rem; font-weight: 400; margin-bottom: 0.75rem; line-height: 1.2;
+    font-size: 1.6rem; font-weight: 400; margin-bottom: 0.65rem; line-height: 1.2;
   }
   .l-bento-desc {
-    font-size: 13px; color: rgba(240,236,224,0.45); line-height: 1.7; font-weight: 300;
+    font-size: 13px; color: rgba(240,236,224,0.45); line-height: 1.55; font-weight: 300;
   }
   .l-bento-icon {
     width: 40px; height: 40px; border-radius: 10px;
     border: 1px solid rgba(201,168,76,0.2);
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.2rem; margin-bottom: 1.25rem;
+    font-size: 1.2rem; margin-bottom: 1rem;
     background: rgba(201,168,76,0.04);
+    transition: transform 0.4s cubic-bezier(0.16,1,0.3,1), border-color 0.3s, background 0.3s;
+  }
+  .l-bento-cell:hover .l-bento-icon {
+    transform: scale(1.08) rotate(-4deg);
+    border-color: rgba(201,168,76,0.55);
+    background: rgba(201,168,76,0.1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .l-bento-cell, .l-bento-icon, .l-bento-arrow { transition: none !important; }
+    .l-bento.is-visible .l-bento-cell { opacity: 1; transform: none; }
   }
 
   /* Stats */
@@ -338,8 +385,8 @@ const STYLES = `
       padding: 0.9rem 1.5rem !important; font-size: 14px !important;
     }
     .l-hero-proof { gap: 1rem; font-size: 11px; }
-    .l-bento { grid-template-columns: 1fr; grid-auto-rows: auto; }
-    .l-bento-wide, .l-bento-narrow, .l-bento-full, .l-bento-third { grid-column: span 1; }
+    .l-bento { grid-template-columns: 1fr; }
+    .l-bento-wide, .l-bento-narrow, .l-bento-third, .l-bento-half { grid-column: span 1; grid-row: span 1; }
     .l-stats { grid-template-columns: repeat(2, 1fr); }
     .l-steps { grid-template-columns: 1fr 1fr; gap: 2rem; }
     .l-testimonials { grid-template-columns: 1fr; }
@@ -348,7 +395,116 @@ const STYLES = `
   }
 `;
 
+type BentoSpan = "wide" | "narrow" | "third" | "half";
+
+interface BentoCard {
+  icon: string;
+  tag: string;
+  title: string;
+  desc: string;
+  span: BentoSpan;
+  titleSize?: string;
+  descSize?: number;
+}
+
+const BENTO_CARDS: BentoCard[] = [
+  {
+    span: "wide",
+    icon: "⚡",
+    tag: "AI Mentor",
+    title: "AURUM — your personal strategist.",
+    desc: "Ask anything — market positioning, outreach scripts, deal structuring, networking moves. AURUM knows your level, your industry, your goal. It remembers your journey and adapts with you. Available 24 / 7. Feels nothing like a chatbot.",
+  },
+  {
+    span: "narrow",
+    icon: "📡",
+    tag: "Live Intelligence",
+    title: "The signal beneath the noise.",
+    titleSize: "1.3rem",
+    descSize: 12,
+    desc: "Real-time market intelligence curated every 6 hours from 30+ luxury industry sources. Deals, people, market moves — turned into actionable insights.",
+  },
+  {
+    span: "narrow",
+    icon: "✦",
+    tag: "Content Studio",
+    title: "Viral content in 30 seconds.",
+    titleSize: "1.3rem",
+    descSize: 12,
+    desc: "Generate Instagram, TikTok, and LinkedIn posts tuned to the luxury world. Hooks, scripts, captions, AI visuals — platform-optimized, industry-specific.",
+  },
+  {
+    span: "third",
+    icon: "🧭",
+    tag: "30-Day Roadmap",
+    title: "Outsider to operator in 30 days.",
+    titleSize: "1.2rem",
+    descSize: 12,
+    desc: "A structured, industry-specific path with a task for every day. Stuck on one? Tap \"Get help\" for real, AI-generated guidance to finish it right there — no dead ends.",
+  },
+  {
+    span: "third",
+    icon: "🎓",
+    tag: "Academy",
+    title: "Structured learning paths.",
+    titleSize: "1.2rem",
+    descSize: 12,
+    desc: "Industry-specific curricula. From zero to closing your first deal — insider terminology, client psychology, deal flow.",
+  },
+  {
+    span: "third",
+    icon: "📈",
+    tag: "Progress Calendar",
+    title: "Watch the momentum build.",
+    titleSize: "1.2rem",
+    descSize: 12,
+    desc: "Every ritual and roadmap task you complete lands on a calendar you can look back on — plus reminders, so nothing you set out to do slips through.",
+  },
+  {
+    span: "half",
+    icon: "📅",
+    tag: "Event Calendar",
+    title: "Know where to be.",
+    titleSize: "1.2rem",
+    descSize: 12,
+    desc: "80+ industry events mapped — Monaco Yacht Show, NBAA, Pebble Beach, MIPIM. With content prep windows. Never miss the room again.",
+  },
+  {
+    span: "half",
+    icon: "🎯",
+    tag: "Daily Execution",
+    title: "Your game plan, daily.",
+    titleSize: "1.2rem",
+    descSize: 12,
+    desc: "AI-generated daily tasks tailored to your level — networking, content, outreach, learning. A complete execution system that compounds.",
+  },
+];
+
 export default function Landing() {
+  const bentoRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = bentoRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          el.classList.add("is-visible");
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.15 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  const handleCellGlow = (e: React.MouseEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`);
+    e.currentTarget.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`);
+  };
+
   return (
     <div className="l-body">
       <style>{STYLES}</style>
@@ -459,62 +615,34 @@ export default function Landing() {
           Everything you need to<br /><em className="l-gold">break in and rise fast.</em>
         </h2>
         <p className="l-mid" style={{ fontSize: "1.05rem", maxWidth: 520, lineHeight: 1.75, marginBottom: "3rem", fontWeight: 300 }}>
-          Six integrated systems working together — so you spend less time researching and more time in the room.
+          Eight integrated systems working together — so you spend less time researching and more time in the room.
         </p>
 
-        <div className="l-bento">
-          {/* Row 1 */}
-          <div className="l-bento-cell l-bento-wide" style={{ gridRow: "span 2" }}>
-            <div className="l-bento-icon">⚡</div>
-            <div className="l-bento-tag">AI Mentor</div>
-            <div className="l-bento-title l-serif">AURUM — your personal strategist.</div>
-            <div className="l-bento-desc" style={{ marginTop: "auto" }}>
-              Ask anything — market positioning, outreach scripts, deal structuring, networking moves.
-              AURUM knows your level, your industry, your goal. It remembers your journey and adapts with you.
-              Available 24 / 7. Feels nothing like a chatbot.
-            </div>
-          </div>
-          <div className="l-bento-cell l-bento-narrow">
-            <div className="l-bento-icon">📡</div>
-            <div className="l-bento-tag">Live Intelligence</div>
-            <div className="l-bento-title l-serif" style={{ fontSize: "1.3rem" }}>The signal beneath the noise.</div>
-            <div className="l-bento-desc" style={{ fontSize: 12, marginTop: "auto" }}>
-              Real-time market intelligence curated every 6 hours from 30+ luxury industry sources. Deals, people, market moves — turned into actionable insights.
-            </div>
-          </div>
-          <div className="l-bento-cell l-bento-narrow">
-            <div className="l-bento-icon">✦</div>
-            <div className="l-bento-tag">Content Studio</div>
-            <div className="l-bento-title l-serif" style={{ fontSize: "1.3rem" }}>Viral content in 30 seconds.</div>
-            <div className="l-bento-desc" style={{ fontSize: 12, marginTop: "auto" }}>
-              Generate Instagram, TikTok, and LinkedIn posts tuned to the luxury world. Hooks, scripts, captions, AI visuals — platform-optimized, industry-specific.
-            </div>
-          </div>
-
-          {/* Row 2 */}
-          <div className="l-bento-cell l-bento-third">
-            <div className="l-bento-icon">🎓</div>
-            <div className="l-bento-tag">Academy</div>
-            <div className="l-bento-title l-serif" style={{ fontSize: "1.2rem" }}>Structured learning paths.</div>
-            <div className="l-bento-desc" style={{ fontSize: 12, marginTop: "auto" }}>
-              Industry-specific curricula. From zero to closing your first deal — insider terminology, client psychology, deal flow.
-            </div>
-          </div>
-          <div className="l-bento-cell l-bento-third">
-            <div className="l-bento-icon">📅</div>
-            <div className="l-bento-tag">Event Calendar</div>
-            <div className="l-bento-title l-serif" style={{ fontSize: "1.2rem" }}>Know where to be.</div>
-            <div className="l-bento-desc" style={{ fontSize: 12, marginTop: "auto" }}>
-              80+ industry events mapped — Monaco Yacht Show, NBAA, Pebble Beach, MIPIM. With content prep windows. Never miss the room again.
-            </div>
-          </div>
-          <div className="l-bento-cell l-bento-third">
-            <div className="l-bento-icon">🎯</div>
-            <div className="l-bento-tag">Daily Execution</div>
-            <div className="l-bento-title l-serif" style={{ fontSize: "1.2rem" }}>Your game plan, daily.</div>
-            <div className="l-bento-desc" style={{ fontSize: 12, marginTop: "auto" }}>
-              AI-generated daily tasks tailored to your level — networking, content, outreach, learning. A complete execution system that compounds.
-            </div>
+        <div className="l-bento-wrap">
+          <div className="l-bento-ambient" />
+          <div className="l-bento-ambient-2" />
+          <div className="l-bento" ref={bentoRef}>
+            {BENTO_CARDS.map((c, i) => (
+              <div
+                key={c.tag}
+                className={`l-bento-cell l-bento-${c.span}`}
+                style={{ "--delay": `${i * 0.07}s` } as React.CSSProperties}
+                onMouseMove={handleCellGlow}
+              >
+                <div className="l-bento-arrow">↗</div>
+                <div className="l-bento-icon">{c.icon}</div>
+                <div className="l-bento-tag">{c.tag}</div>
+                <div className="l-bento-title l-serif" style={c.titleSize ? { fontSize: c.titleSize } : undefined}>
+                  {c.title}
+                </div>
+                <div
+                  className="l-bento-desc"
+                  style={{ marginTop: "auto", ...(c.descSize ? { fontSize: c.descSize } : {}) }}
+                >
+                  {c.desc}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
