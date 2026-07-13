@@ -46,8 +46,8 @@ function SignupPage() {
         /already/i.test(error.message)
           ? "An account with this email already exists."
           : /weak|password/i.test(error.message)
-          ? "Please choose a stronger password."
-          : "We couldn't create your account. Please try again.",
+            ? "Please choose a stronger password."
+            : "We couldn't create your account. Please try again.",
       );
       return;
     }
@@ -130,6 +130,18 @@ function SignupPage() {
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create account"}
         </button>
+
+        <p className="text-center text-xs text-muted-foreground">
+          By creating an account, you agree to our{" "}
+          <Link to="/terms" className="text-primary hover:underline">
+            Terms
+          </Link>{" "}
+          and{" "}
+          <Link to="/privacy" className="text-primary hover:underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </form>
     </AuthShell>
   );

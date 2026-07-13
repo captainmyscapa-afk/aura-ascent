@@ -785,6 +785,8 @@ export default function Landing() {
           <Link to="/dashboard">Enter the OS</Link>
           <a href="#pricing">Pricing</a>
           <a href="#platform">Platform</a>
+          <Link to="/terms">Terms</Link>
+          <Link to="/privacy">Privacy</Link>
           <a href="mailto:hello@aurumos.com">Contact</a>
         </div>
       </footer>

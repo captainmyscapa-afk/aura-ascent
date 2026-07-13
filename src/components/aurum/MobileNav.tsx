@@ -16,6 +16,7 @@ import {
   Crown,
   Map,
   LogOut,
+  CalendarDays,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Logo } from "./Logo";
@@ -46,8 +47,9 @@ export function MobileNav() {
     { to: "/mentor", label: t.navMentor, icon: Sparkles },
     { to: "/academy", label: t.navAcademy, icon: GraduationCap },
     { to: "/tutor", label: t.navTutor, icon: BookOpen },
-    { to: "/network", label: t.navNetwork, icon: Users },
     { to: "/studio", label: t.navStudio, icon: Video },
+    { to: "/calendar", label: t.navCalendar, icon: CalendarDays },
+    { to: "/network", label: t.navNetwork, icon: Users },
     { to: "/profile", label: t.navIdentity, icon: User2 },
   ] as const;
 

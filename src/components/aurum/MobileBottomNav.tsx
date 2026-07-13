@@ -4,12 +4,14 @@ import {
   Sparkles,
   Video,
   Radio,
+  CalendarDays,
 } from "lucide-react";
 
 const tabs = [
   { to: "/academy", label: "Academy", icon: GraduationCap },
   { to: "/mentor", label: "Mentor", icon: Sparkles },
   { to: "/studio", label: "Studio", icon: Video },
+  { to: "/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/intelligence", label: "Intelligence", icon: Radio },
 ] as const;
 

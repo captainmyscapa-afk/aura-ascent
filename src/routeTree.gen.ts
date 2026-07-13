@@ -10,12 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TutorRouteImport } from './routes/tutor'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StudioRouteImport } from './routes/studio'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RoadmapRouteImport } from './routes/roadmap'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NetworkRouteImport } from './routes/network'
 import { Route as MentorRouteImport } from './routes/mentor'
@@ -31,6 +33,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const TutorRoute = TutorRouteImport.update({
   id: '/tutor',
   path: '/tutor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StudioRoute = StudioRouteImport.update({
@@ -61,6 +68,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -131,12 +143,14 @@ export interface FileRoutesByFullPath {
   '/mentor': typeof MentorRoute
   '/network': typeof NetworkRoute
   '/onboarding': typeof OnboardingRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/roadmap': typeof RoadmapRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/studio': typeof StudioRoute
+  '/terms': typeof TermsRoute
   '/tutor': typeof TutorRoute
 }
 export interface FileRoutesByTo {
@@ -151,12 +165,14 @@ export interface FileRoutesByTo {
   '/mentor': typeof MentorRoute
   '/network': typeof NetworkRoute
   '/onboarding': typeof OnboardingRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/roadmap': typeof RoadmapRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/studio': typeof StudioRoute
+  '/terms': typeof TermsRoute
   '/tutor': typeof TutorRoute
 }
 export interface FileRoutesById {
@@ -172,12 +188,14 @@ export interface FileRoutesById {
   '/mentor': typeof MentorRoute
   '/network': typeof NetworkRoute
   '/onboarding': typeof OnboardingRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/roadmap': typeof RoadmapRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/studio': typeof StudioRoute
+  '/terms': typeof TermsRoute
   '/tutor': typeof TutorRoute
 }
 export interface FileRouteTypes {
@@ -194,12 +212,14 @@ export interface FileRouteTypes {
     | '/mentor'
     | '/network'
     | '/onboarding'
+    | '/privacy'
     | '/profile'
     | '/reset-password'
     | '/roadmap'
     | '/settings'
     | '/signup'
     | '/studio'
+    | '/terms'
     | '/tutor'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -214,12 +234,14 @@ export interface FileRouteTypes {
     | '/mentor'
     | '/network'
     | '/onboarding'
+    | '/privacy'
     | '/profile'
     | '/reset-password'
     | '/roadmap'
     | '/settings'
     | '/signup'
     | '/studio'
+    | '/terms'
     | '/tutor'
   id:
     | '__root__'
@@ -234,12 +256,14 @@ export interface FileRouteTypes {
     | '/mentor'
     | '/network'
     | '/onboarding'
+    | '/privacy'
     | '/profile'
     | '/reset-password'
     | '/roadmap'
     | '/settings'
     | '/signup'
     | '/studio'
+    | '/terms'
     | '/tutor'
   fileRoutesById: FileRoutesById
 }
@@ -255,12 +279,14 @@ export interface RootRouteChildren {
   MentorRoute: typeof MentorRoute
   NetworkRoute: typeof NetworkRoute
   OnboardingRoute: typeof OnboardingRoute
+  PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RoadmapRoute: typeof RoadmapRoute
   SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
   StudioRoute: typeof StudioRoute
+  TermsRoute: typeof TermsRoute
   TutorRoute: typeof TutorRoute
 }
 
@@ -271,6 +297,13 @@ declare module '@tanstack/react-router' {
       path: '/tutor'
       fullPath: '/tutor'
       preLoaderRoute: typeof TutorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/studio': {
@@ -313,6 +346,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -407,12 +447,14 @@ const rootRouteChildren: RootRouteChildren = {
   MentorRoute: MentorRoute,
   NetworkRoute: NetworkRoute,
   OnboardingRoute: OnboardingRoute,
+  PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RoadmapRoute: RoadmapRoute,
   SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
   StudioRoute: StudioRoute,
+  TermsRoute: TermsRoute,
   TutorRoute: TutorRoute,
 }
 export const routeTree = rootRouteImport
