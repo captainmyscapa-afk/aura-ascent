@@ -65,6 +65,16 @@ const PRIORITY_META: Record<Priority, { dot: string; ring: string; text: string 
   high: { dot: "bg-red-400", ring: "ring-red-400/30", text: "text-red-400" },
 };
 
+// CAP-93: same industry → color mapping used for calendar events on the dashboard,
+// so a ritual's mode is visually consistent across the app.
+type CompletedItem = { title: string; industry: string | null };
+const INDUSTRY_META: Record<string, { dot: string; text: string; label: string }> = {
+  yachts: { dot: "bg-blue-400", text: "text-blue-300", label: "Yacht" },
+  villas: { dot: "bg-emerald-400", text: "text-emerald-300", label: "Villa" },
+  jets: { dot: "bg-violet-400", text: "text-violet-300", label: "Jet" },
+  cars: { dot: "bg-orange-400", text: "text-orange-300", label: "Car" },
+};
+
 function CalendarPage() {
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -139,13 +149,13 @@ function CalendarPage() {
   }, [user]);
 
   const completedByDay = useMemo(() => {
-    const map: Record<string, { ritual: string[]; roadmap: string[] }> = {};
+    const map: Record<string, { ritual: CompletedItem[]; roadmap: CompletedItem[] }> = {};
     monthTasks.forEach((r) => {
       if (r.status !== "completed" || !r.completed_at) return;
       if (r.source !== "daily_ritual" && r.source !== "roadmap") return;
       const key = r.completed_at.slice(0, 10);
       if (!map[key]) map[key] = { ritual: [], roadmap: [] };
-      if (r.title) map[key][r.source === "daily_ritual" ? "ritual" : "roadmap"].push(r.title);
+      if (r.title) map[key][r.source === "daily_ritual" ? "ritual" : "roadmap"].push({ title: r.title, industry: r.industry ?? null });
     });
     return map;
   }, [monthTasks]);
@@ -339,12 +349,30 @@ function CalendarPage() {
                   <div className="mt-1 flex flex-col gap-1 px-0.5">
                     {completed && (completed.ritual.length > 0 || completed.roadmap.length > 0) && (
                       <div className="flex items-center gap-1 flex-wrap">
-                        {completed.ritual.slice(0, 3).map((_, di) => (
-                          <span key={"r" + di} className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--gradient-gold)" }} />
-                        ))}
-                        {completed.roadmap.slice(0, 3).map((_, di) => (
-                          <span key={"m" + di} className="h-1.5 w-1.5 rounded-full bg-violet-400" />
-                        ))}
+                        {/* CAP-95: one pip per distinct mode present that day (not per task) — slicing the
+                            first 3 raw tasks could silently drop a whole mode (e.g. 2 yacht + 3 car + 2 jet
+                            only showed yacht/car). Dedup by mode so every active mode always shows. */}
+                        {Array.from(new Set(completed.ritual.map((it) => it.industry ?? "")))
+                          .slice(0, 4)
+                          .map((ind) => {
+                            const meta = ind ? INDUSTRY_META[ind] : null;
+                            return (
+                              <span
+                                key={"r" + ind}
+                                className={`h-1.5 w-1.5 rounded-full ${meta ? meta.dot : ""}`}
+                                style={meta ? undefined : { background: "var(--gradient-gold)" }}
+                                title={meta ? `${meta.label} ritual` : "Ritual"}
+                              />
+                            );
+                          })}
+                        {completed.roadmap.length > 0 && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" title="Roadmap" />
+                        )}
+                        {completed.ritual.length + completed.roadmap.length > 1 && (
+                          <span className="text-[8px] font-mono text-muted-foreground/60 ml-0.5">
+                            {completed.ritual.length + completed.roadmap.length}
+                          </span>
+                        )}
                       </div>
                     )}
                     {due.length > 0 && (
@@ -367,7 +395,7 @@ function CalendarPage() {
               <span className="text-[10px] text-muted-foreground">{t.calRitualLabel}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
+              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
               <span className="text-[10px] text-muted-foreground">{t.calRoadmapLabel}</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -421,11 +449,11 @@ function CalendarPage() {
                   <div>
                     {selectedCompleted.ritual.length > 0 && <div className="border-t border-border/40 pt-3" />}
                     <div className="flex items-center gap-1.5 mb-2">
-                      <Compass className="h-3 w-3 text-violet-400" />
+                      <Compass className="h-3 w-3 text-cyan-400" />
                       <span className="text-[10px] tracking-[0.2em] text-muted-foreground uppercase">{t.calRoadmapLabel}</span>
-                      <span className="ml-auto font-mono text-[10px] text-violet-400">{selectedCompleted.roadmap.length}</span>
+                      <span className="ml-auto font-mono text-[10px] text-cyan-400">{selectedCompleted.roadmap.length}</span>
                     </div>
-                    <CompletedList items={selectedCompleted.roadmap} accentClass="text-violet-400" />
+                    <CompletedList items={selectedCompleted.roadmap} accentClass="text-cyan-400" />
                   </div>
                 )}
 
@@ -478,7 +506,7 @@ function CompletedList({
   items,
   accentClass,
 }: {
-  items: string[];
+  items: CompletedItem[];
   accentClass: string;
 }) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
@@ -493,8 +521,11 @@ function CompletedList({
 
   return (
     <ul className="space-y-1.5">
-      {items.map((title, i) => {
+      {items.map((item, i) => {
         const isOpen = expanded.has(i);
+        // CAP-93: color-tag by the mode the ritual was generated in, so switching
+        // modes doesn't make yesterday's yacht/jet/villa/car rituals indistinguishable.
+        const meta = item.industry ? INDUSTRY_META[item.industry] : null;
         return (
           <li key={i}>
             <button
@@ -503,7 +534,13 @@ function CompletedList({
               className="w-full flex items-start gap-2 text-xs text-foreground/80 text-left"
             >
               <CheckCircle2 className={`h-3.5 w-3.5 shrink-0 mt-0.5 ${accentClass}`} />
-              <span className={isOpen ? "flex-1 whitespace-normal break-words" : "flex-1 truncate"}>{title}</span>
+              <span className={isOpen ? "flex-1 whitespace-normal break-words" : "flex-1 truncate"}>{item.title}</span>
+              {meta && (
+                <span className="flex items-center gap-1 shrink-0 mt-1" title={`${meta.label} Mode`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+                  <span className={`text-[8px] tracking-[0.15em] uppercase ${meta.text}`}>{meta.label}</span>
+                </span>
+              )}
               <ChevronDown
                 className={`h-3 w-3 shrink-0 mt-0.5 text-muted-foreground/50 transition-transform ${isOpen ? "rotate-180" : ""}`}
               />

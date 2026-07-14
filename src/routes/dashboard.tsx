@@ -362,14 +362,18 @@ export default function Dashboard() {
       setRecommendation(summary?.recommendation ?? null);
     }
 
-    const cachedTasks = c.daily_tasks as any;
-    // CAP-60: lock to calendar day only — mode switch must not regenerate
-    const tasksAreForToday = cachedTasks?.tasks?.length > 0 && c.daily_tasks_date === isoDay();
-    // CAP-60: once completed, no new tasks generate for that day
-    const doneKey = `aurum:ritualsDone:${user?.id ?? ""}:${isoDay()}`;
+    // CAP-93: rituals are cached per (day, mode) — locked for the calendar day within
+    // a mode (CAP-60), but switching modes shows that mode's own tasks instead of
+    // whichever mode happened to generate first today.
+    const isCachedToday = c.daily_tasks_date === isoDay();
+    const cachedForMode = isCachedToday ? (c.daily_tasks as Record<string, { mode?: string; tasks?: string[] }> | null)?.[industryId] : null;
+    const tasksAreForToday = (cachedForMode?.tasks?.length ?? 0) > 0;
+    // CAP-60: once completed, no new tasks generate for that day (per mode)
+    const doneKey = `aurum:ritualsDone:${user?.id ?? ""}:${isoDay()}:${industryId}`;
     const alreadyCompletedToday = typeof window !== "undefined" && !!localStorage.getItem(doneKey);
     if (tasksAreForToday) {
-      setDailyTasks(cachedTasks.tasks);
+      setDailyTasks(cachedForMode!.tasks!);
+      setDone({});
     } else if (!alreadyCompletedToday) {
       refreshDailyTasks(ctx);
     }
@@ -410,7 +414,7 @@ export default function Dashboard() {
     if (!wasDone) {
       const nowAllDone = dailyTasks.every((_, idx) => idx === i ? true : !!done[idx]);
       if (nowAllDone && typeof window !== "undefined") {
-        localStorage.setItem(`aurum:ritualsDone:${user?.id ?? ""}:${isoDay()}`, "1");
+        localStorage.setItem(`aurum:ritualsDone:${user?.id ?? ""}:${isoDay()}:${industryId}`, "1");
       }
     }
     if (wasDone || !user) return;
@@ -439,6 +443,8 @@ export default function Dashboard() {
         status: "completed",
         priority: "medium",
         source: "daily_ritual",
+        // CAP-93: tag which mode this ritual belongs to, so Calendar can color it per mode.
+        industry: industryId,
         completed_at: new Date().toISOString(),
       });
       if (error) console.error("[aurum_tasks] insert failed:", error.message);
@@ -494,8 +500,12 @@ export default function Dashboard() {
       const { tasks } = await tasksFn({ data: ctx });
       setDailyTasks(tasks);
       setDone({});
+      // CAP-93: keep other modes' tasks generated earlier today; only overwrite this mode's
+      // slot. If the cached batch is from a previous day, start a fresh per-mode map.
+      const isCachedToday = core?.daily_tasks_date === isoDay();
+      const existingMap = isCachedToday ? (core?.daily_tasks as Record<string, { mode?: string; tasks?: string[] }> | null) ?? {} : {};
       await updateCore({
-        daily_tasks: { mode: industry.label, tasks } as any,
+        daily_tasks: { ...existingMap, [industryId]: { mode: industry.label, tasks } } as any,
         daily_tasks_date: isoDay(),
       });
     } catch (e) {

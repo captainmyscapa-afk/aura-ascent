@@ -22,7 +22,9 @@ export type AurumCoreState = {
   // Daily content
   daily_brief: unknown | null;
   daily_brief_date: string | null;
-  daily_tasks: { mode?: string; tasks?: string[] } | null;
+  // CAP-93: keyed by industryId ("yachts"/"villas"/"jets"/"cars") so each mode
+  // caches its own rituals for the day instead of sharing one global slot.
+  daily_tasks: Record<string, { mode?: string; tasks?: string[] }> | null;
   daily_tasks_date: string | null;
   // AI context
   ai_summary: unknown | null;
@@ -95,10 +97,13 @@ function fromRow(row: Record<string, unknown> | null): AurumCoreState | null {
           return null;
         }
       }
-      // Legacy rows may have stored a plain array — normalize to the
-      // { mode, tasks } shape the dashboard expects.
-      if (Array.isArray(v)) return { tasks: v as string[] };
-      return v as { mode?: string; tasks?: string[] };
+      // Legacy rows may have stored a plain array, or a single un-keyed
+      // { mode, tasks } object (pre-CAP-93) — neither matches any current
+      // industryId key, so they're dropped and today's tasks regenerate
+      // fresh, scoped per mode, instead of being misread as one mode's cache.
+      if (Array.isArray(v)) return null;
+      if (v && typeof v === "object" && "tasks" in v) return null;
+      return v as Record<string, { mode?: string; tasks?: string[] }>;
     })(),
     daily_tasks_date: (row.daily_tasks_date as string | null) ?? null,
     ai_summary: (() => {
@@ -145,6 +150,33 @@ export function useAurumCoreState() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchState = useCallback(async (alive: () => boolean) => {
+    if (!user) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("aurum_core_state")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!alive()) return;
+    if (error) { setError(error.message); setLoading(false); return; }
+
+    if (!data) {
+      // First login — create the default row
+      const { data: inserted, error: insertError } = await supabase
+        .from("aurum_core_state")
+        .insert({ user_id: user.id, streak: 0, execution_score: 0 })
+        .select("*")
+        .maybeSingle();
+      if (!alive()) return;
+      if (insertError) setError(insertError.message);
+      setState(fromRow(inserted as Record<string, unknown> | null));
+    } else {
+      setState(fromRow(data as Record<string, unknown>));
+    }
+    setLoading(false);
+  }, [user]);
+
   useEffect(() => {
     if (!user) {
       setState(null);
@@ -152,35 +184,15 @@ export function useAurumCoreState() {
       return;
     }
     let alive = true;
-    (async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("aurum_core_state")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (!alive) return;
-      if (error) { setError(error.message); setLoading(false); return; }
-
-      if (!data) {
-        // First login — create the default row
-        const { data: inserted, error: insertError } = await supabase
-          .from("aurum_core_state")
-          .insert({ user_id: user.id, streak: 0, execution_score: 0 })
-          .select("*")
-          .maybeSingle();
-        if (!alive) return;
-        if (insertError) setError(insertError.message);
-        setState(fromRow(inserted as Record<string, unknown> | null));
-      } else {
-        setState(fromRow(data as Record<string, unknown>));
-      }
-      setLoading(false);
-    })();
+    fetchState(() => alive);
     return () => {
       alive = false;
     };
-  }, [user]);
+  }, [user, fetchState]);
+
+  // Re-pull the row from the DB — used after server-side writes (RPCs) that
+  // the client can't reflect optimistically, e.g. increment_free_usage.
+  const refetch = useCallback(() => fetchState(() => true), [fetchState]);
 
   const update = useCallback(
     async (patch: Partial<AurumCoreState>) => {
@@ -211,5 +223,5 @@ export function useAurumCoreState() {
     [user],
   );
 
-  return { state, loading, error, update };
+  return { state, loading, error, update, refetch };
 }

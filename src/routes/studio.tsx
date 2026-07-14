@@ -319,8 +319,7 @@ function Studio() {
     try {
       const intelligenceContext =
         mode === "intelligence"
-          ? intel
-              .filter((e) => (selectedIntel.size === 0 ? true : selectedIntel.has(e.id)))
+          ? (selectedIntel.size === 0 ? modeIntel : intel.filter((e) => selectedIntel.has(e.id)))
               .slice(0, 5)
               .map(
                 (e) =>
@@ -457,7 +456,13 @@ function Studio() {
 
   const linkedinPosting = null; // kept for type compat below
 
-  const canRun = (mode === "intelligence" ? intel.length > 0 : idea.trim().length > 2) && studioGate.canUse;
+  // Signals scoped to the active industry mode (yacht mode → yachting signals, etc.)
+  // — falls back to un-categorized signals so nothing silently disappears.
+  const modeIntel = intel.filter(
+    (e) => !e.category || e.category === INDUSTRY_TO_CATEGORY[industryId as keyof typeof INDUSTRY_TO_CATEGORY],
+  );
+
+  const canRun = (mode === "intelligence" ? modeIntel.length > 0 : idea.trim().length > 2) && studioGate.canUse;
 
   return (
     <AppShell>
@@ -617,14 +622,40 @@ function Studio() {
               </>
             ) : (
               <>
-                <Label>{t.stuSignalsLabel}</Label>
+                <div className="flex items-center justify-between mb-3">
+                  <Label>{t.stuSignalsLabel}</Label>
+                  <span className="text-[9px] tracking-[0.25em] text-muted-foreground/70 uppercase -mt-3">
+                    {industry.modeLabel}
+                  </span>
+                </div>
+
+                {/* Selected signals — always visible as removable chips, so unselecting never
+                    requires scrolling/searching through the full list below. */}
+                {selectedIntel.size > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {intel
+                      .filter((e) => selectedIntel.has(e.id))
+                      .map((e) => (
+                        <button
+                          key={e.id}
+                          onClick={() => toggleIntel(e.id)}
+                          className="group flex items-center gap-1.5 max-w-full rounded-full border border-primary/50 bg-primary/10 py-1 pl-2.5 pr-1.5 text-[11px] text-foreground transition-all hover:border-destructive/50 hover:bg-destructive/10"
+                          title={e.title}
+                        >
+                          <span className="max-w-[180px] truncate">{e.title}</span>
+                          <X className="h-3 w-3 shrink-0 text-primary/70 transition-colors group-hover:text-destructive" />
+                        </button>
+                      ))}
+                  </div>
+                )}
+
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                  {intel.length === 0 && (
+                  {modeIntel.length === 0 && (
                     <div className="text-xs text-muted-foreground italic py-4">
                       {t.stuNoSignals}
                     </div>
                   )}
-                  {intel.map((e) => {
+                  {modeIntel.map((e) => {
                     const on = selectedIntel.has(e.id);
                     return (
                       <button

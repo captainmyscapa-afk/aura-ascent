@@ -42,7 +42,11 @@ type DbOption = {
   id: string;
   question_id: string;
   option_text: string;
-  is_correct: boolean;
+  // Only populated for admins (fetched from the base table when editing a
+  // question) or after a quiz submission (derived from the RPC response).
+  // Regular reads go through academy_quiz_options_public, which never
+  // exposes this column.
+  is_correct?: boolean;
   order_index: number;
 };
 
@@ -120,7 +124,11 @@ function Academy() {
   const [view, setView] = useState<"list" | "module" | "quiz">("list");
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
-  const [quizResult, setQuizResult] = useState<{ score: number; passed: boolean } | null>(null);
+  const [quizResult, setQuizResult] = useState<{
+    score: number;
+    passed: boolean;
+    correctOptions: Record<string, string>;
+  } | null>(null);
   const [adminMode, setAdminMode] = useState(false);
   const [editingModule, setEditingModule] = useState<string | null>(null);
 
@@ -143,7 +151,9 @@ function Academy() {
     const [{ data: pdfData }, { data: qData }, { data: oData }] = await Promise.all([
       (supabase.from("academy_module_pdfs") as any).select("*").in("module_id", ids).order("order_index"),
       (supabase.from("academy_quiz_questions") as any).select("*").in("module_id", ids).order("order_index"),
-      (supabase.from("academy_quiz_options") as any).select("*").order("order_index"),
+      // Public view — never exposes is_correct. Admin editing fetches that
+      // separately, on demand, from the base table (which is admin-gated).
+      (supabase.from("academy_quiz_options_public") as any).select("*").order("order_index"),
     ]);
 
     const pdfMap: Record<string, DbPdf[]> = {};
@@ -269,35 +279,28 @@ function Academy() {
 
   const submitQuiz = async () => {
     if (!user || !activeModuleId || activeQuestions.length === 0) return;
-    let score = 0;
-    for (const q of activeQuestions) {
-      const correct = q.options.find((o) => o.is_correct);
-      if (quizAnswers[q.id] && correct && quizAnswers[q.id] === correct.id) score++;
-    }
-    const passed = score >= PASS_SCORE;
-    setQuizResult({ score, passed });
+
+    // Grading happens server-side (submit_module_quiz RPC) — the client never
+    // computes pass/fail or writes user_module_progress directly, since that
+    // would let anyone unlock a module without passing the quiz.
+    const { data, error } = await supabase.rpc("submit_module_quiz", {
+      p_module_id: activeModuleId,
+      p_answers: quizAnswers,
+    });
+    if (error || !data) return;
+
+    const result = data as unknown as { score: number; passed: boolean; correctOptions: Record<string, string> };
+    setQuizResult(result);
     setQuizSubmitted(true);
 
     const attempts = (progress[activeModuleId]?.attempts ?? 0) + 1;
-    await (supabase.from("user_module_progress") as any).upsert(
-      {
-        user_id: user.id,
-        module_id: activeModuleId,
-        video_watched: true,
-        quiz_passed: passed || !!progress[activeModuleId]?.quiz_passed,
-        quiz_score: score,
-        attempts,
-        completed_at: passed ? new Date().toISOString() : null,
-      },
-      { onConflict: "user_id,module_id" }
-    );
     setProgress((p) => ({
       ...p,
       [activeModuleId]: {
         module_id: activeModuleId,
         video_watched: true,
-        quiz_passed: passed || !!p[activeModuleId]?.quiz_passed,
-        quiz_score: score,
+        quiz_passed: result.passed || !!p[activeModuleId]?.quiz_passed,
+        quiz_score: result.score,
         attempts,
       },
     }));
@@ -749,7 +752,7 @@ function QuizView({
   questions: DbQuestion[];
   answers: Record<string, string>;
   submitted: boolean;
-  result: { score: number; passed: boolean } | null;
+  result: { score: number; passed: boolean; correctOptions: Record<string, string> } | null;
   onAnswer: (qId: string, optId: string) => void;
   onSubmit: () => void;
   onRetry: () => void;
@@ -797,7 +800,7 @@ function QuizView({
 
       <div className="space-y-5">
         {questions.map((q, qi) => {
-          const correct = q.options.find((o) => o.is_correct);
+          const correctOptionId = result?.correctOptions?.[q.id];
           return (
             <div key={q.id} className="glass rounded-xl p-5">
               <div className="flex items-start gap-3 mb-4">
@@ -807,8 +810,8 @@ function QuizView({
               <div className="space-y-2">
                 {q.options.map((opt, oi) => {
                   const isSelected = answers[q.id] === opt.id;
-                  const isCorrect = submitted && opt.is_correct;
-                  const isWrong = submitted && isSelected && !opt.is_correct;
+                  const isCorrect = submitted && opt.id === correctOptionId;
+                  const isWrong = submitted && isSelected && opt.id !== correctOptionId;
                   return (
                     <button
                       key={opt.id}
@@ -893,12 +896,20 @@ function AdminEditPanel({
     onSaved();
   };
 
-  const openQuestionForm = (q?: DbQuestion) => {
+  const openQuestionForm = async (q?: DbQuestion) => {
     if (q) {
       setEditingQuestion(q);
       setQText(q.question_text);
       setOpts(q.options.slice(0,4).map((o) => o.option_text).concat(["","","",""]).slice(0, 4));
-      setCorrectIdx(Math.max(0, q.options.findIndex((o) => o.is_correct)));
+      // The shared question list comes from the public view (no is_correct).
+      // Admins are RLS-permitted to read the base table directly, so fetch
+      // the real flag here, on demand, just for the options being edited.
+      const { data } = await (supabase.from("academy_quiz_options") as any)
+        .select("id, is_correct")
+        .eq("question_id", q.id)
+        .order("order_index");
+      const correctRow = ((data ?? []) as { id: string; is_correct: boolean }[]).findIndex((o) => o.is_correct);
+      setCorrectIdx(Math.max(0, correctRow));
     } else {
       setEditingQuestion(null); setQText(""); setOpts(["","","",""]); setCorrectIdx(0);
     }

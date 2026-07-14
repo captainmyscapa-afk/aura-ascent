@@ -243,6 +243,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          industry: string | null
           priority: string | null
           remind_at: string | null
           reminder_sent: boolean
@@ -257,6 +258,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          industry?: string | null
           priority?: string | null
           remind_at?: string | null
           reminder_sent?: boolean
@@ -271,6 +273,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          industry?: string | null
           priority?: string | null
           remind_at?: string | null
           reminder_sent?: boolean
@@ -827,6 +830,35 @@ export type Database = {
       }
     }
     Views: {
+      academy_quiz_options_public: {
+        Row: {
+          id: string | null
+          option_text: string | null
+          order_index: number | null
+          question_id: string | null
+        }
+        Insert: {
+          id?: string | null
+          option_text?: string | null
+          order_index?: number | null
+          question_id?: string | null
+        }
+        Update: {
+          id?: string | null
+          option_text?: string | null
+          order_index?: number | null
+          question_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_quiz_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "academy_quiz_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       social_accounts_safe: {
         Row: {
           connected_at: string | null
@@ -858,6 +890,10 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }
+      submit_module_quiz: {
+        Args: { p_answers: Json; p_module_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
@@ -984,3 +1020,9 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

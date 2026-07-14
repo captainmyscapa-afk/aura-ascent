@@ -17,6 +17,7 @@
 import { useCallback } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
+import { supabase } from "@/integrations/supabase/client";
 
 export const FREE_LIMITS = {
   studio_drafts:   1,
@@ -32,7 +33,7 @@ type UsageMap = Partial<Record<FreeTierKey, number>>;
 
 export function useFreeTier() {
   const { isPro } = useSubscription();
-  const { state: core, update: updateCore } = useAurumCoreState();
+  const { state: core, refetch } = useAurumCoreState();
 
   const usage = (core?.free_usage as UsageMap | null) ?? {};
 
@@ -56,10 +57,13 @@ export function useFreeTier() {
 
   const increment = useCallback(async (key: FreeTierKey) => {
     if (isPro) return; // no tracking needed for pro
-    const current = (core?.free_usage as UsageMap | null) ?? {};
-    const next = { ...current, [key]: (current[key] ?? 0) + 1 };
-    await updateCore({ free_usage: next as unknown as null });
-  }, [isPro, core?.free_usage, updateCore]);
+    // free_usage can no longer be written directly (RLS blocks it — a
+    // straight client UPDATE let anyone reset their own counter to {} and
+    // unlock unlimited paid AI features for free). Increments go through
+    // this SECURITY DEFINER RPC instead, which the client can't spoof.
+    await supabase.rpc("increment_free_usage", { feature: key, amount: 1 });
+    await refetch();
+  }, [isPro, refetch]);
 
   return {
     isPro,
