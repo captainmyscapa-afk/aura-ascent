@@ -8,7 +8,8 @@ import { askGemini } from "@/lib/gemini.functions";
 import { generateConversationTitle } from "@/lib/mentor.functions";
 import { useMentorConversations } from "@/hooks/useMentorConversations";
 import type { ConversationMessage } from "@/hooks/useMentorConversations";
-import { useProGate, UsageBar } from "@/components/aurum/ProGate";
+import { useProGate, PageLock } from "@/components/aurum/ProGate";
+import { useSubscription } from "@/hooks/useSubscription";
 import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { T } from "@/lib/i18n/translations";
@@ -43,6 +44,8 @@ function Tutor() {
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const tutorGate = useProGate("tutor_messages");
+  const { isPro, loading: subLoading } = useSubscription();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -119,6 +122,24 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
   };
 
   const tutorConversations = conversations.filter((c) => c.industry.endsWith("-tutor"));
+
+  // Free-plan users see a locked page instead of the tutor — no chat, no lesson history.
+  if (!subLoading && !isPro) {
+    return (
+      <AppShell>
+        <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={t.tutLockDesc} />
+        <PageLock
+          icon={GraduationCap}
+          eyebrow={t.proFeatureLabel}
+          title={t.tutLockTitle}
+          description={t.tutLockDesc}
+          features={t.tutLockFeatures}
+          upgradeLabel={t.setUpgradeToPro}
+          onUpgrade={() => setUpgradeOpen(true)}
+        />
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>

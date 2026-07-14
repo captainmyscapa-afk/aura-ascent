@@ -168,7 +168,8 @@ function CalendarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // ── Community events (CAP-98) ──
+  // ── Community events (CAP-98) — global across industries; each event still carries
+  //    the industry it was shared from, shown as a badge in the list. ──
   const [communityEvents, setCommunityEvents] = useState<CommunityEvent[]>([]);
   const [communityEventsLoading, setCommunityEventsLoading] = useState(true);
   const [rsvpedEventIds, setRsvpedEventIds] = useState<Set<string>>(new Set());
@@ -186,7 +187,6 @@ function CalendarPage() {
     const { data } = await supabase
       .from("community_events" as any)
       .select("*")
-      .eq("industry", industryId)
       .gte("start_at", new Date().toISOString())
       .order("start_at", { ascending: true })
       .limit(20);
@@ -224,7 +224,7 @@ function CalendarPage() {
   useEffect(() => {
     void loadCommunityEvents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, industryId]);
+  }, [user]);
 
   const toggleRsvp = async (eventId: string) => {
     if (!user) return;
@@ -294,6 +294,19 @@ function CalendarPage() {
     return map;
   }, [monthTasks]);
 
+  // CAP-98 follow-up: community events shown discreetly on the grid too — a hollow
+  // ring marker (distinct shape from the filled ritual/roadmap dots) so members can
+  // tell "shared event" apart from "I did this" at a glance.
+  const eventsByDay = useMemo(() => {
+    const map: Record<string, CommunityEvent[]> = {};
+    communityEvents.forEach((ev) => {
+      const key = isoDay(new Date(ev.start_at));
+      if (!map[key]) map[key] = [];
+      map[key].push(ev);
+    });
+    return map;
+  }, [communityEvents]);
+
   const monthActivePct = useMemo(() => {
     const lastDay = new Date(viewYear, viewMonth + 1, 0).getDate();
     const activeDays = Object.keys(completedByDay).length;
@@ -345,6 +358,7 @@ function CalendarPage() {
   const todayStr = isoDay();
   const selectedCompleted = completedByDay[selectedDate];
   const selectedDue = (tasksByDueDay[selectedDate] ?? []).sort((a, b) => (a.priority === b.priority ? 0 : a.priority === "high" ? -1 : 1));
+  const selectedEvents = (eventsByDay[selectedDate] ?? []).sort((a, b) => a.start_at.localeCompare(b.start_at));
 
   return (
     <AppShell>
@@ -451,6 +465,7 @@ function CalendarPage() {
               const due = tasksByDueDay[dateStr] ?? [];
               const overdue = due.some((tk) => tk.status !== "completed" && dateStr < todayStr);
               const hasReminder = due.some((tk) => !!tk.remind_at);
+              const dayEvents = eventsByDay[dateStr] ?? [];
 
               return (
                 <button
@@ -466,8 +481,20 @@ function CalendarPage() {
                       : "hover:bg-secondary/20"
                   }`}
                 >
-                  <div className={`text-[11px] text-right pr-0.5 ${isToday ? "text-primary font-bold" : "text-muted-foreground/60"}`}>
-                    {date.getDate()}
+                  <div className="flex items-center justify-between gap-1 pl-0.5 pr-0.5">
+                    {/* Hollow ring — deliberately not a filled dot, so a "shared event exists"
+                        marker never reads as "I completed something" at a glance. */}
+                    <span className="flex items-center gap-0.5 shrink-0">
+                      {dayEvents.length > 0 && (
+                        <span
+                          className="h-1.5 w-1.5 rounded-full border border-primary/70"
+                          title={dayEvents.length === 1 ? dayEvents[0].title : `${dayEvents.length} community events`}
+                        />
+                      )}
+                    </span>
+                    <div className={`text-[11px] ${isToday ? "text-primary font-bold" : "text-muted-foreground/60"}`}>
+                      {date.getDate()}
+                    </div>
                   </div>
                   <div className="mt-1 flex flex-col gap-1 px-0.5">
                     {completed && (completed.ritual.length > 0 || completed.roadmap.length > 0) && (
@@ -529,6 +556,10 @@ function CalendarPage() {
               <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
               <span className="text-[10px] text-muted-foreground">{t.calLegendOverdue}</span>
             </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full border border-primary/70" />
+              <span className="text-[10px] text-muted-foreground">{t.calLegendEvent}</span>
+            </div>
           </div>
         </div>
 
@@ -550,7 +581,7 @@ function CalendarPage() {
               </button>
             </div>
 
-            {(!selectedCompleted || (selectedCompleted.ritual.length === 0 && selectedCompleted.roadmap.length === 0)) && selectedDue.length === 0 ? (
+            {(!selectedCompleted || (selectedCompleted.ritual.length === 0 && selectedCompleted.roadmap.length === 0)) && selectedDue.length === 0 && selectedEvents.length === 0 ? (
               <div className="text-center py-8">
                 <CalendarDays className="h-6 w-6 mx-auto text-muted-foreground/40 mb-2" />
                 <p className="text-xs text-muted-foreground">{t.calEmptyDay}</p>
@@ -587,6 +618,48 @@ function CalendarPage() {
                       {selectedDue.map((tk) => (
                         <TaskRow key={tk.id} task={tk} onToggle={() => toggleComplete(tk)} onDelete={() => deleteTask(tk)} busy={mutatingId === tk.id} t={t} />
                       ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Separate from "what I did" — these are other members' shared events, not personal tasks. */}
+                {selectedEvents.length > 0 && (
+                  <div>
+                    {((selectedCompleted && (selectedCompleted.ritual.length > 0 || selectedCompleted.roadmap.length > 0)) || selectedDue.length > 0) && <div className="border-t border-border/40 pt-3" />}
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Users className="h-3 w-3 text-primary/70" />
+                      <span className="text-[10px] tracking-[0.2em] text-muted-foreground uppercase">{t.calCommunityTitle}</span>
+                      <span className="ml-auto font-mono text-[10px] text-primary/70">{selectedEvents.length}</span>
+                    </div>
+                    <ul className="space-y-2">
+                      {selectedEvents.map((ev) => {
+                        const going = rsvpedEventIds.has(ev.id);
+                        const start = new Date(ev.start_at);
+                        const meta = INDUSTRY_META[ev.industry];
+                        return (
+                          <li key={ev.id} className="rounded-lg border border-border/60 p-2.5">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-medium text-foreground truncate">{ev.title}</span>
+                                  {meta && <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${meta.dot}`} title={meta.label} />}
+                                </div>
+                                <div className="text-[10px] text-muted-foreground mt-0.5">
+                                  {start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })} · {eventOrganizerName(ev.user_id)}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => toggleRsvp(ev.id)}
+                                className={`shrink-0 text-[9px] tracking-[0.15em] uppercase px-2 py-1 rounded-lg border transition-all ${
+                                  going ? "border-primary/40 bg-primary/10 text-primary" : "border-border/60 text-muted-foreground hover:border-primary/40 hover:text-primary"
+                                }`}
+                              >
+                                {going ? t.calRsvped : t.calRsvp}
+                              </button>
+                            </div>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 )}
@@ -643,7 +716,15 @@ function CalendarPage() {
                   <li key={ev.id} className="rounded-lg border border-border/60 p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium text-foreground truncate">{ev.title}</div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="text-xs font-medium text-foreground truncate">{ev.title}</div>
+                          {INDUSTRY_META[ev.industry] && (
+                            <span className="flex items-center gap-1 shrink-0" title={INDUSTRY_META[ev.industry].label}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${INDUSTRY_META[ev.industry].dot}`} />
+                              <span className={`text-[8px] tracking-[0.15em] uppercase ${INDUSTRY_META[ev.industry].text}`}>{INDUSTRY_META[ev.industry].label}</span>
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2 mt-1 flex-wrap text-[10px] text-muted-foreground">
                           <span className="flex items-center gap-1"><Clock className="h-2.5 w-2.5" />{start.toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span>
                           {ev.location && <span className="flex items-center gap-1"><MapPin className="h-2.5 w-2.5" />{ev.location}</span>}

@@ -10,6 +10,7 @@ import {
   MessageSquare, ArrowBigUp, Flag, ArrowLeft, MessagesSquare,
 } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
+import { INDUSTRIES } from "@/lib/industry/config";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,6 +75,26 @@ type CommunityReply = {
 };
 
 type PublicProfile = { full_name: string | null; photo_url: string | null };
+
+// Community board is global across industries — this badge tells members which
+// vertical a post/reply came from. Colors match the same mapping used on the
+// Calendar page (CAP-95/CAP-98) so a mode reads consistently across the app.
+const INDUSTRY_META: Record<string, { dot: string; text: string; border: string }> = {
+  yachts: { dot: "bg-blue-400", text: "text-blue-300", border: "border-blue-400/30" },
+  villas: { dot: "bg-emerald-400", text: "text-emerald-300", border: "border-emerald-400/30" },
+  jets: { dot: "bg-violet-400", text: "text-violet-300", border: "border-violet-400/30" },
+  cars: { dot: "bg-orange-400", text: "text-orange-300", border: "border-orange-400/30" },
+};
+function IndustryBadge({ industry }: { industry: string }) {
+  const meta = INDUSTRY_META[industry];
+  const label = INDUSTRIES[industry as keyof typeof INDUSTRIES]?.shortLabel ?? industry;
+  return (
+    <span className={`inline-flex items-center gap-1 shrink-0 text-[9px] tracking-[0.15em] uppercase px-1.5 py-0.5 rounded border ${meta ? `${meta.text} ${meta.border}` : "text-muted-foreground border-border"}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${meta ? meta.dot : "bg-muted-foreground"}`} />
+      {label}
+    </span>
+  );
+}
 
 const PLATFORMS = [
   { key: "email",     label: "Email",     icon: Mail },
@@ -196,14 +217,15 @@ function Network() {
     });
   }, [profilesMap]);
 
-  // Load community posts for the active industry
+  // Community board is global — everyone in every industry sees every post, but each
+  // post still carries the industry it was posted from (shown as a badge) so members
+  // know which vertical it's coming from.
   const loadPosts = useCallback(async () => {
     if (!user) return;
     setPostsLoading(true);
     const { data } = await supabase
       .from("community_posts" as any)
       .select("*")
-      .eq("industry", industryId)
       .order("created_at", { ascending: false })
       .limit(100);
     const rows = (data as unknown as CommunityPost[]) ?? [];
@@ -221,10 +243,9 @@ function Network() {
     } else {
       setVotedPostIds(new Set());
     }
-  }, [user, industryId, fetchProfiles]);
+  }, [user, fetchProfiles]);
 
   useEffect(() => { loadPosts(); }, [loadPosts]);
-  useEffect(() => { setSelectedPostId(null); }, [industryId]);
 
   const loadReplies = useCallback(async (postId: string) => {
     setRepliesLoading(true);
@@ -847,7 +868,10 @@ function Network() {
                         <span className="text-xs font-mono">{p.upvote_count}</span>
                       </button>
                       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedPostId(p.id)}>
-                        <div className="font-serif text-lg leading-tight mb-1">{p.title}</div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="font-serif text-lg leading-tight">{p.title}</div>
+                          <IndustryBadge industry={p.industry} />
+                        </div>
                         <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{p.body}</p>
                         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                           <span>{authorName(p.user_id)}</span>
@@ -895,7 +919,10 @@ function Network() {
                     <span className="text-xs font-mono">{selectedPost.upvote_count}</span>
                   </button>
                   <div className="flex-1 min-w-0">
-                    <div className="font-serif text-xl leading-tight mb-2">{selectedPost.title}</div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="font-serif text-xl leading-tight">{selectedPost.title}</div>
+                      <IndustryBadge industry={selectedPost.industry} />
+                    </div>
                     <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap mb-3">{selectedPost.body}</p>
                     <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                       <span>{authorName(selectedPost.user_id)}</span>

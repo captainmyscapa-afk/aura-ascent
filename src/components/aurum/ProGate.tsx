@@ -7,8 +7,8 @@
  *   // check canUse before allowing the action
  */
 
-import { useState } from "react";
-import { Lock, Zap } from "lucide-react";
+import { useState, type ComponentType } from "react";
+import { Lock, Zap, Check } from "lucide-react";
 import { useFreeTier, type FreeTierKey, FREE_LIMITS } from "@/hooks/useFreeTier";
 import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 
@@ -58,6 +58,61 @@ export function UsageBar({
             background: left === 0 ? "oklch(0.62 0.2 25)" : "var(--gradient-gold)",
           }}
         />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * PageLock — full-page gate for Pro-only routes (e.g. Roadmap, AI Tutor).
+ * Renders instead of the page's normal content for free-plan users, with a CTA
+ * that opens UpgradeModal. Callers are responsible for the isPro/loading check
+ * and for not running paid-API side effects (e.g. auto-generation) while locked.
+ */
+export function PageLock({
+  icon: Icon,
+  eyebrow,
+  title,
+  description,
+  features,
+  upgradeLabel,
+  onUpgrade,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  eyebrow: string;
+  title: string;
+  description: string;
+  features?: string[];
+  upgradeLabel: string;
+  onUpgrade: () => void;
+}) {
+  return (
+    <div className="glass rounded-2xl p-10 sm:p-16 text-center max-w-xl mx-auto mt-6 animate-fade-up">
+      <div className="h-14 w-14 rounded-2xl mx-auto mb-6 flex items-center justify-center" style={{ background: "var(--gradient-gold)" }}>
+        <Icon className="h-6 w-6 text-primary-foreground" />
+      </div>
+      <div className="text-[10px] tracking-[0.34em] text-primary/80 uppercase mb-3">{eyebrow}</div>
+      <h1 className="font-serif text-3xl mb-3">{title}</h1>
+      <p className="text-sm text-muted-foreground mb-8 leading-relaxed max-w-md mx-auto">{description}</p>
+      {features && features.length > 0 && (
+        <ul className="text-left inline-block mb-8 space-y-2">
+          {features.map((f) => (
+            <li key={f} className="flex items-center gap-2 text-sm text-foreground/80">
+              <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+              {f}
+            </li>
+          ))}
+        </ul>
+      )}
+      <div>
+        <button
+          onClick={onUpgrade}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-opacity hover:opacity-90"
+          style={{ background: "var(--gradient-gold)", color: "#080808" }}
+        >
+          <Zap className="h-4 w-4" />
+          {upgradeLabel}
+        </button>
       </div>
     </div>
   );

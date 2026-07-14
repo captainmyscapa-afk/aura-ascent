@@ -20,6 +20,7 @@ export type T = {
   industryLabel: string;
   enteringMode: (label: string) => string;
   live: string;
+  proFeatureLabel: string;
   today: string;
   tomorrow: string;
   yesterday: string;
@@ -79,6 +80,7 @@ export type T = {
   calRoadmapLabel: string;
   calLegendDue: string;
   calLegendOverdue: string;
+  calLegendEvent: string;
   calNoActivity: string;
   calDayTasksDone: (n: number) => string;
   calDueToday: string;
@@ -154,6 +156,9 @@ export type T = {
   roadmapHelpGateMessage: string;
   roadmapMarkComplete: string;
   roadmapMarkIncomplete: string;
+  roadmapLockTitle: string;
+  roadmapLockDesc: string;
+  roadmapLockFeatures: string[];
   typeNetworking: string;
   typeContent: string;
   typeLearning: string;
@@ -279,6 +284,9 @@ export type T = {
   tutOpener: (trackName: string) => string;
   tutSuggestions: (industryId: "yachts" | "villas" | "jets" | "cars") => string[];
   tutGateMessage: string;
+  tutLockTitle: string;
+  tutLockDesc: string;
+  tutLockFeatures: string[];
   // Network
   netEyebrow: (mode: string) => string;
   netHeroPre: string;
@@ -680,6 +688,7 @@ export const translations: Record<Lang, T> = {
     // Industry switcher
     industryLabel: "INDUSTRY ECOSYSTEM",
     enteringMode: (label: string) => `Entering ${label}`,
+    proFeatureLabel: "Pro Feature",
     // Global Time Hub
     live: "Live",
     today: "TODAY",
@@ -792,6 +801,7 @@ export const translations: Record<Lang, T> = {
     calRoadmapLabel: "Roadmap",
     calLegendDue: "Task due",
     calLegendOverdue: "Overdue",
+    calLegendEvent: "Community event",
     calNoActivity: "No activity this day",
     calDayTasksDone: (n) => `${n} task${n === 1 ? "" : "s"} completed`,
     calDueToday: "Due today",
@@ -867,6 +877,14 @@ export const translations: Record<Lang, T> = {
     roadmapHelpGateMessage: "You've used your free task help sessions. Upgrade to Pro for unlimited help on every task.",
     roadmapMarkComplete: "Mark complete",
     roadmapMarkIncomplete: "Mark incomplete",
+    roadmapLockTitle: "Your 30-Day Roadmap",
+    roadmapLockDesc: "A day-by-day execution plan built for your goal — four weeks of networking, content, and outreach tasks, mapped out and synced to your calendar.",
+    roadmapLockFeatures: [
+      "Full 30-day, week-by-week plan",
+      "AI \"Get help\" guidance on every task",
+      "Auto-synced to your Calendar",
+      "Regenerate anytime as your goal evolves",
+    ],
     typeNetworking: "Networking",
     typeContent: "Content",
     typeLearning: "Learning",
@@ -1069,6 +1087,14 @@ export const translations: Record<Lang, T> = {
       ],
     })[industryId],
     tutGateMessage: "You've used your 5 free tutor messages. Upgrade to Pro for unlimited AI tutoring.",
+    tutLockTitle: "AI Tutor",
+    tutLockDesc: "Step-by-step lessons matched to your exact curriculum, with unlimited follow-up questions whenever you're stuck.",
+    tutLockFeatures: [
+      "Unlimited tutor conversations",
+      "Structured, curriculum-matched lessons",
+      "Saved lesson history",
+      "Personalized to your track & industry",
+    ],
     // Network
     netEyebrow: (mode) => `NETWORK · ${mode}`,
     netHeroPre: "The room you're",
@@ -1476,6 +1502,7 @@ export const translations: Record<Lang, T> = {
     // Industry switcher
     industryLabel: "ÉCOSYSTÈME",
     enteringMode: (label: string) => `Entrée dans ${label}`,
+    proFeatureLabel: "Fonctionnalité Pro",
     // Global Time Hub
     live: "En direct",
     today: "AUJOURD'HUI",
@@ -1588,6 +1615,7 @@ export const translations: Record<Lang, T> = {
     calRoadmapLabel: "Programme",
     calLegendDue: "Tâche à échéance",
     calLegendOverdue: "En retard",
+    calLegendEvent: "Événement communautaire",
     calNoActivity: "Aucune activité ce jour",
     calDayTasksDone: (n) => `${n} tâche${n === 1 ? "" : "s"} accomplie${n === 1 ? "" : "s"}`,
     calDueToday: "À faire aujourd'hui",
@@ -1663,6 +1691,14 @@ export const translations: Record<Lang, T> = {
     roadmapHelpGateMessage: "Vous avez utilisé vos sessions d'aide gratuites. Passez à Pro pour une aide illimitée sur chaque tâche.",
     roadmapMarkComplete: "Marquer comme terminé",
     roadmapMarkIncomplete: "Marquer comme non terminé",
+    roadmapLockTitle: "Votre feuille de route de 30 jours",
+    roadmapLockDesc: "Un plan d'exécution jour par jour construit pour votre objectif — quatre semaines de tâches de réseautage, de contenu et de prospection, planifiées et synchronisées avec votre calendrier.",
+    roadmapLockFeatures: [
+      "Plan complet de 30 jours, semaine par semaine",
+      "Aide IA « Obtenir de l'aide » sur chaque tâche",
+      "Synchronisation automatique avec votre calendrier",
+      "Régénérez à tout moment selon l'évolution de votre objectif",
+    ],
     typeNetworking: "Réseautage",
     typeContent: "Contenu",
     typeLearning: "Apprentissage",
@@ -1919,6 +1955,14 @@ export const translations: Record<Lang, T> = {
       ],
     })[industryId],
     tutGateMessage: "Vous avez utilisé vos 5 messages gratuits avec le tuteur. Passez à Pro pour un tutorat IA illimité.",
+    tutLockTitle: "Tuteur IA",
+    tutLockDesc: "Des leçons pas à pas adaptées à votre parcours exact, avec des questions de suivi illimitées dès que vous êtes bloqué.",
+    tutLockFeatures: [
+      "Conversations illimitées avec le tuteur",
+      "Leçons structurées, adaptées à votre parcours",
+      "Historique des leçons sauvegardé",
+      "Personnalisé selon votre parcours et votre secteur",
+    ],
     // Network
     netEyebrow: (mode) => `RÉSEAU · ${mode}`,
     netHeroPre: "La pièce où vous",

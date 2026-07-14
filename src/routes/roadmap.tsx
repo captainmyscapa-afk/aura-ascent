@@ -2,14 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
-import { Sparkles, RefreshCw, CheckCircle2, Circle, Users, BookOpen, Send, Brain, Trophy, Loader2, ArrowUpRight } from "lucide-react";
+import { Sparkles, RefreshCw, CheckCircle2, Circle, Users, BookOpen, Send, Brain, Trophy, Loader2, ArrowUpRight, Map } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { askGemini } from "@/lib/gemini.functions";
-import { useProGate } from "@/components/aurum/ProGate";
+import { useProGate, PageLock } from "@/components/aurum/ProGate";
 import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { T } from "@/lib/i18n/translations";
@@ -131,6 +132,8 @@ function RoadmapPage() {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
   const helpGate = useProGate("roadmap_help");
+  const { isPro, loading: subLoading } = useSubscription();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const genRoadmap = useServerFn(generateRoadmap);
 
   const typeLabels: Record<RoadmapTask["type"], string> = {
@@ -157,7 +160,7 @@ function RoadmapPage() {
     (core?.roadmap_progress as Record<string, Record<string, boolean>> | null) ?? {};
 
   const generate = useCallback(async () => {
-    if (!core) return;
+    if (!core || !isPro) return;
     setLoading(true);
     setError(null);
     try {
@@ -187,11 +190,13 @@ function RoadmapPage() {
     } finally {
       setLoading(false);
     }
-  }, [core, industry.label, profile?.goal, core?.ritual_profile, genRoadmap, updateCore, industryId, lang]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [core, isPro, industry.label, profile?.goal, core?.ritual_profile, genRoadmap, updateCore, industryId, lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load this industry's roadmap from the map — only generate if none exists for this mode
+  // Load this industry's roadmap from the map — only generate if none exists for this mode.
+  // Free-plan users never auto-generate (the page is locked; generate() also self-guards on isPro,
+  // but skipping the call entirely here avoids even attempting it while locked).
   useEffect(() => {
-    if (!core) return;
+    if (!core || !isPro) return;
     const savedMap = getRoadmapMap();
     const saved = savedMap[industryId] ?? null;
     const progress = getProgressMap()[industryId] ?? null;
@@ -202,7 +207,7 @@ function RoadmapPage() {
     } else if (!loading) {
       void generate();
     }
-  }, [core?.id, industryId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [core?.id, industryId, isPro]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleTask = useCallback(async (task: RoadmapTask) => {
     const nowDone = !completed[task.id];
@@ -239,6 +244,26 @@ function RoadmapPage() {
     : core?.roadmap_generated_at
       ? Math.min(Math.floor((Date.now() - new Date(core.roadmap_generated_at).getTime()) / 86_400_000) + 1, 30)
       : 1;
+
+  // Free-plan users see a locked page instead of the roadmap — never the roadmap itself,
+  // and generate() / the auto-generate effect above both self-guard on isPro so no Gemini
+  // call is ever made on their behalf.
+  if (!subLoading && !isPro) {
+    return (
+      <AppShell>
+        <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={t.roadmapLockDesc} />
+        <PageLock
+          icon={Map}
+          eyebrow={t.proFeatureLabel}
+          title={t.roadmapLockTitle}
+          description={t.roadmapLockDesc}
+          features={t.roadmapLockFeatures}
+          upgradeLabel={t.setUpgradeToPro}
+          onUpgrade={() => setUpgradeOpen(true)}
+        />
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
