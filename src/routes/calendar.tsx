@@ -18,11 +18,15 @@ import {
   Sparkles,
   Compass,
   ChevronDown,
+  MapPin,
+  Users,
+  Flag,
 } from "lucide-react";
 import { AppShell } from "@/components/aurum/AppShell";
 import { AnimateIn } from "@/components/aurum/AnimateIn";
 import { useAuth } from "@/hooks/useAuth";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
+import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { Tables } from "@/integrations/supabase/types";
@@ -75,10 +79,26 @@ const INDUSTRY_META: Record<string, { dot: string; text: string; label: string }
   cars: { dot: "bg-orange-400", text: "text-orange-300", label: "Car" },
 };
 
+// CAP-98: community events — shared, industry-scoped calendar entries other users can RSVP to.
+type CommunityEvent = {
+  id: string;
+  user_id: string;
+  industry: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  start_at: string;
+  end_at: string | null;
+  attendee_count: number;
+  created_at: string;
+};
+type PublicProfile = { full_name: string | null; photo_url: string | null };
+
 function CalendarPage() {
   const { t } = useLanguage();
   const { user } = useAuth();
   const { state: core } = useAurumCoreState();
+  const { industryId } = useIndustry();
 
   const today = new Date();
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -147,6 +167,109 @@ function CalendarPage() {
     void loadUpcoming();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // ── Community events (CAP-98) ──
+  const [communityEvents, setCommunityEvents] = useState<CommunityEvent[]>([]);
+  const [communityEventsLoading, setCommunityEventsLoading] = useState(true);
+  const [rsvpedEventIds, setRsvpedEventIds] = useState<Set<string>>(new Set());
+  const [eventProfiles, setEventProfiles] = useState<Record<string, PublicProfile>>({});
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [eventMutatingId, setEventMutatingId] = useState<string | null>(null);
+  const [eventReportTarget, setEventReportTarget] = useState<string | null>(null);
+  const [eventReportReason, setEventReportReason] = useState("");
+  const [eventReportSubmitting, setEventReportSubmitting] = useState(false);
+  const [eventReportToast, setEventReportToast] = useState<string | null>(null);
+
+  const loadCommunityEvents = async () => {
+    if (!user) return;
+    setCommunityEventsLoading(true);
+    const { data } = await supabase
+      .from("community_events" as any)
+      .select("*")
+      .eq("industry", industryId)
+      .gte("start_at", new Date().toISOString())
+      .order("start_at", { ascending: true })
+      .limit(20);
+    const rows = (data as unknown as CommunityEvent[]) ?? [];
+    setCommunityEvents(rows);
+    setCommunityEventsLoading(false);
+
+    if (rows.length > 0) {
+      const { data: rsvps } = await supabase
+        .from("community_event_rsvps" as any)
+        .select("event_id")
+        .eq("user_id", user.id)
+        .in("event_id", rows.map((r) => r.id));
+      setRsvpedEventIds(new Set(((rsvps as any[]) ?? []).map((r) => r.event_id)));
+
+      const missing = Array.from(new Set(rows.map((r) => r.user_id))).filter((id) => !(id in eventProfiles));
+      if (missing.length > 0) {
+        const { data: profiles } = await supabase
+          .from("public_profiles" as any)
+          .select("user_id, full_name, photo_url")
+          .in("user_id", missing);
+        if (profiles) {
+          setEventProfiles((prev) => {
+            const next = { ...prev };
+            for (const row of profiles as any[]) next[row.user_id] = { full_name: row.full_name, photo_url: row.photo_url };
+            return next;
+          });
+        }
+      }
+    } else {
+      setRsvpedEventIds(new Set());
+    }
+  };
+
+  useEffect(() => {
+    void loadCommunityEvents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, industryId]);
+
+  const toggleRsvp = async (eventId: string) => {
+    if (!user) return;
+    const has = rsvpedEventIds.has(eventId);
+    setRsvpedEventIds((prev) => {
+      const next = new Set(prev);
+      if (has) next.delete(eventId); else next.add(eventId);
+      return next;
+    });
+    setCommunityEvents((prev) => prev.map((e) => e.id === eventId ? { ...e, attendee_count: Math.max(0, e.attendee_count + (has ? -1 : 1)) } : e));
+    if (has) {
+      await supabase.from("community_event_rsvps" as any).delete().eq("event_id", eventId).eq("user_id", user.id);
+    } else {
+      await supabase.from("community_event_rsvps" as any).insert({ event_id: eventId, user_id: user.id });
+    }
+  };
+
+  const deleteCommunityEvent = async (id: string) => {
+    if (!user) return;
+    setEventMutatingId(id);
+    await supabase.from("community_events" as any).delete().eq("id", id).eq("user_id", user.id);
+    setCommunityEvents((prev) => prev.filter((e) => e.id !== id));
+    setEventMutatingId(null);
+  };
+
+  const submitEventReport = async () => {
+    if (!user || !eventReportTarget) return;
+    setEventReportSubmitting(true);
+    const { error } = await supabase.from("community_reports" as any).insert({
+      target_type: "event",
+      target_id: eventReportTarget,
+      reporter_user_id: user.id,
+      reason: eventReportReason.trim() || null,
+    });
+    setEventReportSubmitting(false);
+    setEventReportTarget(null);
+    setEventReportReason("");
+    setEventReportToast(error ? t.comReportFailed : t.comReportSuccess);
+    setTimeout(() => setEventReportToast(null), 3000);
+  };
+
+  const eventOrganizerName = (userId: string): string => {
+    if (userId === user?.id) return t.comYou;
+    return eventProfiles[userId]?.full_name || t.comMember;
+  };
 
   const completedByDay = useMemo(() => {
     const map: Record<string, { ritual: CompletedItem[]; roadmap: CompletedItem[] }> = {};
@@ -483,6 +606,80 @@ function CalendarPage() {
               </ul>
             </div>
           )}
+
+          {/* ── Community Events (CAP-98) ── */}
+          <div className="glass rounded-2xl p-5">
+            {eventReportToast && (
+              <div className="mb-3 text-xs text-primary border border-primary/30 bg-primary/5 rounded-lg px-3 py-2">
+                {eventReportToast}
+              </div>
+            )}
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-[10px] tracking-[0.34em] text-primary/80 uppercase">{t.calCommunityTitle}</div>
+              <button
+                onClick={() => setShowEventModal(true)}
+                className="p-2 rounded-lg border border-border/60 text-muted-foreground hover:text-primary hover:border-primary/40 transition-all"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground mb-3">{t.calCommunityDesc}</p>
+
+            {communityEventsLoading && <div className="text-xs text-muted-foreground py-4 text-center">{t.calLoadingEvents}</div>}
+
+            {!communityEventsLoading && communityEvents.length === 0 && (
+              <div className="text-center py-6">
+                <Users className="h-5 w-5 mx-auto text-muted-foreground/40 mb-2" />
+                <p className="text-xs font-medium mb-0.5">{t.calNoEvents}</p>
+                <p className="text-[11px] text-muted-foreground">{t.calNoEventsDesc}</p>
+              </div>
+            )}
+
+            <ul className="space-y-2.5">
+              {communityEvents.map((ev) => {
+                const going = rsvpedEventIds.has(ev.id);
+                const start = new Date(ev.start_at);
+                return (
+                  <li key={ev.id} className="rounded-lg border border-border/60 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium text-foreground truncate">{ev.title}</div>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap text-[10px] text-muted-foreground">
+                          <span className="flex items-center gap-1"><Clock className="h-2.5 w-2.5" />{start.toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span>
+                          {ev.location && <span className="flex items-center gap-1"><MapPin className="h-2.5 w-2.5" />{ev.location}</span>}
+                        </div>
+                        {ev.description && <p className="text-[11px] text-muted-foreground/80 mt-1.5 line-clamp-2">{ev.description}</p>}
+                        <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground">
+                          <span>{eventOrganizerName(ev.user_id)}</span>
+                          <span className="flex items-center gap-1"><Users className="h-2.5 w-2.5" />{t.calAttendees(ev.attendee_count)}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <button
+                          onClick={() => toggleRsvp(ev.id)}
+                          className={`text-[10px] tracking-[0.15em] uppercase px-2.5 py-1.5 rounded-lg border transition-all ${
+                            going ? "border-primary/40 bg-primary/10 text-primary" : "border-border/60 text-muted-foreground hover:border-primary/40 hover:text-primary"
+                          }`}
+                        >
+                          {going ? t.calRsvped : t.calRsvp}
+                        </button>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setEventReportTarget(ev.id)} title={t.comReport} className="text-muted-foreground hover:text-amber-400 transition-colors p-1">
+                            <Flag className="h-3 w-3" />
+                          </button>
+                          {ev.user_id === user?.id && (
+                            <button onClick={() => deleteCommunityEvent(ev.id)} disabled={eventMutatingId === ev.id} title={t.calDeleteEvent} className="text-muted-foreground hover:text-destructive transition-colors p-1 disabled:opacity-40">
+                              {eventMutatingId === ev.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -497,6 +694,51 @@ function CalendarPage() {
           userId={user?.id}
           t={t}
         />
+      )}
+
+      {showEventModal && (
+        <AddEventModal
+          defaultDate={selectedDate}
+          industryId={industryId}
+          onClose={() => setShowEventModal(false)}
+          onSaved={async () => {
+            setShowEventModal(false);
+            await loadCommunityEvents();
+          }}
+          userId={user?.id}
+          t={t}
+        />
+      )}
+
+      {eventReportTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setEventReportTarget(null)} />
+          <div className="relative glass rounded-2xl max-w-sm w-full p-6 border border-primary/20">
+            <div className="flex items-center justify-between mb-4">
+              <div className="font-serif text-lg">{t.comReportTitle}</div>
+              <button onClick={() => setEventReportTarget(null)}><X className="h-4 w-4 text-muted-foreground" /></button>
+            </div>
+            <textarea
+              value={eventReportReason}
+              onChange={(e) => setEventReportReason(e.target.value)}
+              placeholder={t.comReportReasonPlaceholder}
+              rows={3}
+              className="w-full glass rounded-lg px-4 py-3 text-sm outline-none border border-border/60 focus:border-primary/40 transition-colors resize-none leading-relaxed mb-4"
+            />
+            <div className="flex gap-2">
+              <button onClick={() => setEventReportTarget(null)} className="px-4 py-2 text-sm border border-border rounded-lg text-muted-foreground hover:text-foreground transition-colors">{t.calModalCancel}</button>
+              <button
+                onClick={submitEventReport}
+                disabled={eventReportSubmitting}
+                className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg disabled:opacity-50"
+                style={{ background: "var(--gradient-gold)", color: "#080808" }}
+              >
+                {eventReportSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Flag className="h-3.5 w-3.5" />}
+                {t.comReportSubmit}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AppShell>
   );
@@ -755,6 +997,140 @@ function AddTaskModal({
               style={{ background: "var(--gradient-gold)" }}
             >
               {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> {t.calModalSaving}</> : <><Check className="h-4 w-4" /> {t.calModalSave}</>}
+            </button>
+            <button onClick={onClose} className="px-5 py-3 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+              {t.calModalCancel}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** CAP-98: shares an event with everyone in the same industry via community_events (separate from personal aurum_tasks). */
+function AddEventModal({
+  defaultDate,
+  industryId,
+  onClose,
+  onSaved,
+  userId,
+  t,
+}: {
+  defaultDate: string;
+  industryId: string;
+  onClose: () => void;
+  onSaved: () => void;
+  userId?: string;
+  t: ReturnType<typeof useLanguage>["t"];
+}) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [startAt, setStartAt] = useState(`${defaultDate}T18:00`);
+  const [endAt, setEndAt] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const save = async () => {
+    if (!userId || !title.trim() || !startAt) return;
+    setSaving(true);
+    setError(null);
+    const { error: err } = await supabase.from("community_events" as any).insert({
+      user_id: userId,
+      industry: industryId,
+      title: title.trim(),
+      description: description.trim() || null,
+      location: location.trim() || null,
+      start_at: new Date(startAt).toISOString(),
+      end_at: endAt ? new Date(endAt).toISOString() : null,
+    });
+    setSaving(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    onSaved();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative glass-strong rounded-2xl max-w-md w-full p-7 border border-primary/20 shadow-[0_0_60px_rgba(201,168,76,0.1)] animate-pop">
+        <button onClick={onClose} className="absolute top-5 right-5 text-muted-foreground hover:text-foreground transition-colors">
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-9 w-9 rounded-lg flex items-center justify-center" style={{ background: "var(--gradient-gold)" }}>
+            <Users className="h-4 w-4 text-primary-foreground" />
+          </div>
+          <div className="font-serif text-xl">{t.calEventModalTitle}</div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-[10px] tracking-[0.3em] text-muted-foreground uppercase mb-2 block">{t.calEventTitleLabel}</label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t.calEventTitlePlaceholder}
+              className="w-full bg-transparent outline-none text-sm border border-border rounded-lg p-3 focus:border-primary/50 transition-colors"
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] tracking-[0.3em] text-muted-foreground uppercase mb-2 block">{t.calEventDescLabel}</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t.calEventDescPlaceholder}
+              rows={2}
+              className="w-full bg-transparent outline-none text-sm border border-border rounded-lg p-3 focus:border-primary/50 resize-none transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] tracking-[0.3em] text-muted-foreground uppercase mb-2 block">{t.calEventLocationLabel}</label>
+            <input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder={t.calEventLocationPlaceholder}
+              className="w-full bg-transparent outline-none text-sm border border-border rounded-lg p-3 focus:border-primary/50 transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] tracking-[0.3em] text-muted-foreground uppercase mb-2 block">{t.calEventStartLabel}</label>
+            <input
+              type="datetime-local"
+              value={startAt}
+              onChange={(e) => setStartAt(e.target.value)}
+              className="w-full bg-transparent outline-none text-sm border border-border rounded-lg p-3 focus:border-primary/50 transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] tracking-[0.3em] text-muted-foreground uppercase mb-2 block">{t.calEventEndLabel}</label>
+            <input
+              type="datetime-local"
+              value={endAt}
+              onChange={(e) => setEndAt(e.target.value)}
+              className="w-full bg-transparent outline-none text-sm border border-border rounded-lg p-3 focus:border-primary/50 transition-colors"
+            />
+          </div>
+
+          {error && <div className="text-xs text-destructive border border-destructive/40 rounded-lg p-3">{error}</div>}
+
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => void save()}
+              disabled={saving || !title.trim() || !startAt}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-primary-foreground font-medium text-sm disabled:opacity-50 transition-opacity hover:opacity-90"
+              style={{ background: "var(--gradient-gold)" }}
+            >
+              {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> {t.calEventSaving}</> : <><Check className="h-4 w-4" /> {t.calEventSave}</>}
             </button>
             <button onClick={onClose} className="px-5 py-3 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
               {t.calModalCancel}

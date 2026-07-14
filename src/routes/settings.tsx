@@ -17,12 +17,17 @@ import {
   GraduationCap,
   Radio,
   CheckCheck,
+  ArrowUpRight,
+  Download,
+  Trash2,
 } from "lucide-react";
 import { AppShell } from "@/components/aurum/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useFreeTier, FREE_LIMITS, type FreeTierKey } from "@/hooks/useFreeTier";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -50,8 +55,8 @@ function getSections(t: T): Section[] {
     { id: "aurum", label: t.setSectionAurum, icon: Sparkles, soon: false },
     { id: "content", label: t.setSectionContent, icon: ChevronRight, soon: false },
     { id: "notifications", label: t.setSectionNotifications, icon: Bell, soon: false },
-    { id: "privacy", label: t.setSectionPrivacy, icon: Shield, soon: true },
-    { id: "billing", label: t.setSectionBilling, icon: CreditCard, soon: true },
+    { id: "privacy", label: t.setSectionPrivacy, icon: Shield, soon: false },
+    { id: "billing", label: t.setSectionBilling, icon: CreditCard, soon: false },
     { id: "danger", label: t.setSectionDanger, icon: AlertTriangle, soon: false },
   ];
 }
@@ -114,15 +119,35 @@ function Settings() {
   const CONTENT_TONES = getContentTones(t);
   const PLATFORMS = getPlatformOptions(t);
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, session, signOut } = useAuth();
   const { profile, update: updateProfile } = useUserProfile();
   const { state: core, update: updateCore } = useAurumCoreState();
   const { industryId, setIndustry } = useIndustry();
+  const { sub, isPro, startCheckout } = useSubscription();
+  const { getCount, getLimit } = useFreeTier();
 
   const [activeSection, setActiveSection] = useState<SectionId>("account");
   const [saving, setSaving] = useState(false);
   const [fullName, setFullName] = useState(profile?.full_name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
+
+  // Billing
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  // Privacy — data export + account deletion
+  const [exporting, setExporting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  const FREE_TIER_LABELS: Record<FreeTierKey, string> = {
+    studio_drafts: t.setUsageStudioDrafts,
+    network_drafts: t.setUsageNetworkDrafts,
+    mentor_messages: t.setUsageMentorMessages,
+    tutor_messages: t.setUsageTutorMessages,
+    roadmap_help: t.setUsageRoadmapHelp,
+  };
 
   // Notification preferences (stored in user_profiles via a JSON column or separate flags)
   const [notifPrefs, setNotifPrefs] = useState({
@@ -205,6 +230,90 @@ function Settings() {
       return;
     }
     toast.success(t.setPasswordResetSentToast);
+  };
+
+  const handleUpgrade = async () => {
+    setCheckoutLoading(true);
+    await startCheckout();
+    setCheckoutLoading(false);
+  };
+
+  const handleManageBilling = async () => {
+    if (!session?.access_token) return;
+    setPortalLoading(true);
+    try {
+      const res = await fetch("https://ooliwsmmtpggejyjmone.supabase.co/functions/v1/stripe-portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (data.url) window.location.href = data.url;
+      else toast.error(data.error ?? t.setBillingPortalFailedToast);
+    } catch {
+      toast.error(t.setBillingPortalFailedToast);
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  // CAP-97: export every row the account owns across user-scoped tables (RLS already
+  // limits results to the caller's own data, so this is a safe client-side query).
+  const EXPORT_TABLES = [
+    "user_profiles", "aurum_core_state", "aurum_tasks", "contacts",
+    "mentor_conversations", "message_drafts", "user_content_history",
+    "user_memory", "user_module_progress", "user_subscriptions", "notifications",
+  ] as const;
+
+  const handleExportData = async () => {
+    if (!user) return;
+    setExporting(true);
+    try {
+      const entries = await Promise.all(
+        EXPORT_TABLES.map(async (table) => {
+          const { data } = await (supabase.from(table) as any).select("*").eq("user_id", user.id);
+          return [table, data ?? []] as const;
+        }),
+      );
+      const payload = {
+        exported_at: new Date().toISOString(),
+        account_email: user.email,
+        ...Object.fromEntries(entries),
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `aurum-os-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(t.setExportDataSuccessToast);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t.setExportDataFailedToast);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!session?.access_token || deleteConfirmText !== "DELETE") return;
+    setDeleting(true);
+    try {
+      const res = await fetch("https://ooliwsmmtpggejyjmone.supabase.co/functions/v1/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = (await res.json()) as { success?: boolean; error?: string };
+      if (data.success) {
+        try { await signOut(); } catch { /* auth user is already gone server-side — ignore */ }
+        navigate({ to: "/", replace: true });
+      } else {
+        toast.error(data.error ?? t.setDeleteAccountFailedToast);
+        setDeleting(false);
+      }
+    } catch {
+      toast.error(t.setDeleteAccountFailedToast);
+      setDeleting(false);
+    }
   };
 
   return (
@@ -450,7 +559,7 @@ function Settings() {
                     className={`relative h-6 w-11 rounded-full transition-colors ${(profile?.auto_daily_brief ?? true) ? "bg-primary" : "bg-border"}`}
                   >
                     <span
-                      className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${(profile?.auto_daily_brief ?? true) ? "translate-x-6" : "translate-x-1"}`}
+                      className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-[left,right] ${(profile?.auto_daily_brief ?? true) ? "left-6" : "left-1"}`}
                     />
                   </button>
                 </div>
@@ -488,7 +597,7 @@ function Settings() {
                       onClick={() => setNotifPrefs((p) => ({ ...p, [key]: !p[key as keyof typeof p] }))}
                       className={`relative h-6 w-11 rounded-full transition-colors shrink-0 ${notifPrefs[key as keyof typeof notifPrefs] ? "bg-primary" : "bg-border"}`}
                     >
-                      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${notifPrefs[key as keyof typeof notifPrefs] ? "translate-x-6" : "translate-x-1"}`} />
+                      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-[left,right] ${notifPrefs[key as keyof typeof notifPrefs] ? "left-6" : "left-1"}`} />
                     </button>
                   </div>
                 ))}
@@ -537,10 +646,142 @@ function Settings() {
             </div>
           )}
           {activeSection === "privacy" && (
-            <ComingSoon title={t.setPrivacyTitle} desc={t.setPrivacyDesc} />
+            <div className="space-y-8">
+              <SectionTitle title={t.setPrivacyTitle} desc={t.setPrivacyDesc} />
+
+              <Field label={t.setLegalTitle}>
+                <div className="flex flex-wrap gap-3 mt-1">
+                  <a
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all"
+                  >
+                    {t.setViewTerms} <ArrowUpRight className="h-3.5 w-3.5" />
+                  </a>
+                  <a
+                    href="/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all"
+                  >
+                    {t.setViewPrivacyPolicy} <ArrowUpRight className="h-3.5 w-3.5" />
+                  </a>
+                </div>
+              </Field>
+
+              <div className="pt-4 border-t border-border/60">
+                <Field label={t.setExportDataTitle}>
+                  <p className="text-sm text-muted-foreground mb-3">{t.setExportDataDesc}</p>
+                  <Button variant="outline" onClick={handleExportData} disabled={exporting}>
+                    {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+                    {t.setExportDataButton}
+                  </Button>
+                </Field>
+              </div>
+
+              <div className="pt-4 border-t border-border/60">
+                <Field label={t.setDeleteAccountTitle}>
+                  <p className="text-sm text-muted-foreground mb-3">{t.setDeleteAccountDesc}</p>
+                  {!confirmingDelete ? (
+                    <Button
+                      variant="outline"
+                      onClick={() => setConfirmingDelete(true)}
+                      className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" /> {t.setDeleteAccountButton}
+                    </Button>
+                  ) : (
+                    <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 space-y-3">
+                      <p className="text-xs text-destructive/90">{t.setDeleteAccountWarning}</p>
+                      <Input
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        placeholder={t.setDeleteAccountTypePlaceholder}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={handleDeleteAccount}
+                          disabled={deleteConfirmText !== "DELETE" || deleting}
+                          className="border-destructive/60 text-destructive hover:bg-destructive/10 disabled:opacity-40"
+                        >
+                          {deleting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                          {t.setDeleteAccountConfirm}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => { setConfirmingDelete(false); setDeleteConfirmText(""); }}
+                          disabled={deleting}
+                        >
+                          {t.setCancel}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </Field>
+              </div>
+            </div>
           )}
           {activeSection === "billing" && (
-            <ComingSoon title={t.setBillingTitle} desc={t.setBillingDesc} />
+            <div className="space-y-8">
+              <SectionTitle title={t.setBillingTitle} desc={t.setBillingDesc} />
+
+              <div className="rounded-xl border border-border/60 p-6">
+                <div className="flex items-start justify-between flex-wrap gap-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`h-10 w-10 rounded-xl flex items-center justify-center ${isPro ? "" : "bg-secondary"}`}
+                      style={isPro ? { background: "var(--gradient-gold)" } : undefined}
+                    >
+                      <Sparkles className={`h-5 w-5 ${isPro ? "text-primary-foreground" : "text-muted-foreground"}`} />
+                    </div>
+                    <div>
+                      <div className="text-[10px] tracking-[0.3em] text-muted-foreground uppercase">{t.setCurrentPlan}</div>
+                      <div className="font-serif text-xl">{isPro ? t.setPlanPro : t.setPlanFree}</div>
+                    </div>
+                  </div>
+                  {isPro ? (
+                    <Button variant="outline" onClick={handleManageBilling} disabled={portalLoading}>
+                      {portalLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t.setManageBilling}
+                    </Button>
+                  ) : (
+                    <Button onClick={handleUpgrade} disabled={checkoutLoading}>
+                      {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t.setUpgradeToPro}
+                    </Button>
+                  )}
+                </div>
+
+                {isPro && sub.status !== "active" && (
+                  <div className="mt-4 flex items-center gap-1.5 text-xs text-amber-400">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    {sub.status === "past_due" ? t.setPastDueWarning : sub.status === "trialing" ? t.setTrialingNote : t.setCanceledNote}
+                  </div>
+                )}
+                {isPro && sub.currentPeriodEnd && (
+                  <div className="mt-3 text-xs text-muted-foreground">
+                    {sub.cancelAtPeriodEnd
+                      ? t.setAccessUntil(new Date(sub.currentPeriodEnd).toLocaleDateString())
+                      : t.setRenewsOn(new Date(sub.currentPeriodEnd).toLocaleDateString())}
+                  </div>
+                )}
+              </div>
+
+              {!isPro && (
+                <Field label={t.setFreeUsageTitle}>
+                  <div className="space-y-2 mt-1">
+                    {(Object.keys(FREE_LIMITS) as FreeTierKey[]).map((key) => (
+                      <div key={key} className="flex items-center justify-between px-4 py-3 rounded-lg border border-border/50">
+                        <span className="text-sm">{FREE_TIER_LABELS[key]}</span>
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {getCount(key)} / {getLimit(key)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </Field>
+              )}
+            </div>
           )}
 
           {activeSection === "danger" && (
@@ -586,18 +827,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div className="space-y-1.5">
       <div className="text-[10px] tracking-[0.3em] text-muted-foreground">{label.toUpperCase()}</div>
       {children}
-    </div>
-  );
-}
-
-function ComingSoon({ title, desc }: { title: string; desc: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="h-12 w-12 rounded-full bg-secondary/60 flex items-center justify-center mb-4">
-        <Sparkles className="h-5 w-5 text-primary/60" />
-      </div>
-      <h2 className="font-serif text-2xl mb-2">{title}</h2>
-      <p className="text-sm text-muted-foreground max-w-sm">{desc}</p>
     </div>
   );
 }

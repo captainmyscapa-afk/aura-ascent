@@ -7,6 +7,7 @@ import {
   Users, Plus, Mail, Linkedin, Instagram, Facebook,
   Sparkles, Copy, Check, Loader2, Send, Trash2, Clock,
   X, Phone, Building, User, FileText, Pencil,
+  MessageSquare, ArrowBigUp, Flag, ArrowLeft, MessagesSquare,
 } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -53,6 +54,27 @@ type Draft = {
   created_at: string;
 };
 
+type CommunityPost = {
+  id: string;
+  user_id: string;
+  industry: string;
+  title: string;
+  body: string;
+  upvote_count: number;
+  reply_count: number;
+  created_at: string;
+};
+
+type CommunityReply = {
+  id: string;
+  post_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+};
+
+type PublicProfile = { full_name: string | null; photo_url: string | null };
+
 const PLATFORMS = [
   { key: "email",     label: "Email",     icon: Mail },
   { key: "linkedin",  label: "LinkedIn",  icon: Linkedin },
@@ -80,8 +102,8 @@ function Network() {
   const genIntro = useServerFn(generateIntroMessage);
 
   const { tab: seedTab, openAdd: seedOpenAdd } = Route.useSearch();
-  const [tab, setTab] = useState<"contacts" | "compose" | "drafts">(
-    seedTab === "compose" || seedTab === "drafts" ? seedTab : "contacts",
+  const [tab, setTab] = useState<"contacts" | "compose" | "drafts" | "community">(
+    seedTab === "compose" || seedTab === "drafts" || seedTab === "community" ? seedTab : "contacts",
   );
 
   // Contacts
@@ -106,6 +128,26 @@ function Network() {
   // Drafts
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [draftsLoading, setDraftsLoading] = useState(true);
+
+  // Community
+  const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [votedPostIds, setVotedPostIds] = useState<Set<string>>(new Set());
+  const [profilesMap, setProfilesMap] = useState<Record<string, PublicProfile>>({});
+  const [showNewPost, setShowNewPost] = useState(false);
+  const [newPostTitle, setNewPostTitle] = useState("");
+  const [newPostBody, setNewPostBody] = useState("");
+  const [postingNew, setPostingNew] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [replies, setReplies] = useState<CommunityReply[]>([]);
+  const [repliesLoading, setRepliesLoading] = useState(false);
+  const [replyBody, setReplyBody] = useState("");
+  const [postingReply, setPostingReply] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ type: "post" | "reply"; id: string } | null>(null);
+  const [reportReason, setReportReason] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportToast, setReportToast] = useState<string | null>(null);
 
   // Load contacts
   const loadContacts = useCallback(async () => {
@@ -135,6 +177,162 @@ function Network() {
 
   useEffect(() => { loadContacts(); }, [loadContacts]);
   useEffect(() => { loadDrafts(); }, [loadDrafts]);
+
+  // Load public display names for a set of user ids, merging into the cache.
+  const fetchProfiles = useCallback(async (userIds: string[]) => {
+    const missing = Array.from(new Set(userIds)).filter((id) => !(id in profilesMap));
+    if (missing.length === 0) return;
+    const { data } = await supabase
+      .from("public_profiles" as any)
+      .select("user_id, full_name, photo_url")
+      .in("user_id", missing);
+    if (!data) return;
+    setProfilesMap((prev) => {
+      const next = { ...prev };
+      for (const row of data as any[]) {
+        next[row.user_id] = { full_name: row.full_name, photo_url: row.photo_url };
+      }
+      return next;
+    });
+  }, [profilesMap]);
+
+  // Load community posts for the active industry
+  const loadPosts = useCallback(async () => {
+    if (!user) return;
+    setPostsLoading(true);
+    const { data } = await supabase
+      .from("community_posts" as any)
+      .select("*")
+      .eq("industry", industryId)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    const rows = (data as unknown as CommunityPost[]) ?? [];
+    setPosts(rows);
+    setPostsLoading(false);
+
+    if (rows.length > 0) {
+      const { data: votes } = await supabase
+        .from("community_post_votes" as any)
+        .select("post_id")
+        .eq("user_id", user.id)
+        .in("post_id", rows.map((r) => r.id));
+      setVotedPostIds(new Set(((votes as any[]) ?? []).map((v) => v.post_id)));
+      fetchProfiles(rows.map((r) => r.user_id));
+    } else {
+      setVotedPostIds(new Set());
+    }
+  }, [user, industryId, fetchProfiles]);
+
+  useEffect(() => { loadPosts(); }, [loadPosts]);
+  useEffect(() => { setSelectedPostId(null); }, [industryId]);
+
+  const loadReplies = useCallback(async (postId: string) => {
+    setRepliesLoading(true);
+    const { data } = await supabase
+      .from("community_replies" as any)
+      .select("*")
+      .eq("post_id", postId)
+      .order("created_at", { ascending: true });
+    const rows = (data as unknown as CommunityReply[]) ?? [];
+    setReplies(rows);
+    setRepliesLoading(false);
+    if (rows.length > 0) fetchProfiles(rows.map((r) => r.user_id));
+  }, [fetchProfiles]);
+
+  useEffect(() => {
+    if (selectedPostId) loadReplies(selectedPostId);
+  }, [selectedPostId, loadReplies]);
+
+  async function createPost() {
+    if (!user || !newPostTitle.trim() || !newPostBody.trim()) return;
+    setPostingNew(true);
+    setPostError(null);
+    const { error } = await supabase.from("community_posts" as any).insert({
+      user_id: user.id,
+      industry: industryId,
+      title: newPostTitle.trim(),
+      body: newPostBody.trim(),
+    });
+    setPostingNew(false);
+    if (error) {
+      setPostError(t.comPostFailed);
+      return;
+    }
+    setNewPostTitle("");
+    setNewPostBody("");
+    setShowNewPost(false);
+    loadPosts();
+  }
+
+  async function deletePost(id: string) {
+    if (!user) return;
+    await supabase.from("community_posts" as any).delete().eq("id", id).eq("user_id", user.id);
+    setPosts((p) => p.filter((x) => x.id !== id));
+    if (selectedPostId === id) setSelectedPostId(null);
+  }
+
+  async function toggleUpvote(postId: string) {
+    if (!user) return;
+    const hasVoted = votedPostIds.has(postId);
+    // Optimistic update
+    setVotedPostIds((prev) => {
+      const next = new Set(prev);
+      if (hasVoted) next.delete(postId); else next.add(postId);
+      return next;
+    });
+    setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, upvote_count: p.upvote_count + (hasVoted ? -1 : 1) } : p));
+
+    if (hasVoted) {
+      await supabase.from("community_post_votes" as any).delete().eq("post_id", postId).eq("user_id", user.id);
+    } else {
+      await supabase.from("community_post_votes" as any).insert({ post_id: postId, user_id: user.id });
+    }
+  }
+
+  async function createReply(postId: string) {
+    if (!user || !replyBody.trim()) return;
+    setPostingReply(true);
+    const { error } = await supabase.from("community_replies" as any).insert({
+      post_id: postId,
+      user_id: user.id,
+      body: replyBody.trim(),
+    });
+    setPostingReply(false);
+    if (error) return;
+    setReplyBody("");
+    setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, reply_count: p.reply_count + 1 } : p));
+    loadReplies(postId);
+  }
+
+  async function deleteReply(id: string, postId: string) {
+    if (!user) return;
+    await supabase.from("community_replies" as any).delete().eq("id", id).eq("user_id", user.id);
+    setReplies((r) => r.filter((x) => x.id !== id));
+    setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, reply_count: Math.max(0, p.reply_count - 1) } : p));
+  }
+
+  async function submitReport() {
+    if (!user || !reportTarget) return;
+    setReportSubmitting(true);
+    const { error } = await supabase.from("community_reports" as any).insert({
+      target_type: reportTarget.type,
+      target_id: reportTarget.id,
+      reporter_user_id: user.id,
+      reason: reportReason.trim() || null,
+    });
+    setReportSubmitting(false);
+    setReportTarget(null);
+    setReportReason("");
+    setReportToast(error ? t.comReportFailed : t.comReportSuccess);
+    setTimeout(() => setReportToast(null), 3000);
+  }
+
+  function authorName(userId: string): string {
+    if (userId === user?.id) return t.comYou;
+    return profilesMap[userId]?.full_name || t.comMember;
+  }
+
+  const selectedPost = posts.find((p) => p.id === selectedPostId) ?? null;
 
   // Deep-link support: Roadmap's "get help" action for networking/outreach
   // tasks lands here and can pop the add-contact form straight away.
@@ -280,15 +478,15 @@ function Network() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-8 border-b border-border/60">
-        {(["contacts", "compose", "drafts"] as const).map((tabKey) => (
+        {(["contacts", "compose", "drafts", "community"] as const).map((tabKey) => (
           <button
             key={tabKey}
-            onClick={() => setTab(tabKey)}
+            onClick={() => { setTab(tabKey); if (tabKey === "community") setSelectedPostId(null); }}
             className={`px-5 py-2.5 text-sm font-medium transition-colors capitalize border-b-2 -mb-px ${
               tab === tabKey ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {tabKey === "contacts" ? t.netTabContacts(contacts.length) : tabKey === "drafts" ? t.netTabDrafts(drafts.length) : t.netTabCompose}
+            {tabKey === "contacts" ? t.netTabContacts(contacts.length) : tabKey === "drafts" ? t.netTabDrafts(drafts.length) : tabKey === "community" ? t.comTab : t.netTabCompose}
           </button>
         ))}
       </div>
@@ -559,6 +757,257 @@ function Network() {
           )}
 
           <DraftsList drafts={drafts} platforms={PLATFORMS} onDelete={deleteDraft} onModify={modifyDraft} t={t} dateLocale={dateLocale} />
+        </div>
+      )}
+
+      {/* ── COMMUNITY TAB ────────────────────────────────── */}
+      {tab === "community" && (
+        <div className="animate-fade-up">
+          {reportToast && (
+            <div className="mb-4 text-xs text-primary border border-primary/30 bg-primary/5 rounded-lg px-3 py-2">
+              {reportToast}
+            </div>
+          )}
+
+          {!selectedPost && (
+            <>
+              <div className="flex justify-between items-center mb-5">
+                <SectionHeading eyebrow={t.comSectionEyebrow} title={t.comBoardTitle} />
+                <button
+                  onClick={() => setShowNewPost((v) => !v)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
+                  style={{ background: "var(--gradient-gold)", color: "#080808" }}
+                >
+                  <Plus className="h-4 w-4" /> {t.comNewPost}
+                </button>
+              </div>
+              <p className="text-sm text-muted-foreground mb-6 max-w-xl">{t.comBoardDesc}</p>
+
+              {showNewPost && (
+                <div className="glass rounded-xl p-6 mb-6 border border-primary/20 animate-fade-up">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="font-serif text-lg">{t.comNewPost}</div>
+                    <button onClick={() => setShowNewPost(false)}><X className="h-4 w-4 text-muted-foreground" /></button>
+                  </div>
+                  <input
+                    value={newPostTitle}
+                    onChange={(e) => setNewPostTitle(e.target.value)}
+                    placeholder={t.comPostTitlePlaceholder}
+                    className="w-full glass rounded-lg px-4 py-2.5 text-sm outline-none border border-border/60 focus:border-primary/40 transition-colors mb-3"
+                  />
+                  <textarea
+                    value={newPostBody}
+                    onChange={(e) => setNewPostBody(e.target.value)}
+                    placeholder={t.comPostBodyPlaceholder}
+                    rows={4}
+                    className="w-full glass rounded-lg px-4 py-3 text-sm outline-none border border-border/60 focus:border-primary/40 transition-colors resize-none leading-relaxed mb-3"
+                  />
+                  {postError && (
+                    <p className="mb-3 text-xs text-destructive border border-destructive/30 bg-destructive/5 rounded-lg px-3 py-2">
+                      {postError}
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <button onClick={() => setShowNewPost(false)} className="px-4 py-2 text-sm border border-border rounded-lg text-muted-foreground hover:text-foreground transition-colors">{t.netCancel}</button>
+                    <button
+                      onClick={createPost}
+                      disabled={!newPostTitle.trim() || !newPostBody.trim() || postingNew}
+                      className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg disabled:opacity-50"
+                      style={{ background: "var(--gradient-gold)", color: "#080808" }}
+                    >
+                      {postingNew ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                      {postingNew ? t.comPosting : t.comPublish}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {postsLoading && <div className="text-sm text-muted-foreground py-8 text-center">{t.comLoading}</div>}
+
+              {!postsLoading && posts.length === 0 && (
+                <div className="glass rounded-xl p-12 text-center">
+                  <MessagesSquare className="h-8 w-8 mx-auto text-muted-foreground/40 mb-3" />
+                  <p className="font-serif text-lg mb-1">{t.comEmptyTitle}</p>
+                  <p className="text-sm text-muted-foreground">{t.comEmptyDesc}</p>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {posts.map((p) => (
+                  <div key={p.id} className="glass rounded-xl p-5 hover:border-primary/30 border border-transparent transition-colors">
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => toggleUpvote(p.id)}
+                        title={t.comUpvote}
+                        className={`flex flex-col items-center gap-0.5 h-fit px-2 py-1.5 rounded-lg border transition-colors shrink-0 ${
+                          votedPostIds.has(p.id) ? "border-primary/40 bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/30"
+                        }`}
+                      >
+                        <ArrowBigUp className="h-4 w-4" />
+                        <span className="text-xs font-mono">{p.upvote_count}</span>
+                      </button>
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedPostId(p.id)}>
+                        <div className="font-serif text-lg leading-tight mb-1">{p.title}</div>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{p.body}</p>
+                        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                          <span>{authorName(p.user_id)}</span>
+                          <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatDate(p.created_at, t, dateLocale)}</span>
+                          <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" />{t.comRepliesCount(p.reply_count)}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-1 shrink-0">
+                        <button onClick={() => setReportTarget({ type: "post", id: p.id })} title={t.comReport} className="text-muted-foreground hover:text-amber-400 transition-colors p-1">
+                          <Flag className="h-3.5 w-3.5" />
+                        </button>
+                        {p.user_id === user?.id && (
+                          <button onClick={() => deletePost(p.id)} title={t.comDeletePost} className="text-muted-foreground hover:text-destructive transition-colors p-1">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Post detail */}
+          {selectedPost && (
+            <div className="max-w-2xl">
+              <button
+                onClick={() => setSelectedPostId(null)}
+                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-5"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" /> {t.comBack}
+              </button>
+
+              <div className="glass rounded-xl p-6 mb-6">
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => toggleUpvote(selectedPost.id)}
+                    title={t.comUpvote}
+                    className={`flex flex-col items-center gap-0.5 h-fit px-2 py-1.5 rounded-lg border transition-colors shrink-0 ${
+                      votedPostIds.has(selectedPost.id) ? "border-primary/40 bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/30"
+                    }`}
+                  >
+                    <ArrowBigUp className="h-4 w-4" />
+                    <span className="text-xs font-mono">{selectedPost.upvote_count}</span>
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-serif text-xl leading-tight mb-2">{selectedPost.title}</div>
+                    <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap mb-3">{selectedPost.body}</p>
+                    <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                      <span>{authorName(selectedPost.user_id)}</span>
+                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatDate(selectedPost.created_at, t, dateLocale)}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-1 shrink-0">
+                    <button onClick={() => setReportTarget({ type: "post", id: selectedPost.id })} title={t.comReport} className="text-muted-foreground hover:text-amber-400 transition-colors p-1">
+                      <Flag className="h-3.5 w-3.5" />
+                    </button>
+                    {selectedPost.user_id === user?.id && (
+                      <button onClick={() => deletePost(selectedPost.id)} title={t.comDeletePost} className="text-muted-foreground hover:text-destructive transition-colors p-1">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Reply composer */}
+              <div className="mb-6">
+                <textarea
+                  value={replyBody}
+                  onChange={(e) => setReplyBody(e.target.value)}
+                  placeholder={t.comReplyPlaceholder}
+                  rows={3}
+                  className="w-full glass rounded-lg px-4 py-3 text-sm outline-none border border-border/60 focus:border-primary/40 transition-colors resize-none leading-relaxed mb-2"
+                />
+                <button
+                  onClick={() => createReply(selectedPost.id)}
+                  disabled={!replyBody.trim() || postingReply}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm disabled:opacity-40 transition-all hover:opacity-90"
+                  style={{ background: "var(--gradient-gold)", color: "#080808" }}
+                >
+                  {postingReply ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  {postingReply ? t.comReplyingBtn : t.comReplyButton}
+                </button>
+              </div>
+
+              {/* Replies */}
+              <div className="text-[10px] tracking-[0.3em] text-muted-foreground mb-3">
+                {t.comRepliesCount(replies.length).toUpperCase()}
+              </div>
+
+              {repliesLoading && <div className="text-sm text-muted-foreground py-6 text-center">{t.comLoading}</div>}
+
+              {!repliesLoading && replies.length === 0 && (
+                <div className="glass rounded-xl p-8 text-center">
+                  <p className="font-serif mb-1">{t.comNoReplies}</p>
+                  <p className="text-sm text-muted-foreground">{t.comNoRepliesDesc}</p>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {replies.map((r) => (
+                  <div key={r.id} className="glass rounded-xl p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-1.5">
+                          <span className="font-medium text-foreground/80">{authorName(r.user_id)}</span>
+                          <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatDate(r.created_at, t, dateLocale)}</span>
+                        </div>
+                        <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{r.body}</p>
+                      </div>
+                      <div className="flex items-start gap-1 shrink-0">
+                        <button onClick={() => setReportTarget({ type: "reply", id: r.id })} title={t.comReport} className="text-muted-foreground hover:text-amber-400 transition-colors p-1">
+                          <Flag className="h-3.5 w-3.5" />
+                        </button>
+                        {r.user_id === user?.id && (
+                          <button onClick={() => deleteReply(r.id, selectedPost.id)} title={t.comDeleteReply} className="text-muted-foreground hover:text-destructive transition-colors p-1">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Report modal */}
+          {reportTarget && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setReportTarget(null)} />
+              <div className="relative glass rounded-2xl max-w-sm w-full p-6 border border-primary/20">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="font-serif text-lg">{t.comReportTitle}</div>
+                  <button onClick={() => setReportTarget(null)}><X className="h-4 w-4 text-muted-foreground" /></button>
+                </div>
+                <textarea
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  placeholder={t.comReportReasonPlaceholder}
+                  rows={3}
+                  className="w-full glass rounded-lg px-4 py-3 text-sm outline-none border border-border/60 focus:border-primary/40 transition-colors resize-none leading-relaxed mb-4"
+                />
+                <div className="flex gap-2">
+                  <button onClick={() => setReportTarget(null)} className="px-4 py-2 text-sm border border-border rounded-lg text-muted-foreground hover:text-foreground transition-colors">{t.netCancel}</button>
+                  <button
+                    onClick={submitReport}
+                    disabled={reportSubmitting}
+                    className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg disabled:opacity-50"
+                    style={{ background: "var(--gradient-gold)", color: "#080808" }}
+                  >
+                    {reportSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Flag className="h-3.5 w-3.5" />}
+                    {t.comReportSubmit}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </AppShell>

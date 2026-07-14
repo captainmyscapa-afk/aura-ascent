@@ -108,6 +108,29 @@ export type T = {
   calMonthCompletion: (pct: number) => string;
   calReminderSet: string;
   calReminderBadge: string;
+  // Calendar — Community events
+  calCommunityTitle: string;
+  calCommunityDesc: string;
+  calShareEvent: string;
+  calNoEvents: string;
+  calNoEventsDesc: string;
+  calLoadingEvents: string;
+  calEventModalTitle: string;
+  calEventTitleLabel: string;
+  calEventTitlePlaceholder: string;
+  calEventDescLabel: string;
+  calEventDescPlaceholder: string;
+  calEventLocationLabel: string;
+  calEventLocationPlaceholder: string;
+  calEventStartLabel: string;
+  calEventEndLabel: string;
+  calEventSave: string;
+  calEventSaving: string;
+  calRsvp: string;
+  calRsvped: string;
+  calAttendees: (n: number) => string;
+  calDeleteEvent: string;
+  calOrganizedBy: (name: string) => string;
   // Roadmap
   roadmapEyebrow: (mode: string) => string;
   roadmapBuilding: string;
@@ -311,6 +334,39 @@ export type T = {
   netModifyDraft: string;
   netDeleteDraft: string;
   netRe: (subject: string) => string;
+  // Network — Community board
+  comTab: string;
+  comSectionEyebrow: string;
+  comBoardTitle: string;
+  comBoardDesc: string;
+  comNewPost: string;
+  comPostTitlePlaceholder: string;
+  comPostBodyPlaceholder: string;
+  comPublish: string;
+  comPosting: string;
+  comPostFailed: string;
+  comEmptyTitle: string;
+  comEmptyDesc: string;
+  comLoading: string;
+  comBack: string;
+  comRepliesCount: (n: number) => string;
+  comReplyPlaceholder: string;
+  comReplyButton: string;
+  comReplyingBtn: string;
+  comReplyFailed: string;
+  comNoReplies: string;
+  comNoRepliesDesc: string;
+  comDeletePost: string;
+  comDeleteReply: string;
+  comReport: string;
+  comReportTitle: string;
+  comReportReasonPlaceholder: string;
+  comReportSubmit: string;
+  comReportSuccess: string;
+  comReportFailed: string;
+  comMember: string;
+  comYou: string;
+  comUpvote: string;
   // Studio
   stuGateMessage: string;
   stuUpgradeReason: string;
@@ -558,8 +614,41 @@ export type T = {
   setTimeDayAgo: (d: number) => string;
   setPrivacyTitle: string;
   setPrivacyDesc: string;
+  setLegalTitle: string;
+  setViewTerms: string;
+  setViewPrivacyPolicy: string;
+  setExportDataTitle: string;
+  setExportDataDesc: string;
+  setExportDataButton: string;
+  setExportDataSuccessToast: string;
+  setExportDataFailedToast: string;
+  setDeleteAccountTitle: string;
+  setDeleteAccountDesc: string;
+  setDeleteAccountButton: string;
+  setDeleteAccountWarning: string;
+  setDeleteAccountTypePlaceholder: string;
+  setDeleteAccountConfirm: string;
+  setDeleteAccountFailedToast: string;
+  setCancel: string;
   setBillingTitle: string;
   setBillingDesc: string;
+  setCurrentPlan: string;
+  setPlanFree: string;
+  setPlanPro: string;
+  setManageBilling: string;
+  setUpgradeToPro: string;
+  setBillingPortalFailedToast: string;
+  setPastDueWarning: string;
+  setTrialingNote: string;
+  setCanceledNote: string;
+  setAccessUntil: (date: string) => string;
+  setRenewsOn: (date: string) => string;
+  setFreeUsageTitle: string;
+  setUsageStudioDrafts: string;
+  setUsageNetworkDrafts: string;
+  setUsageMentorMessages: string;
+  setUsageTutorMessages: string;
+  setUsageRoadmapHelp: string;
   setDangerTitle: string;
   setDangerDesc: string;
   setSignOut: string;
@@ -732,6 +821,29 @@ export const translations: Record<Lang, T> = {
     calMonthCompletion: (pct) => `${pct}% of days active this month`,
     calReminderSet: "Reminder set",
     calReminderBadge: "Reminder",
+    // Calendar — Community events
+    calCommunityTitle: "Community Events",
+    calCommunityDesc: "Events shared by others building in this industry.",
+    calShareEvent: "Share an event",
+    calNoEvents: "No upcoming events",
+    calNoEventsDesc: "Be the first to share an event with the community.",
+    calLoadingEvents: "Loading events…",
+    calEventModalTitle: "Share an event",
+    calEventTitleLabel: "Event title",
+    calEventTitlePlaceholder: "e.g. Monaco Yacht Show — meetup",
+    calEventDescLabel: "Description",
+    calEventDescPlaceholder: "What's happening, who should come…",
+    calEventLocationLabel: "Location",
+    calEventLocationPlaceholder: "e.g. Port Hercules, Monaco",
+    calEventStartLabel: "Starts",
+    calEventEndLabel: "Ends (optional)",
+    calEventSave: "Share event",
+    calEventSaving: "Sharing…",
+    calRsvp: "RSVP",
+    calRsvped: "Going",
+    calAttendees: (n) => (n === 1 ? "1 going" : `${n} going`),
+    calDeleteEvent: "Delete event",
+    calOrganizedBy: (name) => `Hosted by ${name}`,
     // Roadmap
     roadmapEyebrow: (mode) => `ROADMAP · ${mode.toUpperCase()}`,
     roadmapBuilding: "Building your roadmap…",
@@ -1017,6 +1129,39 @@ export const translations: Record<Lang, T> = {
     netModifyDraft: "Modify draft",
     netDeleteDraft: "Delete draft",
     netRe: (subject) => `Re: ${subject}`,
+    // Network — Community board
+    comTab: "Community",
+    comSectionEyebrow: "DISCUSSION",
+    comBoardTitle: "Community Board",
+    comBoardDesc: "Ask questions, share knowledge, and connect with others building in this industry.",
+    comNewPost: "New post",
+    comPostTitlePlaceholder: "Give it a clear headline…",
+    comPostBodyPlaceholder: "Share knowledge, ask a question, start a discussion…",
+    comPublish: "Publish",
+    comPosting: "Publishing…",
+    comPostFailed: "Couldn't publish your post. Try again.",
+    comEmptyTitle: "No posts yet",
+    comEmptyDesc: "Be the first to start a discussion in this industry.",
+    comLoading: "Loading discussions…",
+    comBack: "Back to board",
+    comRepliesCount: (n) => (n === 1 ? "1 reply" : `${n} replies`),
+    comReplyPlaceholder: "Add to the discussion…",
+    comReplyButton: "Reply",
+    comReplyingBtn: "Posting…",
+    comReplyFailed: "Couldn't post your reply. Try again.",
+    comNoReplies: "No replies yet",
+    comNoRepliesDesc: "Be the first to respond.",
+    comDeletePost: "Delete post",
+    comDeleteReply: "Delete reply",
+    comReport: "Report",
+    comReportTitle: "Report content",
+    comReportReasonPlaceholder: "Optional — tell us what's wrong",
+    comReportSubmit: "Submit report",
+    comReportSuccess: "Reported. Thank you.",
+    comReportFailed: "Couldn't submit report. Try again.",
+    comMember: "Member",
+    comYou: "You",
+    comUpvote: "Upvote",
     // Studio
     stuGateMessage: "You've used your free content draft. Upgrade to Pro for unlimited generation.",
     stuUpgradeReason: "You've used your free content draft. Upgrade to Pro for unlimited AI content generation.",
@@ -1266,9 +1411,42 @@ export const translations: Record<Lang, T> = {
     setTimeHourAgo: (h) => `${h}h ago`,
     setTimeDayAgo: (d) => `${d}d ago`,
     setPrivacyTitle: "Privacy",
-    setPrivacyDesc: "Control who can see your profile, streak and activity. Coming soon.",
+    setPrivacyDesc: "Your data, your legal agreements, and your right to leave.",
+    setLegalTitle: "Legal",
+    setViewTerms: "Terms of Service",
+    setViewPrivacyPolicy: "Privacy Policy",
+    setExportDataTitle: "Export your data",
+    setExportDataDesc: "Download everything AURUM OS has on your account — profile, roadmap, content history, tasks and more — as a JSON file.",
+    setExportDataButton: "Export my data",
+    setExportDataSuccessToast: "Your data export has started downloading.",
+    setExportDataFailedToast: "Couldn't export your data. Please try again.",
+    setDeleteAccountTitle: "Delete account",
+    setDeleteAccountDesc: "Permanently delete your account and all associated data. This cannot be undone.",
+    setDeleteAccountButton: "Delete my account",
+    setDeleteAccountWarning: "This permanently deletes your account, cancels any active subscription, and erases all your data — roadmap, content history, tasks, mentor conversations, everything. There is no undo. Type DELETE to confirm.",
+    setDeleteAccountTypePlaceholder: "Type DELETE to confirm",
+    setDeleteAccountConfirm: "Permanently delete my account",
+    setDeleteAccountFailedToast: "Couldn't delete your account. Please try again or contact support.",
+    setCancel: "Cancel",
     setBillingTitle: "Billing",
-    setBillingDesc: "Manage your plan, payment method and invoice history. Coming soon.",
+    setBillingDesc: "Manage your plan, payment method and invoice history.",
+    setCurrentPlan: "Current plan",
+    setPlanFree: "Free",
+    setPlanPro: "Pro",
+    setManageBilling: "Manage billing",
+    setUpgradeToPro: "Upgrade to Pro — £29/month",
+    setBillingPortalFailedToast: "Couldn't open the billing portal. Please try again.",
+    setPastDueWarning: "Your last payment failed — update your payment method to keep Pro access.",
+    setTrialingNote: "You're on a trial period.",
+    setCanceledNote: "Your subscription has been canceled.",
+    setAccessUntil: (date) => `Pro access until ${date}, then your account reverts to Free.`,
+    setRenewsOn: (date) => `Renews on ${date}.`,
+    setFreeUsageTitle: "Free plan usage",
+    setUsageStudioDrafts: "Content Studio drafts",
+    setUsageNetworkDrafts: "Network message drafts",
+    setUsageMentorMessages: "Mentor messages",
+    setUsageTutorMessages: "Tutor messages",
+    setUsageRoadmapHelp: "Roadmap task help",
     setDangerTitle: "Danger Zone",
     setDangerDesc: "Irreversible actions. Proceed with caution.",
     setSignOut: "Sign out",
@@ -1439,6 +1617,29 @@ export const translations: Record<Lang, T> = {
     calMonthCompletion: (pct) => `${pct}% des jours actifs ce mois-ci`,
     calReminderSet: "Rappel programmé",
     calReminderBadge: "Rappel",
+    // Calendrier — Événements communautaires
+    calCommunityTitle: "Événements communautaires",
+    calCommunityDesc: "Événements partagés par d'autres acteurs de ce secteur.",
+    calShareEvent: "Partager un événement",
+    calNoEvents: "Aucun événement à venir",
+    calNoEventsDesc: "Soyez le premier à partager un événement avec la communauté.",
+    calLoadingEvents: "Chargement des événements…",
+    calEventModalTitle: "Partager un événement",
+    calEventTitleLabel: "Titre de l'événement",
+    calEventTitlePlaceholder: "ex. Monaco Yacht Show — rencontre",
+    calEventDescLabel: "Description",
+    calEventDescPlaceholder: "Ce qui se passe, qui devrait venir…",
+    calEventLocationLabel: "Lieu",
+    calEventLocationPlaceholder: "ex. Port Hercule, Monaco",
+    calEventStartLabel: "Début",
+    calEventEndLabel: "Fin (facultatif)",
+    calEventSave: "Partager l'événement",
+    calEventSaving: "Partage…",
+    calRsvp: "Participer",
+    calRsvped: "J'y participe",
+    calAttendees: (n) => (n === 1 ? "1 participant" : `${n} participants`),
+    calDeleteEvent: "Supprimer l'événement",
+    calOrganizedBy: (name) => `Organisé par ${name}`,
     // Roadmap
     roadmapEyebrow: (mode) => `PROGRAMME · ${mode.toUpperCase()}`,
     roadmapBuilding: "Création de votre programme…",
@@ -1778,6 +1979,39 @@ export const translations: Record<Lang, T> = {
     netModifyDraft: "Modifier le brouillon",
     netDeleteDraft: "Supprimer le brouillon",
     netRe: (subject) => `Objet : ${subject}`,
+    // Réseau — Communauté
+    comTab: "Communauté",
+    comSectionEyebrow: "DISCUSSION",
+    comBoardTitle: "Forum communautaire",
+    comBoardDesc: "Posez des questions, partagez vos connaissances et échangez avec d'autres acteurs de ce secteur.",
+    comNewPost: "Nouveau sujet",
+    comPostTitlePlaceholder: "Donnez un titre clair…",
+    comPostBodyPlaceholder: "Partagez une connaissance, posez une question, lancez une discussion…",
+    comPublish: "Publier",
+    comPosting: "Publication…",
+    comPostFailed: "Impossible de publier. Réessayez.",
+    comEmptyTitle: "Aucun sujet pour le moment",
+    comEmptyDesc: "Soyez le premier à lancer une discussion dans ce secteur.",
+    comLoading: "Chargement des discussions…",
+    comBack: "Retour au forum",
+    comRepliesCount: (n) => (n === 1 ? "1 réponse" : `${n} réponses`),
+    comReplyPlaceholder: "Participer à la discussion…",
+    comReplyButton: "Répondre",
+    comReplyingBtn: "Publication…",
+    comReplyFailed: "Impossible de publier la réponse. Réessayez.",
+    comNoReplies: "Aucune réponse pour le moment",
+    comNoRepliesDesc: "Soyez le premier à répondre.",
+    comDeletePost: "Supprimer le sujet",
+    comDeleteReply: "Supprimer la réponse",
+    comReport: "Signaler",
+    comReportTitle: "Signaler ce contenu",
+    comReportReasonPlaceholder: "Facultatif — expliquez le problème",
+    comReportSubmit: "Envoyer le signalement",
+    comReportSuccess: "Signalé. Merci.",
+    comReportFailed: "Impossible d'envoyer le signalement. Réessayez.",
+    comMember: "Membre",
+    comYou: "Vous",
+    comUpvote: "Voter",
     // Studio
     stuGateMessage: "Vous avez utilisé votre brouillon de contenu gratuit. Passez à Pro pour une génération illimitée.",
     stuUpgradeReason: "Vous avez utilisé votre brouillon de contenu gratuit. Passez à Pro pour une génération de contenu IA illimitée.",
@@ -2027,9 +2261,42 @@ export const translations: Record<Lang, T> = {
     setTimeHourAgo: (h) => `il y a ${h} h`,
     setTimeDayAgo: (d) => `il y a ${d} j`,
     setPrivacyTitle: "Confidentialité",
-    setPrivacyDesc: "Contrôlez qui peut voir votre profil, votre série et votre activité. Bientôt disponible.",
+    setPrivacyDesc: "Vos données, vos accords juridiques, et votre droit de partir.",
+    setLegalTitle: "Juridique",
+    setViewTerms: "Conditions d'utilisation",
+    setViewPrivacyPolicy: "Politique de confidentialité",
+    setExportDataTitle: "Exporter vos données",
+    setExportDataDesc: "Téléchargez tout ce qu'Aurum OS possède sur votre compte — profil, feuille de route, historique de contenu, tâches et plus — au format JSON.",
+    setExportDataButton: "Exporter mes données",
+    setExportDataSuccessToast: "Le téléchargement de vos données a commencé.",
+    setExportDataFailedToast: "Impossible d'exporter vos données. Veuillez réessayer.",
+    setDeleteAccountTitle: "Supprimer le compte",
+    setDeleteAccountDesc: "Supprimez définitivement votre compte et toutes les données associées. Cette action est irréversible.",
+    setDeleteAccountButton: "Supprimer mon compte",
+    setDeleteAccountWarning: "Cette action supprime définitivement votre compte, annule tout abonnement actif et efface toutes vos données — feuille de route, historique de contenu, tâches, conversations avec le mentor, tout. Il n'y a pas de retour en arrière. Tapez DELETE pour confirmer.",
+    setDeleteAccountTypePlaceholder: "Tapez DELETE pour confirmer",
+    setDeleteAccountConfirm: "Supprimer définitivement mon compte",
+    setDeleteAccountFailedToast: "Impossible de supprimer votre compte. Réessayez ou contactez le support.",
+    setCancel: "Annuler",
     setBillingTitle: "Facturation",
-    setBillingDesc: "Gérez votre abonnement, votre moyen de paiement et l'historique de facturation. Bientôt disponible.",
+    setBillingDesc: "Gérez votre abonnement, votre moyen de paiement et l'historique de facturation.",
+    setCurrentPlan: "Abonnement actuel",
+    setPlanFree: "Gratuit",
+    setPlanPro: "Pro",
+    setManageBilling: "Gérer la facturation",
+    setUpgradeToPro: "Passer à Pro — 29 £/mois",
+    setBillingPortalFailedToast: "Impossible d'ouvrir le portail de facturation. Veuillez réessayer.",
+    setPastDueWarning: "Votre dernier paiement a échoué — mettez à jour votre moyen de paiement pour conserver l'accès Pro.",
+    setTrialingNote: "Vous êtes en période d'essai.",
+    setCanceledNote: "Votre abonnement a été annulé.",
+    setAccessUntil: (date) => `Accès Pro jusqu'au ${date}, puis votre compte repasse en Gratuit.`,
+    setRenewsOn: (date) => `Renouvellement le ${date}.`,
+    setFreeUsageTitle: "Utilisation du plan gratuit",
+    setUsageStudioDrafts: "Brouillons Content Studio",
+    setUsageNetworkDrafts: "Brouillons de messages réseau",
+    setUsageMentorMessages: "Messages au mentor",
+    setUsageTutorMessages: "Messages au tuteur",
+    setUsageRoadmapHelp: "Aide sur les tâches de la feuille de route",
     setDangerTitle: "Zone de danger",
     setDangerDesc: "Actions irréversibles. Procédez avec prudence.",
     setSignOut: "Se déconnecter",
