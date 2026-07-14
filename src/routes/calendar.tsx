@@ -41,8 +41,14 @@ type Priority = "low" | "medium" | "high";
 /** Sources that represent "activity done that day" rather than a task with a due date. */
 const ACTIVITY_SOURCES = ["daily_ritual", "roadmap"];
 
+// Local calendar date, not UTC — d.toISOString() rolls over at UTC midnight, which
+// desyncs "today" from the user's actual local day (e.g. anyone behind UTC would see
+// the grid highlight tomorrow as "today" for part of their evening).
 function isoDay(d = new Date()) {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function useTilt(strength = 8) {

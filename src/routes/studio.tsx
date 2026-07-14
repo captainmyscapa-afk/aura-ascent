@@ -1605,7 +1605,10 @@ function PublishPanel({
                 <input
                   type="date"
                   value={schedDate}
-                  min={new Date().toISOString().slice(0, 10)}
+                  min={(() => {
+                    const d = new Date();
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                  })()}
                   onChange={(e) => setSchedDate(e.target.value)}
                   className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/50 transition-colors"
                 />

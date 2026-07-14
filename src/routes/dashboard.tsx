@@ -221,8 +221,14 @@ function useNow() {
   return now;
 }
 
+// Local calendar date, not UTC — d.toISOString() rolls over at UTC midnight, which
+// desyncs "today" from the user's actual local day (daily ritual caching, streaks,
+// and the "today" badge all key off this).
 function isoDay(d = new Date()) {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 function weekStartIso(d = new Date()) {
   const dt = new Date(d);
@@ -423,7 +429,7 @@ export default function Dashboard() {
     const last = typeof window !== "undefined" ? localStorage.getItem(STREAK_KEY) : null;
     let nextStreak = core?.streak ?? 0;
     if (last !== today) {
-      const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+      const yesterday = isoDay(new Date(Date.now() - 86_400_000));
       nextStreak = last === yesterday ? nextStreak + 1 : 1;
       if (typeof window !== "undefined") localStorage.setItem(STREAK_KEY, today);
     }
@@ -763,7 +769,7 @@ export default function Dashboard() {
                 const firstDay = new Date(viewYear, viewMonth, 1);
                 const lastDay = new Date(viewYear, viewMonth + 1, 0);
                 const startDow = (firstDay.getDay() + 6) % 7;
-                const todayDate = new Date().toISOString().slice(0, 10);
+                const todayDate = isoDay();
                 const cells: React.ReactNode[] = [];
                 for (let i = 0; i < startDow; i++) {
                   const d = new Date(viewYear, viewMonth, 1 - (startDow - i));
