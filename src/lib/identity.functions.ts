@@ -133,6 +133,9 @@ type DashInput = {
   location?: string;
   taskCount?: number;
   ritualProfile?: RitualProfileInput;
+  // Recently-generated ritual task strings for this user+mode, so the model doesn't
+  // repeat or lightly reword something it already gave them on a previous day.
+  avoidTasks?: string[];
 };
 
 // CAP-78: the 5 daily-ritual onboarding answers, used to personalise daily tasks
@@ -286,6 +289,9 @@ export const generateDailyTasks = createServerFn({ method: "POST" })
               ? `Where possible, connect tasks to their background/experience above so they feel personal and relatable, not generic.`
               : null,
             `Each task must fit within the daily time budget given above — do not propose tasks that would take longer than the person has.`,
+            data.avoidTasks?.length
+              ? `ALREADY USED RECENTLY — do not repeat, and do not lightly reword or reorder any of these:\n${data.avoidTasks.map((t) => `- ${t}`).join("\n")}\nGenerate genuinely different tasks that cover new ground.`
+              : null,
           ]
             .filter(Boolean)
             .join("\n"),

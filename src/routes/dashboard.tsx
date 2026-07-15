@@ -355,6 +355,8 @@ export default function Dashboard() {
       taskCount: userProfile?.daily_task_count ?? 5,
       // CAP-78: personalize daily rituals using the onboarding ritual profile (if set)
       ritualProfile: c.ritual_profile ?? undefined,
+      // Tell generation not to repeat what this mode has already been given recently.
+      avoidTasks: (c.daily_tasks_history?.[industryId] ?? []).slice(-20),
     };
 
     const recStale =
@@ -392,13 +394,18 @@ export default function Dashboard() {
     if (!user || dailyTasks.length === 0) return;
     let alive = true;
     (async () => {
-      const today = isoDay();
+      // Local midnight, not UTC midnight — `isoDay() + "T00:00:00Z"` treated the local
+      // calendar date as if it were already a UTC instant, which for anyone offset from
+      // UTC restored checkmarks for the wrong window (bleeding into yesterday evening's
+      // completions, or missing part of today's).
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
       const { data, error } = await supabase
         .from("aurum_tasks")
         .select("title")
         .eq("user_id", user.id)
         .eq("source", "daily_ritual")
-        .gte("completed_at", today + "T00:00:00Z");
+        .gte("completed_at", startOfToday.toISOString());
       if (!alive || error || !data) return;
       const completedTitles = new Set((data as { title: string }[]).map((r) => r.title));
       if (completedTitles.size === 0) return;
@@ -416,56 +423,98 @@ export default function Dashboard() {
   async function toggle(i: number) {
     const wasDone = !!done[i];
     setDone((d) => ({ ...d, [i]: !d[i] }));
-    // CAP-60: mark today as completed if this was the last task
+    if (!user) return;
+
+    // Local midnight, not UTC midnight — same fix as isoDay() itself (see calendar.tsx).
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const today = isoDay();
+    const doneKey = `aurum:ritualsDone:${user.id}:${today}:${industryId}`;
+    const STREAK_KEY = `aurum:lastStreakDate:${user.id}`;
+
     if (!wasDone) {
+      // CAP-60: mark today as completed if this was the last task
       const nowAllDone = dailyTasks.every((_, idx) => idx === i ? true : !!done[idx]);
       if (nowAllDone && typeof window !== "undefined") {
-        localStorage.setItem(`aurum:ritualsDone:${user?.id ?? ""}:${isoDay()}:${industryId}`, "1");
+        localStorage.setItem(doneKey, "1");
       }
-    }
-    if (wasDone || !user) return;
-    const today = isoDay();
-    const STREAK_KEY = `aurum:lastStreakDate:${user.id}`;
-    const last = typeof window !== "undefined" ? localStorage.getItem(STREAK_KEY) : null;
-    let nextStreak = core?.streak ?? 0;
-    if (last !== today) {
-      const yesterday = isoDay(new Date(Date.now() - 86_400_000));
-      nextStreak = last === yesterday ? nextStreak + 1 : 1;
-      if (typeof window !== "undefined") localStorage.setItem(STREAK_KEY, today);
-    }
-    // Dedup: skip if this task was already completed today
-    const { data: existing } = await supabase
-      .from("aurum_tasks")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("title", dailyTasks[i])
-      .eq("source", "daily_ritual")
-      .gte("completed_at", today + "T00:00:00Z")
-      .maybeSingle();
-    if (!existing) {
-      const { error } = await (supabase as any).from("aurum_tasks").insert({
-        user_id: user.id,
-        title: dailyTasks[i],
-        status: "completed",
-        priority: "medium",
-        source: "daily_ritual",
-        // CAP-93: tag which mode this ritual belongs to, so Calendar can color it per mode.
-        industry: industryId,
-        completed_at: new Date().toISOString(),
-      });
-      if (error) console.error("[aurum_tasks] insert failed:", error.message);
-    }
-    // Derive today's score from actual DB count (self-healing, resets daily automatically)
-    const { count } = await supabase
-      .from("aurum_tasks")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .gte("completed_at", today + "T00:00:00Z");
 
-    await updateCore({
-      execution_score: count ?? (core?.execution_score ?? 0) + 1,
-      streak: nextStreak,
-    });
+      const last = typeof window !== "undefined" ? localStorage.getItem(STREAK_KEY) : null;
+      let nextStreak = core?.streak ?? 0;
+      if (last !== today) {
+        const yesterday = isoDay(new Date(Date.now() - 86_400_000));
+        nextStreak = last === yesterday ? nextStreak + 1 : 1;
+        if (typeof window !== "undefined") localStorage.setItem(STREAK_KEY, today);
+      }
+
+      // Dedup: skip if this task was already completed today
+      const { data: existing } = await supabase
+        .from("aurum_tasks")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("title", dailyTasks[i])
+        .eq("source", "daily_ritual")
+        .gte("completed_at", startOfToday.toISOString())
+        .maybeSingle();
+      if (!existing) {
+        const { error } = await (supabase as any).from("aurum_tasks").insert({
+          user_id: user.id,
+          title: dailyTasks[i],
+          status: "completed",
+          priority: "medium",
+          source: "daily_ritual",
+          // CAP-93: tag which mode this ritual belongs to, so Calendar can color it per mode.
+          industry: industryId,
+          completed_at: new Date().toISOString(),
+        });
+        if (error) console.error("[aurum_tasks] insert failed:", error.message);
+      }
+
+      // Derive today's score from actual DB count (self-healing, resets daily automatically)
+      const { count } = await supabase
+        .from("aurum_tasks")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("completed_at", startOfToday.toISOString());
+
+      await updateCore({
+        execution_score: count ?? (core?.execution_score ?? 0) + 1,
+        streak: nextStreak,
+      });
+    } else {
+      // Undo — the user unchecked a task (possibly an accidental click). Remove today's
+      // completion row so this doesn't just flip the local checkbox: the Calendar reads
+      // completed rows directly from aurum_tasks, so without this delete an undone task
+      // would keep showing as completed there (and reappear checked here on reload).
+      if (typeof window !== "undefined") localStorage.removeItem(doneKey);
+
+      await supabase
+        .from("aurum_tasks")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("title", dailyTasks[i])
+        .eq("source", "daily_ritual")
+        .gte("completed_at", startOfToday.toISOString());
+
+      const { count } = await supabase
+        .from("aurum_tasks")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("completed_at", startOfToday.toISOString());
+
+      // If that was the only completion today, roll back today's streak bump too —
+      // it was awarded for doing something, and now nothing is done today.
+      let nextStreak = core?.streak ?? 0;
+      if (!count && typeof window !== "undefined" && localStorage.getItem(STREAK_KEY) === today) {
+        nextStreak = Math.max(0, nextStreak - 1);
+        localStorage.removeItem(STREAK_KEY);
+      }
+
+      await updateCore({
+        execution_score: count ?? Math.max(0, (core?.execution_score ?? 1) - 1),
+        streak: nextStreak,
+      });
+    }
   }
 
   async function refreshRecommendation(ctx: {
@@ -499,6 +548,7 @@ export default function Dashboard() {
     phase?: string;
     taskCount?: number;
     ritualProfile?: RitualProfile;
+    avoidTasks?: string[];
   }) {
     if (!user) return;
     setTasksLoading(true);
@@ -510,9 +560,15 @@ export default function Dashboard() {
       // slot. If the cached batch is from a previous day, start a fresh per-mode map.
       const isCachedToday = core?.daily_tasks_date === isoDay();
       const existingMap = isCachedToday ? (core?.daily_tasks as Record<string, { mode?: string; tasks?: string[] }> | null) ?? {} : {};
+      // Roll this batch into the per-mode "already used" history so tomorrow's
+      // generation (or a regenerate today) knows not to repeat it. Capped so the
+      // prompt payload and stored JSON don't grow unbounded over months of use.
+      const existingHistory = (core?.daily_tasks_history as Record<string, string[]> | null) ?? {};
+      const nextHistoryForMode = Array.from(new Set([...(existingHistory[industryId] ?? []), ...tasks])).slice(-60);
       await updateCore({
         daily_tasks: { ...existingMap, [industryId]: { mode: industry.label, tasks } } as any,
         daily_tasks_date: isoDay(),
+        daily_tasks_history: { ...existingHistory, [industryId]: nextHistoryForMode } as any,
       });
     } catch (e) {
       console.error(e);

@@ -2,7 +2,7 @@
 // All tabs read from and write to this hook only.
 // Before adding a new column to aurum_core_state, check if an existing field covers the need.
 // Fields: active_mode, current_phase, current_level, streak, execution_score,
-//         daily_brief, daily_brief_date, daily_tasks, daily_tasks_date,
+//         daily_brief, daily_brief_date, daily_tasks, daily_tasks_date, daily_tasks_history,
 //         ai_summary, ai_summary_updated_at, current_focus,
 //         upcoming_events, upcoming_events_week_start
 
@@ -26,6 +26,9 @@ export type AurumCoreState = {
   // caches its own rituals for the day instead of sharing one global slot.
   daily_tasks: Record<string, { mode?: string; tasks?: string[] }> | null;
   daily_tasks_date: string | null;
+  // Rolling per-industry history of previously-generated ritual task strings, so
+  // generation can be told not to repeat itself across days.
+  daily_tasks_history: Record<string, string[]> | null;
   // AI context
   ai_summary: unknown | null;
   ai_summary_updated_at: string | null;
@@ -106,6 +109,18 @@ function fromRow(row: Record<string, unknown> | null): AurumCoreState | null {
       return v as Record<string, { mode?: string; tasks?: string[] }>;
     })(),
     daily_tasks_date: (row.daily_tasks_date as string | null) ?? null,
+    daily_tasks_history: (() => {
+      const v = row.daily_tasks_history;
+      if (!v) return null;
+      if (typeof v === "string") {
+        try {
+          return JSON.parse(v);
+        } catch {
+          return null;
+        }
+      }
+      return v as Record<string, string[]>;
+    })(),
     ai_summary: (() => {
       const v = row.ai_summary;
       if (!v) return null;

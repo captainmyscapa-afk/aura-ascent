@@ -155,6 +155,7 @@ export type Database = {
           current_phase: string | null
           daily_tasks: Json | null
           daily_tasks_date: string | null
+          daily_tasks_history: Json | null
           execution_score: number | null
           free_usage: Json | null
           goal: string | null
@@ -185,6 +186,7 @@ export type Database = {
           current_phase?: string | null
           daily_tasks?: Json | null
           daily_tasks_date?: string | null
+          daily_tasks_history?: Json | null
           execution_score?: number | null
           free_usage?: Json | null
           goal?: string | null
@@ -215,6 +217,7 @@ export type Database = {
           current_phase?: string | null
           daily_tasks?: Json | null
           daily_tasks_date?: string | null
+          daily_tasks_history?: Json | null
           execution_score?: number | null
           free_usage?: Json | null
           goal?: string | null

@@ -282,7 +282,11 @@ function CalendarPage() {
     monthTasks.forEach((r) => {
       if (r.status !== "completed" || !r.completed_at) return;
       if (r.source !== "daily_ritual" && r.source !== "roadmap") return;
-      const key = r.completed_at.slice(0, 10);
+      // completed_at is a UTC timestamptz — slicing the raw string bucketed it under the
+      // UTC calendar day, which silently shifted late-day completions onto the wrong grid
+      // cell (or made them look "not saved" on today) for anyone offset from UTC. Convert
+      // to the viewer's local day instead, same fix as isoDay() itself.
+      const key = isoDay(new Date(r.completed_at));
       if (!map[key]) map[key] = { ritual: [], roadmap: [] };
       if (r.title) map[key][r.source === "daily_ritual" ? "ritual" : "roadmap"].push({ title: r.title, industry: r.industry ?? null });
     });
