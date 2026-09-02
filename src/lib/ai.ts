@@ -56,10 +56,13 @@ function enqueue<T>(fn: () => Promise<T>): Promise<T> {
 // ─── Groq provider (DEFAULT — free tier, high limits) ─────────────────────────
 
 const GROQ_BASE = "https://api.groq.com/openai/v1";
-// llama-3.3-70b: best quality, supports tool calling. 6K tokens/min free.
-// llama-3.1-8b-instant: fastest, 30K tokens/min free — use for simple chat.
-const GROQ_CHAT_MODEL    = process.env.GROQ_CHAT_MODEL    ?? "llama-3.1-8b-instant";
-const GROQ_COMPLETE_MODEL = process.env.GROQ_COMPLETE_MODEL ?? "llama-3.3-70b-versatile";
+// llama-3.1-8b-instant and llama-3.3-70b-versatile were retired by Groq on
+// 2026-08-16 (decommission notice 2026-06-17) — calls now fail with
+// model_not_found. Migrated to Groq's own recommended replacements:
+// openai/gpt-oss-20b: fast small model, use for simple chat.
+// openai/gpt-oss-120b: best quality, supports tool calling.
+const GROQ_CHAT_MODEL    = process.env.GROQ_CHAT_MODEL    ?? "openai/gpt-oss-20b";
+const GROQ_COMPLETE_MODEL = process.env.GROQ_COMPLETE_MODEL ?? "openai/gpt-oss-120b";
 
 // Sentinel error so callers can detect rate-limit exhaustion and fall back
 class RateLimitError extends Error {
