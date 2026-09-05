@@ -9,6 +9,7 @@ import { generateConversationTitle } from "@/lib/mentor.functions";
 import { useMentorConversations } from "@/hooks/useMentorConversations";
 import type { ConversationMessage } from "@/hooks/useMentorConversations";
 import { useProGate, PageLock } from "@/components/aurum/ProGate";
+import { useAcademyProgress } from "@/hooks/useAcademyProgress";
 import { useSubscription } from "@/hooks/useSubscription";
 import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -37,6 +38,7 @@ function Tutor() {
   const { t, lang } = useLanguage();
   const dateLocale = lang === "fr" ? "fr-FR" : "en-GB";
   const { industry, industryId } = useIndustry();
+  const academyProgress = useAcademyProgress(industryId);
   const ask = useServerFn(askGemini);
   const genTitle = useServerFn(generateConversationTitle);
   const { conversations, loading: convsLoading, createConversation, updateConversation, deleteConversation } = useMentorConversations();
@@ -243,9 +245,13 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
             <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">{t.tutActiveTrackLabel}</div>
             <ul className="text-xs text-foreground/90 space-y-2">
               <li>· {industry.trackName}</li>
-              <li>· {t.tutModulesComplete(industry.trackProgress, industry.trackModules)}</li>
+              {!academyProgress.loading && (
+                <li>· {t.tutModulesComplete(academyProgress.completed, academyProgress.total)}</li>
+              )}
               <li>· {t.tutModeLine(industry.modeLabel)}</li>
-              <li>· {t.tutPhaseLine(industry.phaseLabel)}</li>
+              {academyProgress.phaseNumber != null && (
+                <li>· {t.acadPhase(academyProgress.phaseNumber, t.acadPhaseTitle(academyProgress.phaseNumber, academyProgress.phaseTitle ?? ""))}</li>
+              )}
             </ul>
           </div>
         </aside>

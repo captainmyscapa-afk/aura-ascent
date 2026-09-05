@@ -8,6 +8,7 @@ import { askGemini } from "@/lib/gemini.functions";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useProGate, UsageBar } from "@/components/aurum/ProGate";
+import { useAcademyProgress } from "@/hooks/useAcademyProgress";
 import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 import { useMentorConversations } from "@/hooks/useMentorConversations";
 import { generateConversationTitle } from "@/lib/mentor.functions";
@@ -41,6 +42,7 @@ function Mentor() {
   const { t, lang } = useLanguage();
   const dateLocale = lang === "fr" ? "fr-FR" : "en-GB";
   const { industry, industryId } = useIndustry();
+  const academyProgress = useAcademyProgress(industryId);
   const { state: core } = useAurumCoreState();
   const { profile: userProfile } = useUserProfile();
   const systemPrompt = useIndustrySystemPrompt(core?.current_level ?? undefined, userProfile?.mentor_tone ?? undefined);
@@ -249,7 +251,11 @@ function Mentor() {
           <div className="glass rounded-xl p-5">
             <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">{t.mentorContextLoaded}</div>
             <ul className="text-xs text-foreground/90 space-y-2">
-              <li>· {industry.modeLabel} · {industry.phaseLabel}</li>
+              <li>
+                · {industry.modeLabel}
+                {academyProgress.phaseNumber != null &&
+                  ` · ${t.acadPhase(academyProgress.phaseNumber, t.acadPhaseTitle(academyProgress.phaseNumber, academyProgress.phaseTitle ?? ""))}`}
+              </li>
               <li>· {t.mentorExecutionStreak(core?.streak ?? 0)}</li>
               <li>· {t.mentorTasksCompletedToday(core?.execution_score ?? 0)}</li>
             </ul>
