@@ -114,18 +114,29 @@ Each platform caption must be meaningfully different in voice and length. No fil
           `Return ONLY valid JSON. No markdown. No explanation.`,
         ].filter(Boolean).join("\n\n");
 
+    // Full content plan (title, hook, up to 3 platform captions, 8-10 script
+    // beats, 18-24 hashtags, visual prompt) easily runs past ai.chat's default
+    // short-reply budget — give it real headroom explicitly.
     const { text } = await ai.chat([
       { role: "system", content: systemPrompt },
       { role: "user", content: userParts },
-    ]);
+    ], { maxTokens: 3000 });
 
-    // Parse the JSON response
+    // Parse the JSON response. Strip accidental markdown fences, then take the
+    // first {...} block rather than parsing the whole string — the same
+    // approach identity.functions.ts's parseWeekJson uses, because
+    // instruction-following models (esp. reasoning models like gpt-oss) often
+    // wrap the JSON in a sentence or two ("Here's the plan:\n\n{...}") even
+    // when told not to, which broke a strict JSON.parse(cleaned) here.
     let raw: Record<string, unknown>;
     try {
-      // Strip any accidental markdown fences
-      const cleaned = text.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
-      raw = JSON.parse(cleaned) as Record<string, unknown>;
-    } catch {
+      const cleaned = text.replace(/```json|```/g, "").trim();
+      const start = cleaned.indexOf("{");
+      const end = cleaned.lastIndexOf("}");
+      if (start === -1 || end === -1) throw new Error("no JSON object found in AI response");
+      raw = JSON.parse(cleaned.slice(start, end + 1)) as Record<string, unknown>;
+    } catch (e) {
+      console.error("generateStudioContent: failed to parse AI response as JSON:", e, "\nraw text:", text.slice(0, 500));
       throw new Error(
         isFrench
           ? "La génération de contenu a échoué — réponse invalide. Veuillez réessayer."

@@ -534,7 +534,11 @@ ${taskLines}
 Each day must have exactly ${timeConfig.tasksPerDay} task${timeConfig.tasksPerDay === 1 ? "" : "s"}, each taking roughly ${timeConfig.duration}, so the whole day's rituals fit within ${timeConfig.total}.
 Types: networking, content, learning, outreach, mindset (keep these "type" values in English). Mix them across the week${ritual?.focusAreas?.length ? `, leaning toward: ${ritual.focusAreas.join(", ")}` : ""}. Be specific to ${data.industry}${ritual?.background ? `, and where natural connect tasks to their background (${ritual.background})` : ""}.`,
         },
-      ]);
+      ], { maxTokens: 3000 }); // a full week is 7 days of structured JSON — ai.chat's
+      // default short-reply budget (800 tokens) was truncating this mid-object,
+      // which parseWeekJson then silently swallowed as a parse failure, falling
+      // back to the same generic 3-task template for every day of the week.
+      // That's almost certainly what "the roadmap isn't right" was describing.
 
       const weekData = parseWeekJson(text, w, baseDay, themes, isFrench);
       if (!weekData) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_TO_CATEGORY } from "@/lib/industry/categoryMap";
 
@@ -29,19 +30,32 @@ export function LiveIntelligenceFeed() {
   const { industryId } = useIndustry();
   const category = INDUSTRY_TO_CATEGORY[industryId as keyof typeof INDUSTRY_TO_CATEGORY];
   const [entries, setEntries] = useState<Entry[]>([]);
+  // RLS on live_intelligence requires an authenticated request (auth.role() =
+  // 'authenticated'). useAuth's `loading` flag tracks whether the Supabase
+  // client has finished restoring the session from storage; querying before
+  // that resolves runs the SELECT as anon, RLS silently returns zero rows
+  // (no error — just an empty feed), and this effect never re-fires because
+  // it wasn't depending on auth state. Waiting on `loading` (and re-running
+  // when the session itself changes, e.g. sign-in/out) fixes that race.
+  const { loading: authLoading, session } = useAuth();
 
   useEffect(() => {
+    if (authLoading) return;
     const load = async () => {
       let query = (supabase.from("live_intelligence") as any)
         .select("*")
         .order("created_at", { ascending: false })
         .limit(10);
       if (category) query = query.eq("category", category);
-      const { data } = await query;
+      const { data, error } = await query;
+      if (error) {
+        console.error("LiveIntelligenceFeed: failed to load live_intelligence:", error);
+        return;
+      }
       setEntries([...((data as Entry[]) || [])]);
     };
     load();
-  }, [category]);
+  }, [category, authLoading, session?.user?.id]);
 
   return (
     <div className="relative glass rounded-2xl p-6 sm:p-7 overflow-hidden ring-gold">

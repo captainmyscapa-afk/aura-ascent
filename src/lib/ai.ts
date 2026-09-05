@@ -74,15 +74,43 @@ async function groqRequest(
   tools?: AiTool[],
   forceTool?: string,
   model?: string,
+  maxTokens?: number,
 ): Promise<unknown> {
   const key = process.env.GROQ_API_KEY ?? "";
   if (!key) throw new Error("GROQ_API_KEY is not set. Get a free key at console.groq.com");
 
+  const effectiveModel = model ?? (tools?.length ? GROQ_COMPLETE_MODEL : GROQ_CHAT_MODEL);
+
   const body: Record<string, unknown> = {
-    model: model ?? (tools?.length ? GROQ_COMPLETE_MODEL : GROQ_CHAT_MODEL),
+    model: effectiveModel,
     messages,
     temperature: 0.4,
   };
+
+  // gpt-oss models (the replacements for the models Groq retired 2026-08-16)
+  // are reasoning models: by default they think through a hidden
+  // chain-of-thought before answering. include_reasoning:false only hides
+  // that trace from the response — it doesn't stop the model from doing the
+  // reasoning, which is most of why responses felt slow and roundabout
+  // compared to the old plain instruct model (llama-3.1-8b-instant, which
+  // Groq retired — there's no equivalent small non-reasoning Llama left on
+  // Groq to go back to). reasoning_effort:"low" cuts that internal work down
+  // for what are simple generation tasks (a mentor reply, a list of tasks),
+  // which should also make answers more direct instead of hedged/circuitous.
+  // Chat replies (no tools) are short by nature, so cap them tighter than
+  // structured tool-calling output (Studio's content plan, the roadmap
+  // generator) — a smaller cap also forces more concise phrasing, since the
+  // model can't pad its way to the old cap.
+  if (effectiveModel.startsWith("openai/gpt-oss")) {
+    body.include_reasoning = false;
+    body.reasoning_effort = "low";
+    // Default budget assumes a short conversational reply. Callers building
+    // something bigger (a multi-day roadmap week, Studio's content plan)
+    // must pass an explicit maxTokens — the 800 default badly truncated
+    // generateRoadmap's per-week JSON, which was silently falling back to
+    // its generic 3-task template every time it failed to parse.
+    body.max_completion_tokens = maxTokens ?? (tools?.length ? 4096 : 800);
+  }
 
   if (tools?.length) {
     body.tools = tools;
@@ -123,8 +151,8 @@ async function groqRequest(
   throw new Error(`AI error: ${lastErr.slice(0, 200)}`);
 }
 
-async function groqChat(messages: AiMessage[]): Promise<AiChatResponse> {
-  const json = (await groqRequest(messages)) as {
+async function groqChat(messages: AiMessage[], maxTokens?: number): Promise<AiChatResponse> {
+  const json = (await groqRequest(messages, undefined, undefined, undefined, maxTokens)) as {
     choices?: Array<{ message?: { content?: string } }>;
   };
   return { text: json.choices?.[0]?.message?.content?.trim() ?? "" };
@@ -169,7 +197,7 @@ function stripAdditionalProperties(obj: unknown): void {
   }
 }
 
-function buildGeminiBody(messages: AiMessage[], tools?: AiTool[], forceTool?: string) {
+function buildGeminiBody(messages: AiMessage[], tools?: AiTool[], forceTool?: string, maxOutputTokens?: number) {
   const systemMsg = messages.find((m) => m.role === "system");
   const contents = messages
     .filter((m) => m.role !== "system")
@@ -177,6 +205,7 @@ function buildGeminiBody(messages: AiMessage[], tools?: AiTool[], forceTool?: st
 
   const body: Record<string, unknown> = { contents };
   if (systemMsg) body.systemInstruction = { parts: [{ text: systemMsg.content }] };
+  if (maxOutputTokens) body.generationConfig = { maxOutputTokens };
   if (tools?.length) {
     const declarations = tools.map((t) => {
       const params = JSON.parse(JSON.stringify(t.function.parameters));
@@ -192,13 +221,19 @@ function buildGeminiBody(messages: AiMessage[], tools?: AiTool[], forceTool?: st
 async function geminiFetch(body: Record<string, unknown>, retries = 3): Promise<unknown> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY not set");
-  const model = process.env.GEMINI_MODEL ?? "gemini-2.0-flash-lite";
+  // gemini-2.0-flash-lite was retired by Google — its 404 response pointed
+  // directly at gemini-3.5-flash-lite as the replacement (same tier: fast,
+  // cheap, multimodal, meant for exactly this kind of fallback text call).
+  const model = process.env.GEMINI_MODEL ?? "gemini-3.5-flash-lite";
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
   );
   if (!res.ok) {
-    if (res.status === 429 && retries > 0) {
+    // 429 = rate limited; 503 = Google's own "model overloaded, try again"
+    // (this is the fallback path for when Groq itself is rate-limited, so it
+    // needs to tolerate Gemini being transiently busy too, not just Groq).
+    if ((res.status === 429 || res.status === 503) && retries > 0) {
       await new Promise((r) => setTimeout(r, Math.pow(2, 4 - retries) * 2000));
       return geminiFetch(body, retries - 1);
     }
@@ -208,8 +243,8 @@ async function geminiFetch(body: Record<string, unknown>, retries = 3): Promise<
   return res.json();
 }
 
-async function geminiChat(messages: AiMessage[]): Promise<AiChatResponse> {
-  const json = (await geminiFetch(buildGeminiBody(messages))) as {
+async function geminiChat(messages: AiMessage[], maxOutputTokens?: number): Promise<AiChatResponse> {
+  const json = (await geminiFetch(buildGeminiBody(messages, undefined, undefined, maxOutputTokens))) as {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
   };
   return { text: json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "" };
@@ -267,31 +302,53 @@ const provider = (process.env.AI_PROVIDER ?? "groq") as "groq" | "gemini" | "ope
 
 const hasGemini = !!process.env.GEMINI_API_KEY;
 
+// Groq has retired multiple free-tier models out from under us this year
+// (llama-3.1-8b-instant, llama-3.3-70b-versatile, gemini-2.0-flash-lite —
+// three separate incidents in one week of testing alone). A dead/renamed
+// model on Groq's side used to only trigger the Gemini fallback when it was
+// specifically a 429 rate limit — any other failure (model deprecated,
+// Groq outage, bad request) skipped the fallback entirely and took the
+// whole app down. Falling back to Gemini on ANY Groq failure (not just
+// RateLimitError) means a single provider's model going stale degrades
+// service instead of breaking it outright. Only surfaces an error to the
+// user if both providers fail.
+function describeGroqFailure(e: unknown): string {
+  if (e instanceof RateLimitError) return "AI rate limit reached. Please wait a moment and try again.";
+  return e instanceof Error ? e.message : String(e);
+}
+
 export const ai = {
   /**
    * Simple text completion.
-   * Falls back to Gemini automatically if Groq is rate-limited.
+   * Falls back to Gemini automatically if Groq fails for any reason
+   * (rate limit, retired/invalid model, transient outage, etc).
    */
-  chat: (messages: AiMessage[]): Promise<AiChatResponse> =>
+  chat: (messages: AiMessage[], opts?: { maxTokens?: number }): Promise<AiChatResponse> =>
     enqueue(async () => {
       switch (provider) {
         case "openai": return openaiChat(messages);
-        case "gemini": return geminiChat(messages);
+        case "gemini": return geminiChat(messages, opts?.maxTokens);
         default:
           try {
-            return await groqChat(messages);
+            return await groqChat(messages, opts?.maxTokens);
           } catch (e) {
-            if (e instanceof RateLimitError && hasGemini) return geminiChat(messages);
-            throw e instanceof RateLimitError
-              ? new Error("AI rate limit reached. Please wait a moment and try again.")
-              : e;
+            if (hasGemini) {
+              try {
+                return await geminiChat(messages, opts?.maxTokens);
+              } catch {
+                // Both providers failed — surface the original Groq error,
+                // it's usually the more actionable one.
+              }
+            }
+            throw new Error(describeGroqFailure(e));
           }
       }
     }),
 
   /**
    * Structured output via tool calling.
-   * Falls back to Gemini automatically if Groq is rate-limited.
+   * Falls back to Gemini automatically if Groq fails for any reason
+   * (rate limit, retired/invalid model, transient outage, etc).
    */
   complete: (messages: AiMessage[], tools: AiTool[], forceTool?: string): Promise<AiToolResponse> =>
     enqueue(async () => {
@@ -302,10 +359,14 @@ export const ai = {
           try {
             return await groqComplete(messages, tools, forceTool);
           } catch (e) {
-            if (e instanceof RateLimitError && hasGemini) return geminiComplete(messages, tools, forceTool);
-            throw e instanceof RateLimitError
-              ? new Error("AI rate limit reached. Please wait a moment and try again.")
-              : e;
+            if (hasGemini) {
+              try {
+                return await geminiComplete(messages, tools, forceTool);
+              } catch {
+                // Both providers failed — surface the original Groq error.
+              }
+            }
+            throw new Error(describeGroqFailure(e));
           }
       }
     }),
