@@ -21,6 +21,7 @@ import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useUserProfile, type UserProfile } from "@/hooks/useUserProfile";
+import { useAcademyProgress } from "@/hooks/useAcademyProgress";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
   Dialog,
@@ -94,13 +95,20 @@ function computeCompleteness(p: UserProfile) {
 function Profile() {
   const { t } = useLanguage();
   const { user, loading: authLoading } = useAuth();
-  const { industry } = useIndustry();
+  const { industry, industryId } = useIndustry();
   const { profile, loading, update: updateProfile } = useUserProfile();
   const { state: core, update: updateCore } = useAurumCoreState();
   const [socials, setSocials] = useState<SocialAccount[]>([]);
   const [socialsLoading, setSocialsLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [connectPlatform, setConnectPlatform] = useState<string | null>(null);
+  const academyProgress = useAcademyProgress(industryId);
+  // Network/Visibility used to both read off `socials` (double-counting the
+  // same "connected a social account" fact under two different labels) and Knowledge
+  // used the daily-ritual streak instead of anything to do with Academy. Pull the
+  // actual activity each label claims to measure instead.
+  const [communityActivityCount, setCommunityActivityCount] = useState(0);
+  const [contentPublishedCount, setContentPublishedCount] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -119,14 +127,42 @@ function Profile() {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    (async () => {
+      const [{ count: postCount }, { count: replyCount }, { count: contentCount }] = await Promise.all([
+        supabase.from("community_posts").select("*", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase.from("community_replies").select("*", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase.from("user_content_history").select("*", { count: "exact", head: true }).eq("user_id", user.id),
+      ]);
+      if (!alive) return;
+      setCommunityActivityCount((postCount ?? 0) + (replyCount ?? 0));
+      setContentPublishedCount(contentCount ?? 0);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [user]);
+
   const completeness = useMemo(() => (profile ? computeCompleteness(profile) : 0), [profile]);
 
   const scoreBreakdown = useMemo(() => {
     const identityScore = completeness;
-    const networkScore = Math.min(100, socials.length * 16);
-    const executionScore = core?.execution_score ?? 0;
-    const knowledgeScore = Math.min(100, (core?.streak ?? 0) * 5 + 20);
-    const visibilityScore = Math.min(100, socials.filter((s) => s.username).length * 18);
+    // Community participation (posts + replies on the Network board) — not "how many
+    // social accounts you linked", which measured the same thing Visibility does.
+    const networkScore = Math.min(100, communityActivityCount * 10);
+    // execution_score is a same-day count of completed tasks (self-healing daily
+    // reset, see CAP-40) — it was being shown unscaled as if it were already a 0-100
+    // score, so a genuinely productive day (say 8 tasks) displayed as "8" instead of
+    // something reading as strong progress. Scale it the same way as the other bars.
+    const executionScore = Math.min(100, (core?.execution_score ?? 0) * 10);
+    // Real Academy completion for the active track, not the unrelated daily-ritual streak.
+    const knowledgeScore = academyProgress.total > 0
+      ? Math.round((academyProgress.completed / academyProgress.total) * 100)
+      : 0;
+    // Content actually published from Studio — not a second copy of the socials count.
+    const visibilityScore = Math.min(100, contentPublishedCount * 12);
     return [
       {
         key: "knowledge",
@@ -169,7 +205,7 @@ function Profile() {
         to: "/profile" as const,
       },
     ];
-  }, [completeness, core, socials, t]);
+  }, [completeness, core, academyProgress, communityActivityCount, contentPublishedCount, t]);
 
   const aurumScore = useMemo(
     () => Math.round(scoreBreakdown.reduce((acc, b) => acc + b.score, 0) / scoreBreakdown.length),
