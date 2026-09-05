@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type DragEvent } from "react";
 import {
   CalendarDays,
   ChevronLeft,
@@ -40,6 +40,10 @@ type Priority = "low" | "medium" | "high";
 
 /** Sources that represent "activity done that day" rather than a task with a due date. */
 const ACTIVITY_SOURCES = ["daily_ritual", "roadmap"];
+// Drag-to-reschedule: shared between TaskRow (drag source) and CalendarPage's
+// grid cells (drop target) — module-level since TaskRow is a sibling
+// component, not nested inside CalendarPage.
+const TASK_DRAG_MIME = "application/x-aurum-task-id";
 
 // Local calendar date, not UTC — d.toISOString() rolls over at UTC midnight, which
 // desyncs "today" from the user's actual local day (e.g. anyone behind UTC would see
@@ -116,6 +120,8 @@ function CalendarPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalDate, setModalDate] = useState(isoDay());
   const [mutatingId, setMutatingId] = useState<string | null>(null);
+  // Drag-to-reschedule: date string of the grid cell currently being dragged over
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
 
   const addTilt = useTilt(6);
 
@@ -342,6 +348,24 @@ function CalendarPage() {
     setMutatingId(null);
   };
 
+  // Drag-to-reschedule: dropping a TaskRow onto a grid day cell moves its due_date there.
+  const rescheduleTask = async (task: AurumTask, newDateStr: string) => {
+    if (!user || task.due_date === newDateStr) return;
+    setMutatingId(task.id);
+    await supabase.from("aurum_tasks").update({ due_date: newDateStr }).eq("id", task.id);
+    await Promise.all([loadMonth(), loadUpcoming()]);
+    setMutatingId(null);
+  };
+
+  const handleDropOnDay = (e: DragEvent, dateStr: string) => {
+    e.preventDefault();
+    setDragOverDate(null);
+    const taskId = e.dataTransfer.getData(TASK_DRAG_MIME);
+    if (!taskId) return;
+    const task = monthTasks.find((tk) => tk.id === taskId);
+    if (task) void rescheduleTask(task, dateStr);
+  };
+
   const openAddModal = (dateStr: string) => {
     setModalDate(dateStr);
     setModalOpen(true);
@@ -477,14 +501,21 @@ function CalendarPage() {
               const hasReminder = due.some((tk) => !!tk.remind_at);
               const dayEvents = eventsByDay[dateStr] ?? [];
 
+              const isDragOver = dragOverDate === dateStr;
+
               return (
                 <button
                   key={i}
                   onClick={() => setSelectedDate(dateStr)}
+                  onDragOver={(e) => { e.preventDefault(); if (dragOverDate !== dateStr) setDragOverDate(dateStr); }}
+                  onDragLeave={() => setDragOverDate((d) => (d === dateStr ? null : d))}
+                  onDrop={(e) => handleDropOnDay(e, dateStr)}
                   className={`relative min-h-[76px] sm:min-h-[92px] rounded-xl p-1.5 text-left transition-all ${
                     !inMonth ? "opacity-25" : "hover:-translate-y-0.5 hover:shadow-[var(--shadow-soft)]"
                   } ${
-                    isSelected
+                    isDragOver
+                      ? "ring-2 ring-primary/80 bg-primary/15"
+                      : isSelected
                       ? "ring-2 ring-primary/60 bg-primary/10"
                       : isToday
                       ? "ring-1 ring-primary/40 bg-primary/5"
@@ -906,7 +937,15 @@ function TaskRow({
   const overdue = !done && task.due_date && task.due_date < isoDay();
 
   return (
-    <li className={`group flex items-start gap-2.5 rounded-lg border p-2.5 transition-all ${done ? "border-border/40 opacity-60" : "border-border/60 hover:border-primary/30"}`}>
+    <li
+      draggable={!busy}
+      onDragStart={(e) => {
+        e.dataTransfer.setData(TASK_DRAG_MIME, task.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      title={t.calDragToReschedule}
+      className={`group flex items-start gap-2.5 rounded-lg border p-2.5 transition-all cursor-grab active:cursor-grabbing ${done ? "border-border/40 opacity-60" : "border-border/60 hover:border-primary/30"}`}
+    >
       <button onClick={onToggle} disabled={busy} className="shrink-0 mt-0.5 disabled:opacity-40">
         {busy ? (
           <Loader2 className="h-4 w-4 animate-spin text-primary" />

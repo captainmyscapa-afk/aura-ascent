@@ -110,6 +110,7 @@ export type T = {
   calMonthCompletion: (pct: number) => string;
   calReminderSet: string;
   calReminderBadge: string;
+  calDragToReschedule: string;
   // Calendar — Community events
   calCommunityTitle: string;
   calCommunityDesc: string;
@@ -862,6 +863,7 @@ export const translations: Record<Lang, T> = {
     calMonthCompletion: (pct) => `${pct}% of days active this month`,
     calReminderSet: "Reminder set",
     calReminderBadge: "Reminder",
+    calDragToReschedule: "Drag onto a day to reschedule",
     // Calendar — Community events
     calCommunityTitle: "Community Events",
     calCommunityDesc: "Events shared by others building in this industry.",
@@ -1756,6 +1758,7 @@ export const translations: Record<Lang, T> = {
     calMonthCompletion: (pct) => `${pct}% des jours actifs ce mois-ci`,
     calReminderSet: "Rappel programmé",
     calReminderBadge: "Rappel",
+    calDragToReschedule: "Glissez sur un jour pour reprogrammer",
     // Calendrier — Événements communautaires
     calCommunityTitle: "Événements communautaires",
     calCommunityDesc: "Événements partagés par d'autres acteurs de ce secteur.",
