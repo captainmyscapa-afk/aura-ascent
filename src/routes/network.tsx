@@ -247,6 +247,36 @@ function Network() {
 
   useEffect(() => { loadPosts(); }, [loadPosts]);
 
+  // Realtime: the community board is shared across every member, so without
+  // this, a new post or a vote/reply count bump from someone else only shows
+  // up on your next reload. community_posts already gets real server-side
+  // UPDATEs from the bump_post_vote_count/bump_post_reply_count triggers, so
+  // subscribing here reflects other members' activity live.
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("community_posts")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "community_posts" },
+        (payload) => {
+          const row = payload.new as CommunityPost;
+          setPosts((prev) => (prev.some((p) => p.id === row.id) ? prev : [row, ...prev]));
+          fetchProfiles([row.user_id]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "community_posts" },
+        (payload) => {
+          const row = payload.new as CommunityPost;
+          setPosts((prev) => prev.map((p) => (p.id === row.id ? { ...p, ...row } : p)));
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, fetchProfiles]);
+
   const loadReplies = useCallback(async (postId: string) => {
     setRepliesLoading(true);
     const { data } = await supabase
@@ -263,6 +293,25 @@ function Network() {
   useEffect(() => {
     if (selectedPostId) loadReplies(selectedPostId);
   }, [selectedPostId, loadReplies]);
+
+  // Realtime: live-append replies from other members while a thread is open,
+  // instead of only seeing them the next time this post is reselected.
+  useEffect(() => {
+    if (!selectedPostId) return;
+    const channel = supabase
+      .channel("community_replies:" + selectedPostId)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "community_replies", filter: `post_id=eq.${selectedPostId}` },
+        (payload) => {
+          const row = payload.new as CommunityReply;
+          setReplies((prev) => (prev.some((r) => r.id === row.id) ? prev : [...prev, row]));
+          fetchProfiles([row.user_id]);
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedPostId, fetchProfiles]);
 
   async function createPost() {
     if (!user || !newPostTitle.trim() || !newPostBody.trim()) return;

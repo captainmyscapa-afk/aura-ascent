@@ -66,11 +66,32 @@ function Intelligence() {
     };
 
     load();
+    // Realtime replaces most of the need for this, but keep it as a
+    // low-frequency safety net in case a realtime event is ever missed
+    // (dropped connection, tab backgrounded, etc).
     const interval = setInterval(load, 30 * 60_000);
+
+    // Realtime: the intelligence pipeline (cron -> live_intelligence) inserts
+    // new signals continuously. Without this, a fresh story only appears the
+    // next time the 30-minute poll above fires — subscribing makes new
+    // signals show up the moment the pipeline writes them.
+    const channel = supabase
+      .channel("live_intelligence:" + category)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "live_intelligence", filter: `category=eq.${category}` },
+        (payload) => {
+          const row = payload.new as Entry;
+          setEntries((prev) => (prev.some((e) => e.id === row.id) ? prev : [row, ...prev]));
+          setLastSync(new Date());
+        }
+      )
+      .subscribe();
 
     return () => {
       mounted = false;
       clearInterval(interval);
+      supabase.removeChannel(channel);
     };
   }, [category]);
 
