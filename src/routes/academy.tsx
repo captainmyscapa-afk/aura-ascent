@@ -125,6 +125,8 @@ function Academy() {
   const [view, setView] = useState<"list" | "module" | "quiz">("list");
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [quizSubmitting, setQuizSubmitting] = useState(false);
+  const [quizError, setQuizError] = useState<string | null>(null);
   const [quizResult, setQuizResult] = useState<{
     score: number;
     passed: boolean;
@@ -252,6 +254,7 @@ function Academy() {
     setQuizAnswers({});
     setQuizSubmitted(false);
     setQuizResult(null);
+    setQuizError(null);
   };
 
   const goBack = () => {
@@ -280,6 +283,8 @@ function Academy() {
 
   const submitQuiz = async () => {
     if (!user || !activeModuleId || activeQuestions.length === 0) return;
+    setQuizError(null);
+    setQuizSubmitting(true);
 
     // Grading happens server-side (submit_module_quiz RPC) — the client never
     // computes pass/fail or writes user_module_progress directly, since that
@@ -288,7 +293,12 @@ function Academy() {
       p_module_id: activeModuleId,
       p_answers: quizAnswers,
     });
-    if (error || !data) return;
+    setQuizSubmitting(false);
+    if (error || !data) {
+      console.error("submit_module_quiz failed:", error);
+      setQuizError(t.acadSubmitFailed);
+      return;
+    }
 
     const result = data as unknown as { score: number; passed: boolean; correctOptions: Record<string, string> };
     setQuizResult(result);
@@ -444,10 +454,12 @@ function Academy() {
           questions={activeQuestions}
           answers={quizAnswers}
           submitted={quizSubmitted}
+          submitting={quizSubmitting}
+          error={quizError}
           result={quizResult}
           onAnswer={(qId, optId) => setQuizAnswers((a) => ({ ...a, [qId]: optId }))}
           onSubmit={submitQuiz}
-          onRetry={() => { setQuizAnswers({}); setQuizSubmitted(false); setQuizResult(null); }}
+          onRetry={() => { setQuizAnswers({}); setQuizSubmitted(false); setQuizResult(null); setQuizError(null); }}
           onBack={() => setView("module")}
           onContinue={goBack}
         />
@@ -768,7 +780,7 @@ function ModuleDetail({
 // ─── Quiz View ────────────────────────────────────────────────────────────────
 
 function QuizView({
-  t, module, questions, answers, submitted, result,
+  t, module, questions, answers, submitted, submitting, error, result,
   onAnswer, onSubmit, onRetry, onBack, onContinue,
 }: {
   t: T;
@@ -776,6 +788,8 @@ function QuizView({
   questions: DbQuestion[];
   answers: Record<string, string>;
   submitted: boolean;
+  submitting: boolean;
+  error: string | null;
   result: { score: number; passed: boolean; correctOptions: Record<string, string> } | null;
   onAnswer: (qId: string, optId: string) => void;
   onSubmit: () => void;
@@ -862,14 +876,22 @@ function QuizView({
       </div>
 
       {!submitted && (
-        <button
-          onClick={onSubmit}
-          disabled={!allAnswered}
-          className="w-full mt-6 h-12 rounded-xl text-primary-foreground font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
-          style={{ background: "var(--gradient-gold)" }}
-        >
-          {t.acadSubmitAnswers}
-        </button>
+        <>
+          {error && (
+            <div className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+          <button
+            onClick={onSubmit}
+            disabled={!allAnswered || submitting}
+            className="w-full mt-3 h-12 rounded-xl text-primary-foreground font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
+            style={{ background: "var(--gradient-gold)" }}
+          >
+            {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : null}
+            {submitting ? t.acadSubmitting : t.acadSubmitAnswers}
+          </button>
+        </>
       )}
     </div>
   );

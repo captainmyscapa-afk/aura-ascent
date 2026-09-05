@@ -264,6 +264,8 @@ export type T = {
   acadScoredRetry: (score: number, pass: number) => string;
   acadTryAgain: string;
   acadSubmitAnswers: string;
+  acadSubmitting: string;
+  acadSubmitFailed: string;
   acadPhaseTitle: (phaseNumber: number, fallback: string) => string;
   acadModuleTitle: (track: string, moduleNumber: number, fallback: string) => string;
   acadTutorBlurb: (industryId: "yachts" | "villas" | "jets" | "cars") => string;
@@ -1066,6 +1068,8 @@ export const translations: Record<Lang, T> = {
     acadScoredRetry: (score, pass) => `You scored ${score}/5 — you need ${pass} correct to pass. Review the module and try again.`,
     acadTryAgain: "Try again",
     acadSubmitAnswers: "Submit answers",
+    acadSubmitting: "Submitting…",
+    acadSubmitFailed: "Couldn't submit your answers — check your connection and try again.",
     acadPhaseTitle: (_phaseNumber, fallback) => fallback,
     acadModuleTitle: (_track, _moduleNumber, fallback) => fallback,
     acadTutorBlurb: (industryId) => ({
@@ -1964,6 +1968,8 @@ export const translations: Record<Lang, T> = {
     acadScoredRetry: (score, pass) => `Vous avez obtenu ${score}/5 — il vous faut ${pass} bonnes réponses pour réussir. Révisez le module et réessayez.`,
     acadTryAgain: "Réessayer",
     acadSubmitAnswers: "Valider les réponses",
+    acadSubmitting: "Envoi en cours…",
+    acadSubmitFailed: "Impossible d'envoyer vos réponses — vérifiez votre connexion et réessayez.",
     acadPhaseTitle: (phaseNumber, fallback) => ({
       1: "Comprendre le secteur",
       2: "Se positionner professionnellement",
