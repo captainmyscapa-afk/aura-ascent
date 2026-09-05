@@ -687,6 +687,13 @@ export type T = {
   introNetworkFeatures: string[];
   introProfileDesc: string;
   introProfileFeatures: string[];
+  // Milestone celebrations (streak thresholds, module/phase/track completion)
+  celebrationStreakTitle: (n: number) => string;
+  celebrationStreakSubtitle: string;
+  celebrationModuleTitle: string;
+  celebrationPhaseTitle: (phase: string) => string;
+  celebrationTrackTitle: (trackName: string) => string;
+  celebrationTrackSubtitle: string;
 };
 
 export const translations: Record<Lang, T> = {
@@ -1577,6 +1584,12 @@ export const translations: Record<Lang, T> = {
       "Connected social and platform accounts",
       "Your track record — streak, completions, and history",
     ],
+    celebrationStreakTitle: (n) => `${n}-day streak`,
+    celebrationStreakSubtitle: "Keep the momentum going.",
+    celebrationModuleTitle: "Module complete",
+    celebrationPhaseTitle: (phase) => `Phase complete — ${phase}`,
+    celebrationTrackTitle: (trackName) => `${trackName} complete`,
+    celebrationTrackSubtitle: "You've finished the entire curriculum.",
   },
   fr: {
     // Navigation
@@ -2519,5 +2532,11 @@ export const translations: Record<Lang, T> = {
       "Comptes sociaux et plateformes connectés",
       "Votre historique — série, complétions et parcours",
     ],
+    celebrationStreakTitle: (n) => n === 1 ? "Série de 1 jour" : `Série de ${n} jours`,
+    celebrationStreakSubtitle: "Continuez sur votre lancée.",
+    celebrationModuleTitle: "Module terminé",
+    celebrationPhaseTitle: (phase) => `Phase terminée — ${phase}`,
+    celebrationTrackTitle: (trackName) => `${trackName} terminé`,
+    celebrationTrackSubtitle: "Vous avez terminé tout le programme.",
   },
 };

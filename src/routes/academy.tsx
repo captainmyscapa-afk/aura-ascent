@@ -3,7 +3,7 @@ import { AppShell } from "@/components/aurum/AppShell";
 import { SectionHeading } from "@/components/aurum/SectionHeading";
 import {
   Play, Lock, Sparkles, CheckCircle2, ChevronLeft, Download,
-  Settings, Plus, Trash2, Save, FileText, X, Check, RefreshCw,
+  Settings, Plus, Trash2, Save, FileText, X, Check, RefreshCw, Trophy, GraduationCap,
 } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
@@ -12,6 +12,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { celebrate } from "@/lib/celebration";
 import type { T } from "@/lib/i18n/translations";
 
 // Admin status comes from user_profiles.is_admin in Supabase — no email in client bundle
@@ -294,6 +295,7 @@ function Academy() {
     setQuizSubmitted(true);
 
     const attempts = (progress[activeModuleId]?.attempts ?? 0) + 1;
+    const wasAlreadyPassed = !!progress[activeModuleId]?.quiz_passed;
     setProgress((p) => ({
       ...p,
       [activeModuleId]: {
@@ -304,6 +306,28 @@ function Academy() {
         attempts,
       },
     }));
+
+    if (result.passed && !wasAlreadyPassed) {
+      const passedModule = modules.find((m) => m.id === activeModuleId);
+      if (passedModule) {
+        const passedIds = new Set(
+          Object.keys(progress).filter((id) => progress[id]?.quiz_passed)
+        );
+        passedIds.add(activeModuleId);
+        const phaseModules = modules.filter((m) => m.phase_number === passedModule.phase_number);
+        const trackComplete = modules.every((m) => passedIds.has(m.id));
+        const phaseComplete = !trackComplete && phaseModules.every((m) => passedIds.has(m.id));
+
+        if (trackComplete) {
+          celebrate({ icon: GraduationCap, title: t.celebrationTrackTitle(industry.trackName), subtitle: t.celebrationTrackSubtitle });
+        } else if (phaseComplete) {
+          const phaseLabel = t.acadPhase(passedModule.phase_number, t.acadPhaseTitle(passedModule.phase_number, passedModule.phase_title));
+          celebrate({ icon: Trophy, title: t.celebrationPhaseTitle(phaseLabel) });
+        } else {
+          celebrate({ icon: CheckCircle2, title: t.celebrationModuleTitle });
+        }
+      }
+    }
   };
 
   const phases = modules.reduce((acc, mod) => {

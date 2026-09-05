@@ -7,6 +7,7 @@ import { ParticleLayer } from "./ParticleLayer";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { PageIntro } from "./PageIntro";
 import { PAGE_INTROS } from "./PageIntroConfig";
+import { CelebrationOverlay } from "./CelebrationOverlay";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -30,6 +31,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
       <MobileBottomNav />
+      <CelebrationOverlay />
       {/* key={pathname} resets the overlay's local "entered" state on every
           navigation, so it re-shows on each visit unless permanently dismissed. */}
       {intro && (

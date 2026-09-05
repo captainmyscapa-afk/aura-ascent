@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, Lock, RefreshCw, MapPin, ChevronLeft, Clock } from "lucide-react";
+import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, Lock, RefreshCw, MapPin, ChevronLeft, Clock, Flame } from "lucide-react";
 import React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -17,10 +17,14 @@ import { generateRecommendation, generateDailyTasks } from "@/lib/identity.funct
 import { useSubscription } from "@/hooks/useSubscription";
 import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { celebrate } from "@/lib/celebration";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
+
+// Curated so the celebration fires at meaningful gaps, not every single day.
+const STREAK_MILESTONES = [7, 14, 30, 60, 100, 180, 365];
 
 const INDUSTRY_TO_TRACK: Record<IndustryId, string> = {
   yachts: "yachting",
@@ -481,6 +485,14 @@ export default function Dashboard() {
         execution_score: count ?? (core?.execution_score ?? 0) + 1,
         streak: nextStreak,
       });
+
+      if (nextStreak > (core?.streak ?? 0) && STREAK_MILESTONES.includes(nextStreak)) {
+        celebrate({
+          icon: Flame,
+          title: t.celebrationStreakTitle(nextStreak),
+          subtitle: t.celebrationStreakSubtitle,
+        });
+      }
     } else {
       // Undo — the user unchecked a task (possibly an accidental click). Remove today's
       // completion row so this doesn't just flip the local checkbox: the Calendar reads
