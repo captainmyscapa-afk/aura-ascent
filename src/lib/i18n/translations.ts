@@ -17,6 +17,7 @@ export type T = {
   signOut: string;
   signInUnlock: string;
   streak: (n: number) => string;
+  memberSince: (days: number, hours: number) => string;
   industryLabel: string;
   enteringMode: (label: string) => string;
   live: string;
@@ -722,6 +723,7 @@ export const translations: Record<Lang, T> = {
     signOut: "Sign out",
     signInUnlock: "Sign in to unlock",
     streak: (n: number) => `${n}-day streak`,
+    memberSince: (days: number, hours: number) => `Member for ${days}d ${hours}h`,
     // Industry switcher
     industryLabel: "INDUSTRY ECOSYSTEM",
     enteringMode: (label: string) => `Entering ${label}`,
@@ -1622,6 +1624,7 @@ export const translations: Record<Lang, T> = {
     signOut: "Se déconnecter",
     signInUnlock: "Se connecter",
     streak: (n: number) => `Série de ${n} jours`,
+    memberSince: (days: number, hours: number) => `Membre depuis ${days}j ${hours}h`,
     // Industry switcher
     industryLabel: "ÉCOSYSTÈME",
     enteringMode: (label: string) => `Entrée dans ${label}`,

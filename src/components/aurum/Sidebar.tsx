@@ -16,12 +16,14 @@ import {
 import { Logo } from "./Logo";
 import { useAuth } from "@/hooks/useAuth";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
+import { useAccountAge } from "@/hooks/useAccountAge";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export function Sidebar() {
   const { pathname } = useLocation();
   const { session, signOut } = useAuth();
   const { state: core } = useAurumCoreState();
+  const accountAge = useAccountAge();
   const { t } = useLanguage();
   const navigate = useNavigate();
 
@@ -93,6 +95,11 @@ export function Sidebar() {
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             <span>{t.streak(core?.streak ?? 0)}</span>
           </div>
+          {accountAge && (
+            <div className="mt-1.5 text-[10px] text-muted-foreground/70">
+              {t.memberSince(accountAge.days, accountAge.hours)}
+            </div>
+          )}
         </div>
         <Link
           to="/settings"

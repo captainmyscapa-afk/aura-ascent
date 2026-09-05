@@ -24,6 +24,7 @@ import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
 import { useAuth } from "@/hooks/useAuth";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
+import { useAccountAge } from "@/hooks/useAccountAge";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -34,6 +35,7 @@ export function MobileNav() {
   const { industry, setIndustry } = useIndustry();
   const { user, signOut } = useAuth();
   const { state: core } = useAurumCoreState();
+  const accountAge = useAccountAge();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [initials, setInitials] = useState<string | null>(null);
@@ -275,6 +277,11 @@ export function MobileNav() {
                 <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                 <span>{`${t.streak(core?.streak ?? 0)} · ${industry.modeLabel}`}</span>
               </div>
+              {accountAge && (
+                <div className="mt-1.5 text-[10px] text-muted-foreground/70">
+                  {t.memberSince(accountAge.days, accountAge.hours)}
+                </div>
+              )}
             </div>
           </div>
         </div>
