@@ -663,6 +663,30 @@ export type T = {
   setSignOutDesc: string;
   setSignOutAll: string;
   setSignOutAllDesc: string;
+  // Page intro overlays — one-time (until dismissed) welcome/guide splash per page
+  introEyebrow: string;
+  introEnterCta: string;
+  introDontShowAgain: string;
+  introDashboardDesc: string;
+  introDashboardFeatures: string[];
+  introRoadmapDesc: string;
+  introRoadmapFeatures: string[];
+  introIntelligenceDesc: string;
+  introIntelligenceFeatures: string[];
+  introMentorDesc: string;
+  introMentorFeatures: string[];
+  introAcademyDesc: string;
+  introAcademyFeatures: string[];
+  introTutorDesc: string;
+  introTutorFeatures: string[];
+  introStudioDesc: string;
+  introStudioFeatures: string[];
+  introCalendarDesc: string;
+  introCalendarFeatures: string[];
+  introNetworkDesc: string;
+  introNetworkFeatures: string[];
+  introProfileDesc: string;
+  introProfileFeatures: string[];
 };
 
 export const translations: Record<Lang, T> = {
@@ -1479,6 +1503,80 @@ export const translations: Record<Lang, T> = {
     setSignOutDesc: "Sign out of this device",
     setSignOutAll: "Sign out all",
     setSignOutAllDesc: "Sign out of all devices and sessions",
+    // Page intro overlays
+    introEyebrow: "GETTING STARTED",
+    introEnterCta: "Enter",
+    introDontShowAgain: "Don't show this again",
+    introDashboardDesc: "Your daily home base — today's ritual, your active industry track, and the events shaping what to post next, all in one view.",
+    introDashboardFeatures: [
+      "Daily ritual with mode-specific tasks to check off",
+      "Academy track progress at a glance",
+      "Industry events with content-prep countdowns",
+      "One-tap access to Mentor and Intelligence",
+    ],
+    introRoadmapDesc: "A personalized 30-day entry plan built around your industry, level, and goals — specific daily actions you check off as you go.",
+    introRoadmapFeatures: [
+      "Week-by-week plan tailored to your track and time budget",
+      "Daily tasks generated for your exact situation",
+      "Per-task AI help whenever you're stuck",
+      "Progress carries straight into your daily ritual",
+    ],
+    introIntelligenceDesc: "The signal beneath the noise — a live feed of curated news and moves in your industry, refreshed continuously.",
+    introIntelligenceFeatures: [
+      "Real-time feed filtered to your industry",
+      "One-tap \"generate content\" from any story",
+      "Full briefs without leaving the page",
+      "Categorized so you only see what's relevant",
+    ],
+    introMentorDesc: "An open conversation with AURUM about your career moves, decisions, and positioning — it remembers your context between sessions.",
+    introMentorFeatures: [
+      "Saved conversation history — pick up where you left off",
+      "Understands your industry, level, and current focus",
+      "Suggested prompts to get you unstuck",
+      "Personalized to your execution streak and goals",
+    ],
+    introAcademyDesc: "Become an insider, methodically — structured modules that take you from outsider to fluent in your chosen industry.",
+    introAcademyFeatures: [
+      "Track-specific modules and lessons",
+      "Role-play and applied exercises, not just reading",
+      "Progress tracked module by module",
+      "Built around real entry-level scenarios",
+    ],
+    introTutorDesc: "Step-by-step lessons matched to your exact curriculum, with follow-up questions whenever you're stuck.",
+    introTutorFeatures: [
+      "Curriculum-matched, structured explanations",
+      "Unlimited follow-up questions",
+      "Saved lesson history",
+      "Personalized to your track and industry",
+    ],
+    introStudioDesc: "AURUM's AI creative director crafts post-ready content for your industry — hooks, captions, scripts, hashtags, and visuals in under 30 seconds.",
+    introStudioFeatures: [
+      "Platform-specific captions and hooks",
+      "Full scripts with shot-by-shot beats",
+      "Hashtag sets tuned to your industry",
+      "Live signals to base content on what's trending now",
+    ],
+    introCalendarDesc: "A living record of your daily rituals and a place to plan what's next — completions, streaks, and tasks with reminders, all in one grid.",
+    introCalendarFeatures: [
+      "Visual streak and completion tracking",
+      "Tasks with due dates and reminders",
+      "Industry events layered on the same calendar",
+      "Community events other members are sharing",
+    ],
+    introNetworkDesc: "The room you're already in — manage your contacts, draft tailored outreach for every category, and track every message sent.",
+    introNetworkFeatures: [
+      "Contact list organized by category",
+      "AI-drafted, personalized outreach messages",
+      "Sent-message tracking so nothing falls through",
+      "Community board to connect with other members",
+    ],
+    introProfileDesc: "Your dossier — the profile AURUM uses to personalize every recommendation, plus your AURUM Score and connected accounts.",
+    introProfileFeatures: [
+      "Editable profile that shapes AI recommendations",
+      "AURUM Score breakdown",
+      "Connected social and platform accounts",
+      "Your track record — streak, completions, and history",
+    ],
   },
   fr: {
     // Navigation
@@ -2347,5 +2445,79 @@ export const translations: Record<Lang, T> = {
     setSignOutDesc: "Se déconnecter de cet appareil",
     setSignOutAll: "Se déconnecter partout",
     setSignOutAllDesc: "Se déconnecter de tous les appareils et sessions",
+    // Page intro overlays
+    introEyebrow: "POUR COMMENCER",
+    introEnterCta: "Entrer",
+    introDontShowAgain: "Ne plus afficher",
+    introDashboardDesc: "Votre base quotidienne — le rituel du jour, votre secteur actif, et les événements qui déterminent quoi publier ensuite, en un coup d'œil.",
+    introDashboardFeatures: [
+      "Rituel quotidien avec des tâches adaptées à votre mode",
+      "Progression de l'Académie en un coup d'œil",
+      "Événements du secteur avec compte à rebours de préparation de contenu",
+      "Accès direct au Mentor et à l'Intelligence",
+    ],
+    introRoadmapDesc: "Un plan d'entrée personnalisé sur 30 jours, construit autour de votre secteur, niveau et objectifs — des actions quotidiennes précises à cocher au fur et à mesure.",
+    introRoadmapFeatures: [
+      "Plan semaine par semaine adapté à votre parcours et à votre temps disponible",
+      "Tâches quotidiennes générées pour votre situation exacte",
+      "Aide IA par tâche dès que vous êtes bloqué",
+      "La progression alimente directement votre rituel quotidien",
+    ],
+    introIntelligenceDesc: "Le signal sous le bruit — un flux en direct d'actualités et de mouvements de votre secteur, actualisé en continu.",
+    introIntelligenceFeatures: [
+      "Flux en temps réel filtré selon votre secteur",
+      "Génération de contenu en un clic depuis chaque actualité",
+      "Briefs complets sans quitter la page",
+      "Catégorisé pour ne voir que ce qui est pertinent",
+    ],
+    introMentorDesc: "Une conversation ouverte avec AURUM sur vos choix de carrière, vos décisions et votre positionnement — le contexte est conservé d'une session à l'autre.",
+    introMentorFeatures: [
+      "Historique des conversations sauvegardé — reprenez où vous en étiez",
+      "Comprend votre secteur, votre niveau et votre focus actuel",
+      "Suggestions de questions pour débloquer une conversation",
+      "Personnalisé selon votre série et vos objectifs",
+    ],
+    introAcademyDesc: "Devenez un initié, méthodiquement — des modules structurés qui vous font passer d'outsider à quelqu'un qui maîtrise son secteur.",
+    introAcademyFeatures: [
+      "Modules et leçons spécifiques à votre parcours",
+      "Mises en situation et exercices pratiques, pas seulement de la lecture",
+      "Progression suivie module par module",
+      "Construit autour de vrais scénarios d'entrée dans le métier",
+    ],
+    introTutorDesc: "Des leçons pas à pas adaptées à votre parcours exact, avec des questions de suivi dès que vous êtes bloqué.",
+    introTutorFeatures: [
+      "Explications structurées et adaptées au parcours",
+      "Questions de suivi illimitées",
+      "Historique des leçons sauvegardé",
+      "Personnalisé selon votre parcours et votre secteur",
+    ],
+    introStudioDesc: "Le directeur créatif IA d'AURUM crée du contenu prêt à publier pour votre secteur — accroches, légendes, scripts, hashtags et visuels en moins de 30 secondes.",
+    introStudioFeatures: [
+      "Légendes et accroches adaptées à chaque plateforme",
+      "Scripts complets avec un déroulé plan par plan",
+      "Jeux de hashtags adaptés à votre secteur",
+      "Signaux en direct pour baser le contenu sur les tendances du moment",
+    ],
+    introCalendarDesc: "Un registre vivant de vos rituels quotidiens et un espace pour planifier la suite — complétions, séries et tâches avec rappels, le tout sur une seule grille.",
+    introCalendarFeatures: [
+      "Suivi visuel des séries et des complétions",
+      "Tâches avec échéances et rappels",
+      "Événements du secteur superposés au même calendrier",
+      "Événements communautaires partagés par d'autres membres",
+    ],
+    introNetworkDesc: "La pièce dans laquelle vous êtes déjà — gérez vos contacts, rédigez des messages sur-mesure pour chaque catégorie, et suivez chaque message envoyé.",
+    introNetworkFeatures: [
+      "Liste de contacts organisée par catégorie",
+      "Messages de prospection rédigés par IA et personnalisés",
+      "Suivi des messages envoyés pour ne rien laisser filer",
+      "Espace communautaire pour échanger avec d'autres membres",
+    ],
+    introProfileDesc: "Votre dossier — le profil qu'AURUM utilise pour personnaliser chaque recommandation, ainsi que votre AURUM Score et vos comptes connectés.",
+    introProfileFeatures: [
+      "Profil modifiable qui façonne les recommandations de l'IA",
+      "Détail de votre AURUM Score",
+      "Comptes sociaux et plateformes connectés",
+      "Votre historique — série, complétions et parcours",
+    ],
   },
 };

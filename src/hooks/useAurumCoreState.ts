@@ -4,7 +4,7 @@
 // Fields: active_mode, current_phase, current_level, streak, execution_score,
 //         daily_brief, daily_brief_date, daily_tasks, daily_tasks_date, daily_tasks_history,
 //         ai_summary, ai_summary_updated_at, current_focus,
-//         upcoming_events, upcoming_events_week_start
+//         upcoming_events, upcoming_events_week_start, dismissed_page_intros
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,6 +46,8 @@ export type AurumCoreState = {
   free_usage: unknown | null;
   // CAP-78: daily ritual profile (time budget, focus areas, challenge — captured on first connection)
   ritual_profile: RitualProfile | null;
+  // Page keys the user has permanently dismissed the per-page welcome/guide overlay for
+  dismissed_page_intros: string[];
 };
 
 // CAP-78: answers to the 5 "daily ritual" onboarding questions
@@ -144,6 +146,7 @@ function fromRow(row: Record<string, unknown> | null): AurumCoreState | null {
     roadmap_progress: (row.roadmap_progress as unknown) ?? null,
     free_usage: (row.free_usage as unknown) ?? null,
     ritual_profile: (row.ritual_profile as RitualProfile | null) ?? null,
+    dismissed_page_intros: Array.isArray(row.dismissed_page_intros) ? (row.dismissed_page_intros as string[]) : [],
   };
 }
 

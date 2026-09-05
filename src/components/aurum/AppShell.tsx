@@ -5,9 +5,14 @@ import { TopBar } from "./TopBar";
 import { AmbientBackdrop } from "./AmbientBackdrop";
 import { ParticleLayer } from "./ParticleLayer";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { PageIntro } from "./PageIntro";
+import { PAGE_INTROS } from "./PageIntroConfig";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
+  const { t } = useLanguage();
+  const intro = PAGE_INTROS[pathname];
   return (
     <div className="min-h-screen text-foreground">
       <AmbientBackdrop />
@@ -25,6 +30,21 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
       <MobileBottomNav />
+      {/* key={pathname} resets the overlay's local "entered" state on every
+          navigation, so it re-shows on each visit unless permanently dismissed. */}
+      {intro && (
+        <PageIntro
+          key={pathname}
+          pageKey={intro.pageKey}
+          icon={intro.icon}
+          eyebrow={t.introEyebrow}
+          title={intro.title(t)}
+          description={intro.description(t)}
+          features={intro.features(t)}
+          enterLabel={t.introEnterCta}
+          dontShowAgainLabel={t.introDontShowAgain}
+        />
+      )}
     </div>
   );
 }
