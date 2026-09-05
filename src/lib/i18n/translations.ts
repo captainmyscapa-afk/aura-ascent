@@ -153,6 +153,9 @@ export type T = {
   roadmapHideHelp: string;
   roadmapHelpLoading: string;
   roadmapHelpFailed: string;
+  roadmapSwapTask: string;
+  roadmapSwapping: string;
+  roadmapSwapFailed: string;
   roadmapContinueInMentor: string;
   roadmapHelpGateMessage: string;
   roadmapMarkComplete: string;
@@ -906,6 +909,9 @@ export const translations: Record<Lang, T> = {
     roadmapHideHelp: "Hide help",
     roadmapHelpLoading: "Working out how to help…",
     roadmapHelpFailed: "Couldn't load help — try again.",
+    roadmapSwapTask: "Swap task",
+    roadmapSwapping: "Swapping…",
+    roadmapSwapFailed: "Couldn't swap this task — try again.",
     roadmapContinueInMentor: "Continue in Mentor",
     roadmapHelpGateMessage: "You've used your free task help sessions. Upgrade to Pro for unlimited help on every task.",
     roadmapMarkComplete: "Mark complete",
@@ -1801,6 +1807,9 @@ export const translations: Record<Lang, T> = {
     roadmapHideHelp: "Masquer l'aide",
     roadmapHelpLoading: "Recherche de la meilleure aide…",
     roadmapHelpFailed: "Impossible de charger l'aide — réessayez.",
+    roadmapSwapTask: "Changer la tâche",
+    roadmapSwapping: "Changement…",
+    roadmapSwapFailed: "Impossible de changer cette tâche — réessayez.",
     roadmapContinueInMentor: "Continuer avec le Mentor",
     roadmapHelpGateMessage: "Vous avez utilisé vos sessions d'aide gratuites. Passez à Pro pour une aide illimitée sur chaque tâche.",
     roadmapMarkComplete: "Marquer comme terminé",

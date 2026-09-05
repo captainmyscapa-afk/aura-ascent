@@ -89,7 +89,7 @@ function TaskHelp({
   };
 
   return (
-    <div className="mt-2">
+    <div>
       <button
         onClick={() => void toggle()}
         className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-primary/80 hover:text-primary transition-colors"
@@ -149,6 +149,9 @@ function RoadmapPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeWeek, setActiveWeek] = useState(0);
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
+  const [swappingId, setSwappingId] = useState<string | null>(null);
+  const [swapError, setSwapError] = useState<string | null>(null);
+  const swapAsk = useServerFn(askGemini);
 
   // Roadmaps are stored as a map keyed by industryId so each mode keeps its own.
   // Shape: core.roadmap = Record<string, Roadmap & { generated_at: string }>
@@ -233,6 +236,70 @@ function RoadmapPage() {
       });
     }
   }, [updateCore, core?.roadmap_progress, industryId, completed, user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Swap: regenerate one task in place instead of a full round trip to Mentor.
+  // Keeps the same task.id so the completed/progress map stays keyed correctly.
+  const swapTask = useCallback(async (weekIdx: number, dayIdx: number, task: RoadmapTask, otherTask: RoadmapTask | undefined) => {
+    if (!roadmap) return;
+    const week = roadmap.weeks[weekIdx];
+    const day = week?.days[dayIdx];
+    if (!day) return;
+    setSwapError(null);
+    setSwappingId(task.id);
+    try {
+      const isFrench = lang === "fr";
+      const { text } = await swapAsk({
+        data: {
+          system: `You are AURUM — elite luxury industry strategist. Return ONLY valid JSON, no markdown, no explanation. The task must use real ${industry.label} industry terms, platforms, and actions, achievable in about ${task.duration}.${isFrench ? " Write every text value in natural, native French — not a literal translation. The 'type' value must remain one of the English enum words exactly as specified." : ""}`,
+          messages: [
+            {
+              role: "user",
+              text: [
+                `INDUSTRY: ${industry.label}`,
+                `LEVEL: ${core?.current_level ?? "beginner"}`,
+                `WEEK THEME: ${week.theme}`,
+                `DAY THEME: ${day.theme}`,
+                `Replace this task with a different one: "${task.title}" — ${task.detail}`,
+                otherTask ? `The other task already assigned that day is: "${otherTask.title}" — the replacement must be meaningfully different from both.` : "",
+                `Return this exact JSON structure:`,
+                `{"type": "networking|content|learning|outreach|mindset", "title": "action title max 8 words", "detail": "specific how-to 1 sentence", "duration": "${task.duration}"}`,
+              ].filter(Boolean).join("\n"),
+            },
+          ],
+        },
+      });
+      const cleaned = text.replace(/```json|```/g, "").trim();
+      const start = cleaned.indexOf("{");
+      const end = cleaned.lastIndexOf("}");
+      if (start === -1 || end === -1) throw new Error("no JSON object found in AI response");
+      const parsed = JSON.parse(cleaned.slice(start, end + 1)) as Partial<RoadmapTask>;
+      const validTypes: RoadmapTask["type"][] = ["networking", "content", "learning", "outreach", "mindset"];
+      const newTask: RoadmapTask = {
+        id: task.id,
+        type: validTypes.includes(parsed.type as RoadmapTask["type"]) ? (parsed.type as RoadmapTask["type"]) : task.type,
+        title: parsed.title?.trim() || task.title,
+        detail: parsed.detail?.trim() || task.detail,
+        duration: parsed.duration?.trim() || task.duration,
+      };
+
+      const updatedWeeks = roadmap.weeks.map((w, wi) =>
+        wi !== weekIdx ? w : {
+          ...w,
+          days: w.days.map((d, di) =>
+            di !== dayIdx ? d : { ...d, tasks: d.tasks.map((tk) => (tk.id === task.id ? newTask : tk)) }
+          ),
+        }
+      );
+      const updatedRoadmap = { ...roadmap, weeks: updatedWeeks };
+      setRoadmap(updatedRoadmap);
+      await updateCore({ roadmap: { ...getRoadmapMap(), [industryId]: updatedRoadmap } as unknown as null });
+    } catch (e) {
+      console.error("swapTask failed:", e);
+      setSwapError(task.id);
+    } finally {
+      setSwappingId(null);
+    }
+  }, [roadmap, lang, industry.label, core?.current_level, swapAsk, updateCore, industryId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalTasks = roadmap?.weeks.flatMap(w => w.days.flatMap(d => d.tasks)).length ?? 0;
   const completedCount = Object.values(completed).filter(Boolean).length;
@@ -376,7 +443,7 @@ function RoadmapPage() {
 
               {/* Days */}
               <div className="space-y-1">
-                {roadmap.weeks[activeWeek].days.map((day) => {
+                {roadmap.weeks[activeWeek].days.map((day, dayIdx) => {
                   const globalDay = activeWeek * 7 + day.day;
                   const isMilestone = !!day.milestone;
                   const isToday = globalDay === currentDay;
@@ -418,7 +485,7 @@ function RoadmapPage() {
                               const done = !!completed[task.id];
                               return (
                                 <div
-                                  key={task.id}
+                                  key={`${task.id}:${task.title}`}
                                   className={`flex items-start gap-3 p-3 rounded-lg border transition-all ${
                                     done ? "bg-secondary/20 border-border/30 opacity-60" : cfg.bg
                                   }`}
@@ -443,14 +510,33 @@ function RoadmapPage() {
                                     <div className={`text-sm font-medium ${done ? "line-through text-muted-foreground" : ""}`}>{task.title}</div>
                                     <div className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{task.detail}</div>
                                     {!done && (
-                                      <TaskHelp
-                                        task={task}
-                                        industryLabel={industry.label}
-                                        lang={lang}
-                                        t={t}
-                                        gate={helpGate.gate}
-                                        onUsed={() => void helpGate.increment("roadmap_help")}
-                                      />
+                                      <div className="flex items-center gap-4 mt-2 flex-wrap">
+                                        <TaskHelp
+                                          task={task}
+                                          industryLabel={industry.label}
+                                          lang={lang}
+                                          t={t}
+                                          gate={helpGate.gate}
+                                          onUsed={() => void helpGate.increment("roadmap_help")}
+                                        />
+                                        <button
+                                          onClick={() =>
+                                            void swapTask(activeWeek, dayIdx, task, day.tasks.find((tk) => tk.id !== task.id))
+                                          }
+                                          disabled={swappingId === task.id}
+                                          className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                                        >
+                                          {swappingId === task.id ? (
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                          ) : (
+                                            <RefreshCw className="h-3 w-3" />
+                                          )}
+                                          {swappingId === task.id ? t.roadmapSwapping : t.roadmapSwapTask}
+                                        </button>
+                                      </div>
+                                    )}
+                                    {swapError === task.id && (
+                                      <div className="text-[10px] text-destructive mt-1">{t.roadmapSwapFailed}</div>
                                     )}
                                   </div>
                                 </div>
