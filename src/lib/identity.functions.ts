@@ -281,10 +281,22 @@ export const generateDailyTasks = createServerFn({ method: "POST" })
             ritual?.background ? `THEIR BACKGROUND: ${ritual.background}` : null,
             ritual?.focusAreas?.length ? `PRIORITY FOCUS AREAS (weight tasks toward these): ${ritual.focusAreas.join(", ")}` : null,
             ritual?.biggestChallenge ? `THEIR BIGGEST OBSTACLE RIGHT NOW: "${ritual.biggestChallenge}" — at least one task should directly help with this.` : null,
-            `Generate exactly ${taskCount} specific daily tasks for someone breaking into the ${data.mode} industry at ${data.level ?? "beginner"} level.`,
+            `Generate exactly ${taskCount} self-directed research and study tasks for someone breaking into the ${data.mode} industry at ${data.level ?? "beginner"} level. These are desk-based learning assignments — never outreach, cold messaging, or asking the person to contact real people.`,
+            // CAP-124: the AI's own default framing had drifted toward outreach/DM-style
+            // tasks ("map out your contacts", "draft a DM to a broker"), which Captain
+            // flagged as feeling far less coherent than the research/study format he'd
+            // been getting before. Locking the format to that proven rotation instead
+            // of leaving it to loose categories ("networking, outreach, ...").
+            `Cycle through exactly this rotation of task formats (repeat the cycle if ${taskCount} isn't 5):
+1. "Research [a specific concept/practice] and its role in [context], including [a specific sub-angle]"
+2. "Create a list of 5 notable [companies/models/professionals/terms], including [a specific detail to capture for each]" — or a timeline of key milestones
+3. "Write a short summary/case study/analysis, 100-150 words, on [a specific topic], including [a specific angle]"
+4. "Develop a 2-point plan to learn about [a specific topic]" — or a list of 5 key factors that influence something specific
+5. "Identify and explore one [industry-specific course, webinar, publication, or notable figure], such as [a concrete real example], to [a specific learning goal]"
+Every task must read in this research/study register.`,
             ritual?.focusAreas?.length
-              ? `Cover the priority focus areas above first, then fill remaining tasks with networking, content, learning, outreach and relationship building.`
-              : `Tasks should cover: networking, content, learning, outreach and relationship building.`,
+              ? `Weight the SUBJECT MATTER of the tasks toward these priority focus areas, but keep the exact task-format rotation above: ${ritual.focusAreas.join(", ")}.`
+              : null,
             ritual?.background
               ? `Where possible, connect tasks to their background/experience above so they feel personal and relatable, not generic.`
               : null,
