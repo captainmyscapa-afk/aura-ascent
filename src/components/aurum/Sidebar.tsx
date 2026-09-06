@@ -17,6 +17,7 @@ import { Logo } from "./Logo";
 import { useAuth } from "@/hooks/useAuth";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useAccountAge } from "@/hooks/useAccountAge";
+import { formatActiveSeconds } from "@/lib/formatDuration";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export function Sidebar() {
@@ -97,7 +98,7 @@ export function Sidebar() {
           </div>
           {accountAge && (
             <div className="mt-1.5 text-[10px] text-muted-foreground/70">
-              {t.memberSince(accountAge.days, accountAge.hours)}
+              {t.memberSince(accountAge.days)} · {formatActiveSeconds(core?.total_active_seconds ?? 0, t)}
             </div>
           )}
         </div>

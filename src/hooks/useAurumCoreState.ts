@@ -4,7 +4,8 @@
 // Fields: active_mode, current_phase, current_level, streak, execution_score,
 //         daily_brief, daily_brief_date, daily_tasks, daily_tasks_date, daily_tasks_history,
 //         ai_summary, ai_summary_updated_at, current_focus,
-//         upcoming_events, upcoming_events_week_start, dismissed_page_intros
+//         upcoming_events, upcoming_events_week_start, dismissed_page_intros,
+//         total_active_seconds
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +20,10 @@ export type AurumCoreState = {
   current_level: string | null;
   streak: number;
   execution_score: number;
+  // Cumulative seconds of real in-app active time since sign-up (see
+  // increment_active_seconds RPC) — a rough usage indicator, not a precise
+  // audited timer. Written server-side only; treat as read-only from here.
+  total_active_seconds: number;
   // Daily content
   daily_brief: unknown | null;
   daily_brief_date: string | null;
@@ -79,6 +84,7 @@ function fromRow(row: Record<string, unknown> | null): AurumCoreState | null {
     current_level: (row.current_level as string | null) ?? (row.level as string | null) ?? null,
     streak: (row.streak as number) ?? 0,
     execution_score: (row.execution_score as number) ?? 0,
+    total_active_seconds: (row.total_active_seconds as number) ?? 0,
     daily_brief: (() => {
       const v = row.today_brief;
       if (!v) return null;

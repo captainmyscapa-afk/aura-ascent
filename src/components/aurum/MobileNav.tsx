@@ -25,6 +25,7 @@ import { INDUSTRY_LIST } from "@/lib/industry/config";
 import { useAuth } from "@/hooks/useAuth";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useAccountAge } from "@/hooks/useAccountAge";
+import { formatActiveSeconds } from "@/lib/formatDuration";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -279,7 +280,7 @@ export function MobileNav() {
               </div>
               {accountAge && (
                 <div className="mt-1.5 text-[10px] text-muted-foreground/70">
-                  {t.memberSince(accountAge.days, accountAge.hours)}
+                  {t.memberSince(accountAge.days)} · {formatActiveSeconds(core?.total_active_seconds ?? 0, t)}
                 </div>
               )}
             </div>

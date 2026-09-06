@@ -9,10 +9,12 @@ import { PageIntro } from "./PageIntro";
 import { PAGE_INTROS } from "./PageIntroConfig";
 import { CelebrationOverlay } from "./CelebrationOverlay";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { useActiveTimeTracker } from "@/hooks/useActiveTimeTracker";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const { t } = useLanguage();
+  useActiveTimeTracker();
   const intro = PAGE_INTROS[pathname];
   return (
     <div className="min-h-screen text-foreground">
