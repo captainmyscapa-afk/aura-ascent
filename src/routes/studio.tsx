@@ -141,6 +141,10 @@ function Studio() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const [videoComingSoon, setVideoComingSoon] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [lastSavedId, setLastSavedId] = useState<string | null>(null);
@@ -423,6 +427,86 @@ function Studio() {
       URL.revokeObjectURL(a.href);
     } catch {
       window.open(imageUrl, "_blank");
+    }
+  };
+
+  // Video generation bases itself on the content script (mirrors
+  // generateImage's shape/UX exactly). generate-video is currently a stub
+  // that returns { available: false } until an AI video provider is
+  // connected — see that function's source for the exact contract a real
+  // provider integration should return, which needs no frontend changes.
+  const generateVideo = async (script: string[]) => {
+    setVideoLoading(true);
+    setVideoError(false);
+    setVideoComingSoon(false);
+    setVideoUrl(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        "https://ooliwsmmtpggejyjmone.supabase.co/functions/v1/generate-video",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token ?? ""}`,
+          },
+          body: JSON.stringify({ script: script.join("\n") }),
+        }
+      );
+
+      if (!res.ok) throw new Error("Video generation failed");
+      const data = await res.json() as {
+        available: boolean;
+        type?: "url" | "base64";
+        url?: string;
+        data?: string;
+        mimeType?: string;
+      };
+
+      if (!data.available) {
+        setVideoComingSoon(true);
+        return;
+      }
+
+      let finalUrl: string;
+      if (data.type === "base64" && data.data) {
+        const byteChars = atob(data.data);
+        const byteArr = new Uint8Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
+        const blob = new Blob([byteArr], { type: data.mimeType ?? "video/mp4" });
+        finalUrl = URL.createObjectURL(blob);
+      } else if (data.type === "url" && data.url) {
+        finalUrl = data.url;
+      } else {
+        throw new Error("No video returned");
+      }
+
+      setVideoUrl(finalUrl);
+      if (lastSavedId) {
+        await (supabase.from("user_content_history") as any)
+          .update({ video_url: finalUrl })
+          .eq("id", lastSavedId);
+        loadHistory();
+      }
+    } catch {
+      setVideoError(true);
+    } finally {
+      setVideoLoading(false);
+    }
+  };
+
+  const downloadVideo = async () => {
+    if (!videoUrl) return;
+    try {
+      const response = await fetch(videoUrl);
+      const blob = await response.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `aurum-video-${Date.now()}.mp4`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      window.open(videoUrl, "_blank");
     }
   };
 
@@ -868,6 +952,12 @@ function Studio() {
               imageError={imageError}
               onGenerateImage={() => generateImage((editablePlan ?? plan!).visualPrompt)}
               onDownloadImage={downloadImage}
+              videoUrl={videoUrl}
+              videoLoading={videoLoading}
+              videoError={videoError}
+              videoComingSoon={videoComingSoon}
+              onGenerateVideo={() => generateVideo((editablePlan ?? plan!).script)}
+              onDownloadVideo={downloadVideo}
               onShare={shareToplatform}
               sharing={sharing}
               format={format}
@@ -1062,6 +1152,12 @@ function PlanOutput({
   imageError,
   onGenerateImage,
   onDownloadImage,
+  videoUrl,
+  videoLoading,
+  videoError,
+  videoComingSoon,
+  onGenerateVideo,
+  onDownloadVideo,
   onShare,
   sharing,
   format,
@@ -1081,6 +1177,12 @@ function PlanOutput({
   imageError: boolean;
   onGenerateImage: () => void;
   onDownloadImage: () => void;
+  videoUrl: string | null;
+  videoLoading: boolean;
+  videoError: boolean;
+  videoComingSoon: boolean;
+  onGenerateVideo: () => void;
+  onDownloadVideo: () => void;
   onShare?: (platform: string, text: string, key: string) => void;
   sharing?: string | null;
   format: string;
@@ -1225,37 +1327,6 @@ function PlanOutput({
         </div>
       </div>
 
-      {plan.script.length > 0 && (
-        <div className="glass rounded-xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-[10px] tracking-[0.34em] text-primary/80">{t.stuContentScript}</div>
-            <button onClick={() => { setEditingScript(true); setScriptDraft(plan.script.join("\n")); }} className="flex items-center gap-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-primary transition-colors">
-              <Pencil className="h-3 w-3" /> {t.stuModify}
-            </button>
-          </div>
-          {editingScript ? (
-            <div className="space-y-2">
-              <textarea value={scriptDraft} onChange={(e) => setScriptDraft(e.target.value)} rows={8} className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/50 resize-y transition-colors" placeholder={t.stuScriptPlaceholder} />
-              <div className="flex gap-2">
-                <button onClick={() => { onPlanChange({ ...plan, script: scriptDraft.split("\n").filter(Boolean) }); setEditingScript(false); }} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-primary-foreground text-xs" style={{ background: "var(--gradient-gold)" }}>
-                  <Check className="h-3 w-3" /> {t.stuSave}
-                </button>
-                <button onClick={() => setEditingScript(false)} className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">{t.stuCancel}</button>
-              </div>
-            </div>
-          ) : (
-            <ol className="space-y-2">
-              {plan.script.map((s, i) => (
-                <li key={i} className="flex gap-3 text-sm">
-                  <span className="text-primary/80 font-mono text-xs pt-0.5 shrink-0">{String(i + 1).padStart(2, "0")}</span>
-                  <span className="leading-relaxed">{s}</span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
-      )}
-
       <div className="glass rounded-xl p-5">
         <div className="flex items-center justify-between mb-3">
           <div className="text-[10px] tracking-[0.34em] text-primary/80 flex items-center gap-2">
@@ -1365,6 +1436,90 @@ function PlanOutput({
           </div>
         )}
       </div>
+
+      {plan.script.length > 0 && (
+        <div className="glass rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[10px] tracking-[0.34em] text-primary/80">{t.stuContentScript}</div>
+            <button onClick={() => { setEditingScript(true); setScriptDraft(plan.script.join("\n")); }} className="flex items-center gap-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-primary transition-colors">
+              <Pencil className="h-3 w-3" /> {t.stuModify}
+            </button>
+          </div>
+          {editingScript ? (
+            <div className="space-y-2">
+              <textarea value={scriptDraft} onChange={(e) => setScriptDraft(e.target.value)} rows={8} className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/50 resize-y transition-colors" placeholder={t.stuScriptPlaceholder} />
+              <div className="flex gap-2">
+                <button onClick={() => { onPlanChange({ ...plan, script: scriptDraft.split("\n").filter(Boolean) }); setEditingScript(false); }} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-primary-foreground text-xs" style={{ background: "var(--gradient-gold)" }}>
+                  <Check className="h-3 w-3" /> {t.stuSave}
+                </button>
+                <button onClick={() => setEditingScript(false)} className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">{t.stuCancel}</button>
+              </div>
+            </div>
+          ) : (
+            <ol className="space-y-2 mb-4">
+              {plan.script.map((s, i) => (
+                <li key={i} className="flex gap-3 text-sm">
+                  <span className="text-primary/80 font-mono text-xs pt-0.5 shrink-0">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="leading-relaxed">{s}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          {!editingScript && !videoUrl && !videoLoading && !videoComingSoon && (
+            <button
+              onClick={onGenerateVideo}
+              className="w-full h-10 rounded-xl border border-primary/40 text-primary text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary/10 transition-all"
+            >
+              <Video className="h-4 w-4" /> {t.stuGenerateVideo}
+            </button>
+          )}
+
+          {videoLoading && (
+            <div className="w-full h-64 rounded-xl border border-border/40 flex flex-col items-center justify-center gap-3 bg-secondary/10">
+              <Loader2 className="h-6 w-6 text-primary animate-spin" />
+              <div className="text-xs text-muted-foreground">{t.stuGeneratingVideo}</div>
+            </div>
+          )}
+
+          {videoError && !videoLoading && (
+            <div className="w-full rounded-xl border border-destructive/40 p-4 text-center">
+              <div className="text-xs text-destructive mb-2">{t.stuVideoFailed}</div>
+              <button onClick={onGenerateVideo} className="text-xs text-primary hover:underline">
+                {t.stuRetry}
+              </button>
+            </div>
+          )}
+
+          {videoComingSoon && !videoLoading && (
+            <div className="w-full rounded-xl border border-border/40 p-4 text-center bg-secondary/10">
+              <Video className="h-4 w-4 text-muted-foreground mx-auto mb-2" />
+              <div className="text-xs text-muted-foreground">{t.stuVideoComingSoon}</div>
+            </div>
+          )}
+
+          {videoUrl && !videoLoading && (
+            <div className="space-y-3">
+              <video src={videoUrl} controls className="w-full rounded-xl" />
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={onDownloadVideo}
+                  className="h-10 rounded-xl text-primary-foreground text-sm font-medium flex items-center justify-center gap-2"
+                  style={{ background: "var(--gradient-gold)" }}
+                >
+                  <Download className="h-4 w-4" /> {t.stuDownload}
+                </button>
+                <button
+                  onClick={onGenerateVideo}
+                  className="h-10 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 flex items-center justify-center gap-2 transition-all"
+                >
+                  <Video className="h-4 w-4" /> {t.stuRegenerate}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Publish Panel */}
       <PublishPanel

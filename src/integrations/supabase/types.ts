@@ -793,6 +793,7 @@ export type Database = {
           tiktok_caption: string | null
           title: string | null
           user_id: string
+          video_url: string | null
           viral_hook: string | null
           visual_prompt: string | null
         }
@@ -810,6 +811,7 @@ export type Database = {
           tiktok_caption?: string | null
           title?: string | null
           user_id: string
+          video_url?: string | null
           viral_hook?: string | null
           visual_prompt?: string | null
         }
@@ -827,6 +829,7 @@ export type Database = {
           tiktok_caption?: string | null
           title?: string | null
           user_id?: string
+          video_url?: string | null
           viral_hook?: string | null
           visual_prompt?: string | null
         }

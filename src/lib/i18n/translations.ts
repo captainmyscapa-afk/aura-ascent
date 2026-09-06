@@ -454,6 +454,10 @@ export type T = {
   stuRetry: string;
   stuDownload: string;
   stuRegenerate: string;
+  stuGenerateVideo: string;
+  stuGeneratingVideo: string;
+  stuVideoFailed: string;
+  stuVideoComingSoon: string;
   stuPostOn: string;
   stuConnected: string;
   stuConnectArrow: string;
@@ -1312,6 +1316,10 @@ export const translations: Record<Lang, T> = {
     stuRetry: "Retry",
     stuDownload: "Download",
     stuRegenerate: "Regenerate",
+    stuGenerateVideo: "Generate video",
+    stuGeneratingVideo: "Generating your video…",
+    stuVideoFailed: "Video generation failed. Try again.",
+    stuVideoComingSoon: "Video generation is launching soon — this button is ready to go live the moment it's connected.",
     stuPostOn: "POST YOUR CONTENT ON",
     stuConnected: "Connected",
     stuConnectArrow: "Connect →",
@@ -2269,6 +2277,10 @@ export const translations: Record<Lang, T> = {
     stuRetry: "Réessayer",
     stuDownload: "Télécharger",
     stuRegenerate: "Régénérer",
+    stuGenerateVideo: "Générer la vidéo",
+    stuGeneratingVideo: "Génération de votre vidéo…",
+    stuVideoFailed: "La génération de la vidéo a échoué. Réessayez.",
+    stuVideoComingSoon: "La génération de vidéo arrive bientôt — ce bouton est prêt à être activé dès sa mise en ligne.",
     stuPostOn: "PUBLIER VOTRE CONTENU SUR",
     stuConnected: "Connecté",
     stuConnectArrow: "Connecter →",
