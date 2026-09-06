@@ -787,10 +787,9 @@ export type Database = {
           idea: string | null
           image_url: string | null
           industry: string
-          instagram_caption: string | null
-          linkedin_caption: string | null
           mode: string
-          tiktok_caption: string | null
+          platforms: Json
+          script: Json
           title: string | null
           user_id: string
           video_url: string | null
@@ -805,10 +804,9 @@ export type Database = {
           idea?: string | null
           image_url?: string | null
           industry: string
-          instagram_caption?: string | null
-          linkedin_caption?: string | null
           mode: string
-          tiktok_caption?: string | null
+          platforms?: Json
+          script?: Json
           title?: string | null
           user_id: string
           video_url?: string | null
@@ -823,10 +821,9 @@ export type Database = {
           idea?: string | null
           image_url?: string | null
           industry?: string
-          instagram_caption?: string | null
-          linkedin_caption?: string | null
           mode?: string
-          tiktok_caption?: string | null
+          platforms?: Json
+          script?: Json
           title?: string | null
           user_id?: string
           video_url?: string | null

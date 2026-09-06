@@ -69,12 +69,12 @@ type HistoryEntry = {
   goal: string | null;
   title: string | null;
   viral_hook: string | null;
-  instagram_caption: string | null;
-  tiktok_caption: string | null;
-  linkedin_caption: string | null;
+  platforms: Record<string, string> | null;
+  script: string[] | null;
   hashtags: string[] | null;
   visual_prompt: string | null;
   image_url: string | null;
+  video_url: string | null;
   created_at: string;
 };
 
@@ -229,9 +229,8 @@ function Studio() {
         goal: goal || null,
         title: result.title,
         viral_hook: result.viralHook,
-        instagram_caption: result.platforms.instagram,
-        tiktok_caption: result.platforms.tiktok,
-        linkedin_caption: result.platforms.linkedin || null,
+        platforms: result.platforms,
+        script: result.script,
         hashtags: result.hashtags,
         visual_prompt: result.visualPrompt,
         image_url: null,
@@ -266,36 +265,23 @@ function Studio() {
     setGoal(entry.goal || "");
     setEditablePlan(null); // reset, will be set after setPlan below
     setImageUrl(entry.image_url || null);
+    setVideoUrl(entry.video_url || null);
+    setVideoError(false);
+    setVideoComingSoon(false);
     setLastSavedId(entry.id);
-    setPlan({
+    const restoredPlan: StudioContentPlan = {
       title: entry.title || "",
       viralHook: entry.viral_hook || "",
-      platforms: Object.fromEntries([
-        ["instagram", entry.instagram_caption],
-        ["tiktok", entry.tiktok_caption],
-        ["linkedin", entry.linkedin_caption],
-      ].filter(([, v]) => !!v) as [string, string][]),
-      script: [],
-      hashtags: entry.hashtags || [],
-      visualPrompt: entry.visual_prompt || "",
-      format: entry.mode || "post",
-    });
-    setShowHistory(false);
-    // Rebuild editable plan from history entry
-    const hp: StudioContentPlan = {
-      title: entry.title || "",
-      viralHook: entry.viral_hook || "",
-      platforms: Object.fromEntries([
-        ["instagram", entry.instagram_caption],
-        ["tiktok", entry.tiktok_caption],
-        ["linkedin", entry.linkedin_caption],
-      ].filter(([, v]) => !!v) as [string, string][]),
-      script: [],
+      platforms: entry.platforms || {},
+      script: entry.script || [],
       hashtags: entry.hashtags || [],
       visualPrompt: entry.visual_prompt || "",
       format: entry.mode || "post",
     };
-    setEditablePlan(hp);
+    setPlan(restoredPlan);
+    setShowHistory(false);
+    // Rebuild editable plan from history entry
+    setEditablePlan({ ...restoredPlan });
   };
 
   const toggleIntel = (id: string) => {
