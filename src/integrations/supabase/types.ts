@@ -1059,19 +1059,18 @@ export type Database = {
       }
       public_profiles: {
         Row: {
+          active_mode: string | null
+          current_level: string | null
           full_name: string | null
+          instagram_url: string | null
+          linkedin_url: string | null
+          location: string | null
           photo_url: string | null
+          substack_url: string | null
+          tiktok_url: string | null
+          twitter_url: string | null
           user_id: string | null
-        }
-        Insert: {
-          full_name?: string | null
-          photo_url?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          full_name?: string | null
-          photo_url?: string | null
-          user_id?: string | null
+          youtube_url: string | null
         }
         Relationships: []
       }

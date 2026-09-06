@@ -1,12 +1,17 @@
+import { Linkedin, Instagram, Twitter, Music2, Youtube, FileText, MapPin } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 // Read-only "who is this" card for another community member, opened by
-// clicking a name in Network or Calendar. Deliberately shows only what's
-// already public (public_profiles exposes just full_name + photo_url by
-// design — everything else on Identity, bio, location, socials, the Aurum
-// Score breakdown, is private to each user). Clicking your OWN name instead
-// routes to the real /profile page, which is the actual Identity view.
+// clicking a name in Network or Calendar. Mirrors the header of the real
+// Identity page (avatar, name, "<Mode> <Level> · <Location>", location pin,
+// social icons) using exactly what public_profiles exposes for other users:
+// full_name, photo_url, location, the industry mode/level badge, and any
+// social links the member has entered themselves. It never shows anything
+// private — no bio/mission/goal, no Aurum Score breakdown, no social_accounts
+// tokens (see CAP-68). Clicking your OWN name instead routes to the real
+// /profile page.
+
 function initials(name: string | null) {
   if (!name) return "AU";
   return name
@@ -18,18 +23,52 @@ function initials(name: string | null) {
     .toUpperCase();
 }
 
+function titleFor(mode: string | null, level: string | null) {
+  const m = mode?.[0]?.toUpperCase() + (mode?.slice(1) ?? "");
+  const l = level?.[0]?.toUpperCase() + (level?.slice(1) ?? "");
+  return `${m || "Aurum"} ${l || "Initiate"}`;
+}
+
+export type UserCardSocials = {
+  linkedinUrl?: string | null;
+  instagramUrl?: string | null;
+  twitterUrl?: string | null;
+  tiktokUrl?: string | null;
+  youtubeUrl?: string | null;
+  substackUrl?: string | null;
+};
+
 export function UserCardDialog({
   open,
   onClose,
   name,
   photoUrl,
+  location,
+  activeMode,
+  currentLevel,
+  ...socials
 }: {
   open: boolean;
   onClose: () => void;
   name: string | null;
   photoUrl: string | null;
-}) {
+  location?: string | null;
+  activeMode?: string | null;
+  currentLevel?: string | null;
+} & UserCardSocials) {
   const { t } = useLanguage();
+
+  const socialLinks = [
+    { url: socials.linkedinUrl, icon: Linkedin, label: "LinkedIn" },
+    { url: socials.instagramUrl, icon: Instagram, label: "Instagram" },
+    { url: socials.twitterUrl, icon: Twitter, label: "X / Twitter" },
+    { url: socials.tiktokUrl, icon: Music2, label: "TikTok" },
+    { url: socials.youtubeUrl, icon: Youtube, label: "YouTube" },
+    { url: socials.substackUrl, icon: FileText, label: "Substack" },
+  ].filter((s): s is { url: string; icon: typeof Linkedin; label: string } => !!s.url);
+
+  const hasTitleInfo = !!(activeMode || currentLevel);
+
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-xs">
@@ -41,10 +80,34 @@ export function UserCardDialog({
               initials(name)
             )}
           </div>
-          <h3 className="font-serif text-xl mt-4">{name || t.comMember}</h3>
-          <span className="text-[10px] tracking-[0.3em] px-3 py-1 mt-2 rounded-full ring-1 ring-primary/40 text-primary uppercase">
-            {t.comMember}
-          </span>
+          <h3 className="font-serif text-xl mt-4">{name || t.profUnnamedOperator}</h3>
+          {hasTitleInfo && (
+            <p className="text-muted-foreground text-sm mt-1">
+              {titleFor(activeMode ?? null, currentLevel ?? null)}
+              {location ? ` · ${location}` : ""}
+            </p>
+          )}
+          {(location || socialLinks.length > 0) && (
+            <div className="flex items-center gap-3 mt-3 text-muted-foreground text-sm">
+              {location && (
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" /> {location}
+                </span>
+              )}
+              {socialLinks.map(({ url, icon: Icon, label }) => (
+                <a
+                  key={label}
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={label}
+                  className="hover:text-foreground transition-colors"
+                >
+                  <Icon className="h-4 w-4" />
+                </a>
+              ))}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

@@ -75,7 +75,19 @@ type CommunityReply = {
   created_at: string;
 };
 
-type PublicProfile = { full_name: string | null; photo_url: string | null };
+type PublicProfile = {
+  full_name: string | null;
+  photo_url: string | null;
+  location: string | null;
+  linkedin_url: string | null;
+  instagram_url: string | null;
+  tiktok_url: string | null;
+  twitter_url: string | null;
+  youtube_url: string | null;
+  substack_url: string | null;
+  active_mode: string | null;
+  current_level: string | null;
+};
 
 // Community board is global across industries — this badge tells members which
 // vertical a post/reply came from. Colors match the same mapping used on the
@@ -207,13 +219,25 @@ function Network() {
     if (missing.length === 0) return;
     const { data } = await supabase
       .from("public_profiles" as any)
-      .select("user_id, full_name, photo_url")
+      .select("user_id, full_name, photo_url, location, linkedin_url, instagram_url, tiktok_url, twitter_url, youtube_url, substack_url, active_mode, current_level")
       .in("user_id", missing);
     if (!data) return;
     setProfilesMap((prev) => {
       const next = { ...prev };
       for (const row of data as any[]) {
-        next[row.user_id] = { full_name: row.full_name, photo_url: row.photo_url };
+        next[row.user_id] = {
+          full_name: row.full_name,
+          photo_url: row.photo_url,
+          location: row.location,
+          linkedin_url: row.linkedin_url,
+          instagram_url: row.instagram_url,
+          tiktok_url: row.tiktok_url,
+          twitter_url: row.twitter_url,
+          youtube_url: row.youtube_url,
+          substack_url: row.substack_url,
+          active_mode: row.active_mode,
+          current_level: row.current_level,
+        };
       }
       return next;
     });
@@ -405,8 +429,8 @@ function Network() {
   }
 
   // Clicking your own name goes to the real Identity page; anyone else opens
-  // a read-only card scoped to what's actually public (name + photo — see
-  // UserCardDialog for why nothing richer is shown here).
+  // a read-only card mirroring Identity's public fields (see UserCardDialog
+  // for exactly what's shown and what's deliberately excluded).
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const openUser = (userId: string) => {
     if (userId === user?.id) {
@@ -553,6 +577,15 @@ function Network() {
         onClose={() => setViewingUserId(null)}
         name={viewingUser?.full_name ?? null}
         photoUrl={viewingUser?.photo_url ?? null}
+        location={viewingUser?.location ?? null}
+        activeMode={viewingUser?.active_mode ?? null}
+        currentLevel={viewingUser?.current_level ?? null}
+        linkedinUrl={viewingUser?.linkedin_url ?? null}
+        instagramUrl={viewingUser?.instagram_url ?? null}
+        tiktokUrl={viewingUser?.tiktok_url ?? null}
+        twitterUrl={viewingUser?.twitter_url ?? null}
+        youtubeUrl={viewingUser?.youtube_url ?? null}
+        substackUrl={viewingUser?.substack_url ?? null}
       />
       {/* Header */}
       <div className="mb-8 animate-fade-up">
