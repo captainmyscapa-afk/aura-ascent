@@ -417,20 +417,8 @@ export type T = {
   stuGoalLabel: string;
   stuOptional: string;
   stuGoalPlaceholder: string;
-  stuFormatLabel: string;
-  stuFormatPost: string;
-  stuFormatPostDesc: string;
-  stuFormatImage: string;
-  stuFormatImageDesc: string;
-  stuFormatVideo: string;
-  stuFormatVideoDesc: string;
   stuDurationLabel: string;
   stuDuration1Min: string;
-  stuOrientationLabel: string;
-  stuOrientPortrait: string;
-  stuOrientLandscape: string;
-  stuOrientAuto: string;
-  stuOrientAdaptive: string;
   stuGenerateButton: string;
   stuApprox30s: string;
   stuReadyTitle: string;
@@ -1279,20 +1267,8 @@ export const translations: Record<Lang, T> = {
     stuGoalLabel: "GOAL",
     stuOptional: "(optional)",
     stuGoalPlaceholder: "e.g. attract UHNW charter clients",
-    stuFormatLabel: "FORMAT",
-    stuFormatPost: "Post",
-    stuFormatPostDesc: "Facebook · X · LinkedIn",
-    stuFormatImage: "Image",
-    stuFormatImageDesc: "TikTok · IG · YouTube",
-    stuFormatVideo: "Video",
-    stuFormatVideoDesc: "TikTok · IG · YouTube",
     stuDurationLabel: "DURATION",
     stuDuration1Min: "1 min",
-    stuOrientationLabel: "ORIENTATION",
-    stuOrientPortrait: "Portrait",
-    stuOrientLandscape: "Landscape",
-    stuOrientAuto: "Auto",
-    stuOrientAdaptive: "Adaptive",
     stuGenerateButton: "Generate viral content",
     stuApprox30s: "~30s",
     stuReadyTitle: "Your content, ready in 30s",
@@ -2245,20 +2221,8 @@ export const translations: Record<Lang, T> = {
     stuGoalLabel: "OBJECTIF",
     stuOptional: "(facultatif)",
     stuGoalPlaceholder: "ex. attirer des clients de charter UHNW",
-    stuFormatLabel: "FORMAT",
-    stuFormatPost: "Publication",
-    stuFormatPostDesc: "Facebook · X · LinkedIn",
-    stuFormatImage: "Image",
-    stuFormatImageDesc: "TikTok · IG · YouTube",
-    stuFormatVideo: "Vidéo",
-    stuFormatVideoDesc: "TikTok · IG · YouTube",
     stuDurationLabel: "DURÉE",
     stuDuration1Min: "1 min",
-    stuOrientationLabel: "ORIENTATION",
-    stuOrientPortrait: "Portrait",
-    stuOrientLandscape: "Paysage",
-    stuOrientAuto: "Auto",
-    stuOrientAdaptive: "Adaptatif",
     stuGenerateButton: "Générer du contenu viral",
     stuApprox30s: "~30 s",
     stuReadyTitle: "Votre contenu, prêt en 30 s",

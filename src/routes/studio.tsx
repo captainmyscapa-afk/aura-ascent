@@ -17,7 +17,6 @@ import {
   History,
   X,
   Zap,
-  FileText,
   Video,
   Film,
   Instagram,
@@ -55,7 +54,6 @@ export const Route = createFileRoute("/studio")({
 });
 
 type Mode = "assisted" | "intelligence";
-type Format = "post" | "image" | "video";
 
 type IntelEntry = {
   id: string;
@@ -145,9 +143,7 @@ function Studio() {
   const generate = useServerFn(generateStudioContent);
 
   const [mode, setMode] = useState<Mode>("assisted");
-  const [format, setFormat] = useState<Format>("post");
   const [videoDuration, setVideoDuration] = useState<10 | 15 | 30 | 60>(15);
-  const [orientation, setOrientation] = useState<"portrait" | "landscape" | "auto">("auto");
   const [idea, setIdea] = useState("");
   const [goal, setGoal] = useState("");
   const [intel, setIntel] = useState<IntelEntry[]>([]);
@@ -388,8 +384,6 @@ function Studio() {
         data: {
           industry: industryId,
           industryLabel: industry.label,
-          format,
-          orientation: format !== "post" ? orientation : undefined,
           goal: goal || undefined,
           userIdea: mode === "assisted" ? idea || undefined : undefined,
           intelligenceContext,
@@ -838,70 +832,29 @@ function Studio() {
             />
           </div>
 
-          <div className="glass rounded-xl p-5 space-y-5">
-            <div>
-              <Label>{t.stuFormatLabel}</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {([
-                  { f: "post" as Format, icon: FileText, label: t.stuFormatPost, desc: t.stuFormatPostDesc },
-                  { f: "image" as Format, icon: ImageIcon, label: t.stuFormatImage, desc: t.stuFormatImageDesc },
-                  { f: "video" as Format, icon: Video, label: t.stuFormatVideo, desc: t.stuFormatVideoDesc },
-                ]).map(({ f, icon: Icon, label, desc }) => (
-                  <FormatCard
-                    key={f}
-                    active={format === f}
-                    onClick={() => setFormat(f)}
-                    icon={Icon}
-                    label={label}
-                    desc={desc}
-                  />
-                ))}
-              </div>
+          {/* CAP-128: the format picker (post/image/video, which used to
+              gate which 3-of-6 platforms got captions) and the orientation
+              picker are gone -- every generation now targets all 6
+              platforms at once. Video length stays a real choice since
+              image/video generation are still separate manual steps. */}
+          <div className="glass rounded-xl p-5">
+            <Label>{t.stuDurationLabel}</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {([
+                { d: 10 as const, label: "10s" },
+                { d: 15 as const, label: "15s" },
+                { d: 30 as const, label: "30s" },
+                { d: 60 as const, label: t.stuDuration1Min },
+              ]).map(({ d, label }) => (
+                <button
+                  key={d}
+                  onClick={() => setVideoDuration(d)}
+                  className={`text-xs py-2.5 rounded-lg border transition-all font-mono ${videoDuration === d ? "border-primary/60 bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:border-primary/30"}`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-
-            {format === "video" && (
-              <div>
-                <Label>{t.stuDurationLabel}</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  {([
-                    { d: 10 as const, label: "10s" },
-                    { d: 15 as const, label: "15s" },
-                    { d: 30 as const, label: "30s" },
-                    { d: 60 as const, label: t.stuDuration1Min },
-                  ]).map(({ d, label }) => (
-                    <button
-                      key={d}
-                      onClick={() => setVideoDuration(d)}
-                      className={`text-xs py-2.5 rounded-lg border transition-all font-mono ${videoDuration === d ? "border-primary/60 bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:border-primary/30"}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {(format === "image" || format === "video") && (
-              <div>
-                <Label>{t.stuOrientationLabel}</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {([
-                    { o: "portrait" as const, label: t.stuOrientPortrait, desc: "9:16" },
-                    { o: "landscape" as const, label: t.stuOrientLandscape, desc: "16:9" },
-                    { o: "auto" as const, label: t.stuOrientAuto, desc: t.stuOrientAdaptive },
-                  ]).map(({ o, label, desc }) => (
-                    <button
-                      key={o}
-                      onClick={() => setOrientation(o)}
-                      className={`flex flex-col items-center gap-0.5 py-3 rounded-xl border transition-all ${orientation === o ? "border-primary/60 bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:border-primary/30"}`}
-                    >
-                      <span className="text-[11px] font-medium tracking-wide">{label}</span>
-                      <span className="text-[9px] text-muted-foreground">{desc}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           <button
@@ -1016,7 +969,6 @@ function Studio() {
               onDownloadVideo={downloadVideo}
               onShare={shareToplatform}
               sharing={sharing}
-              format={format}
               connectedPlatforms={connectedPlatforms}
               session={supabase}
               userId={user?.id}
@@ -1116,39 +1068,6 @@ function ModeTab({
   );
 }
 
-function FormatCard({
-  active,
-  onClick,
-  icon: Icon,
-  label,
-  desc,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: typeof FileText;
-  label: string;
-  desc: string;
-}) {
-  const tilt = useTilt(10);
-  return (
-    <button
-      onClick={onClick}
-      onMouseMove={tilt.onMouseMove}
-      onMouseLeave={tilt.onMouseLeave}
-      style={tilt.style}
-      className={`tilt-card flex flex-col items-center gap-1.5 py-4 rounded-xl border transition-all ${
-        active
-          ? "border-primary/60 bg-primary/10 text-foreground animate-pop"
-          : "border-border text-muted-foreground hover:border-primary/30"
-      }`}
-    >
-      <Icon className={`h-5 w-5 transition-transform ${active ? "text-primary scale-110" : ""}`} />
-      <span className="text-[11px] font-medium tracking-wide">{label}</span>
-      <span className="text-[9px] text-muted-foreground">{desc}</span>
-    </button>
-  );
-}
-
 function IdeaCard({
   onClick,
   eyebrow,
@@ -1217,7 +1136,6 @@ function PlanOutput({
   onDownloadVideo,
   onShare,
   sharing,
-  format,
   connectedPlatforms,
   session: supabaseClient,
   userId,
@@ -1243,7 +1161,6 @@ function PlanOutput({
   onDownloadVideo: () => void;
   onShare?: (platform: string, text: string, key: string) => void;
   sharing?: string | null;
-  format: string;
   connectedPlatforms: Set<string>;
   session: typeof supabase;
   userId?: string;
