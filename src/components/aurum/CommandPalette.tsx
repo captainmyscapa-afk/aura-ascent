@@ -23,7 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 const NAV_ITEMS = [
-  { label: "Mission Control",  to: "/app",          icon: LayoutDashboard, group: "Navigate" },
+  { label: "Dashboard",        to: "/app",          icon: LayoutDashboard, group: "Navigate" },
   { label: "30-Day Roadmap",   to: "/roadmap",       icon: Map,             group: "Navigate" },
   { label: "Intelligence",     to: "/intelligence",  icon: Radio,           group: "Navigate" },
   { label: "Mentor",           to: "/mentor",        icon: Sparkles,        group: "Navigate" },

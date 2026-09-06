@@ -55,6 +55,7 @@ export type T = {
   dashComingSoon: string;
   dashTrackComplete: (done: number, total: number) => string;
   dashMomentumLabel: (pct: number) => string;
+  dashAskMentorHelp: string;
   dashAllIndustries: string;
   dashSelectEvent: string;
   dashSelectEventDesc: string;
@@ -717,7 +718,7 @@ export type T = {
 export const translations: Record<Lang, T> = {
   en: {
     // Navigation
-    navDashboard: "Mission Control",
+    navDashboard: "Dashboard",
     navRoadmap: "30-Day Roadmap",
     navIntelligence: "Intelligence",
     navMentor: "Mentor",
@@ -775,6 +776,7 @@ export const translations: Record<Lang, T> = {
     dashComingSoon: "Coming soon",
     dashTrackComplete: (done, total) => `${done}/${total} complete`,
     dashMomentumLabel: (pct) => `Momentum · ${pct}%`,
+    dashAskMentorHelp: "Ask Mentor for help",
     dashAllIndustries: "All industries",
     dashSelectEvent: "Select an event",
     dashSelectEventDesc: "Click any event on the calendar to see details, content prep timing and create posts.",
@@ -1628,7 +1630,7 @@ export const translations: Record<Lang, T> = {
   },
   fr: {
     // Navigation
-    navDashboard: "Contrôle Mission",
+    navDashboard: "Tableau de bord",
     navRoadmap: "Plan 30 Jours",
     navIntelligence: "Intelligence",
     navMentor: "Mentor",
@@ -1686,6 +1688,7 @@ export const translations: Record<Lang, T> = {
     dashComingSoon: "Bientôt disponible",
     dashTrackComplete: (done, total) => `${done}/${total} terminé`,
     dashMomentumLabel: (pct) => `Élan · ${pct}%`,
+    dashAskMentorHelp: "Demander l'aide du Mentor",
     dashAllIndustries: "Tous les secteurs",
     dashSelectEvent: "Sélectionnez un événement",
     dashSelectEventDesc: "Cliquez sur un événement du calendrier pour voir les détails, la fenêtre de préparation et créer des publications.",

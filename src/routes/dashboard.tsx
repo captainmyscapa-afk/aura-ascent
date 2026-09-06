@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, Lock, RefreshCw, MapPin, ChevronLeft, Clock, Flame } from "lucide-react";
+import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, Lock, RefreshCw, MapPin, ChevronLeft, Clock, Flame, MessageCircle } from "lucide-react";
 import React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -744,8 +744,23 @@ export default function Dashboard() {
                 style={{ width: `${(completed / total) * 100}%`, height: "1px" }}
               />
             </div>
-            <div className="mt-3 text-[11px] tracking-[0.3em] text-muted-foreground uppercase">
-              {t.dashMomentumLabel(Math.round((completed / total) * 100))}
+            <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
+              <div className="text-[11px] tracking-[0.3em] text-muted-foreground uppercase">
+                {t.dashMomentumLabel(Math.round((completed / total) * 100))}
+              </div>
+              {/* CAP-125: quick escape hatch to Mentor for anyone stuck on a task —
+                  seeds the chat with today's actual task list so Mentor has real
+                  context instead of a bare "help me" (mirrors the seed-prompt
+                  pattern intelligence.tsx already uses for Studio). */}
+              <Link
+                to="/mentor"
+                search={{
+                  prompt: `Can you help me with my daily ritual tasks today?\n\n${dailyTasks.map((task, idx) => `${idx + 1}. ${task}`).join("\n")}`,
+                }}
+                className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-primary/80 hover:text-primary transition-colors"
+              >
+                <MessageCircle className="h-3 w-3" /> {t.dashAskMentorHelp}
+              </Link>
             </div>
           </Card>
 
