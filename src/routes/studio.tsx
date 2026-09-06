@@ -164,6 +164,11 @@ function Studio() {
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [videoComingSoon, setVideoComingSoon] = useState(false);
+  // CAP-127: holds the real reason video generation is unavailable right
+  // now (not eligible / monthly cap reached / launching soon / transient
+  // error) so the UI can say something accurate instead of a blanket
+  // "coming soon" once video generation is a real, gated, paid feature.
+  const [videoUnavailableMessage, setVideoUnavailableMessage] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [lastSavedId, setLastSavedId] = useState<string | null>(null);
@@ -486,6 +491,7 @@ function Studio() {
     setVideoLoading(true);
     setVideoError(false);
     setVideoComingSoon(false);
+    setVideoUnavailableMessage(null);
     setVideoUrl(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -508,10 +514,12 @@ function Studio() {
         url?: string;
         data?: string;
         mimeType?: string;
+        message?: string;
       };
 
       if (!data.available) {
         setVideoComingSoon(true);
+        setVideoUnavailableMessage(data.message ?? null);
         return;
       }
 
@@ -1003,6 +1011,7 @@ function Studio() {
               videoLoading={videoLoading}
               videoError={videoError}
               videoComingSoon={videoComingSoon}
+              videoUnavailableMessage={videoUnavailableMessage}
               onGenerateVideo={() => generateVideo((editablePlan ?? plan!).script)}
               onDownloadVideo={downloadVideo}
               onShare={shareToplatform}
@@ -1203,6 +1212,7 @@ function PlanOutput({
   videoLoading,
   videoError,
   videoComingSoon,
+  videoUnavailableMessage,
   onGenerateVideo,
   onDownloadVideo,
   onShare,
@@ -1228,6 +1238,7 @@ function PlanOutput({
   videoLoading: boolean;
   videoError: boolean;
   videoComingSoon: boolean;
+  videoUnavailableMessage: string | null;
   onGenerateVideo: () => void;
   onDownloadVideo: () => void;
   onShare?: (platform: string, text: string, key: string) => void;
@@ -1541,7 +1552,7 @@ function PlanOutput({
           {videoComingSoon && !videoLoading && (
             <div className="w-full rounded-xl border border-border/40 p-4 text-center bg-secondary/10">
               <Video className="h-4 w-4 text-muted-foreground mx-auto mb-2" />
-              <div className="text-xs text-muted-foreground">{t.stuVideoComingSoon}</div>
+              <div className="text-xs text-muted-foreground">{videoUnavailableMessage ?? t.stuVideoComingSoon}</div>
             </div>
           )}
 
