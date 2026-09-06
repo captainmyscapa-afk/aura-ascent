@@ -23,9 +23,17 @@ function initials(name: string | null) {
     .toUpperCase();
 }
 
+// Note: building this via `mode?.[0]?.toUpperCase() + mode?.slice(1)` breaks
+// when mode/level is null — `undefined + ""` coerces to the *string*
+// "undefined", which is truthy, so a naive `|| fallback` never fires.
+function capitalize(value: string | null | undefined): string {
+  if (!value) return "";
+  return value[0].toUpperCase() + value.slice(1);
+}
+
 function titleFor(mode: string | null, level: string | null) {
-  const m = mode?.[0]?.toUpperCase() + (mode?.slice(1) ?? "");
-  const l = level?.[0]?.toUpperCase() + (level?.slice(1) ?? "");
+  const m = capitalize(mode);
+  const l = capitalize(level);
   return `${m || "Aurum"} ${l || "Initiate"}`;
 }
 
@@ -70,7 +78,12 @@ export function UserCardDialog({
   const hasTitleInfo = !!(activeMode || currentLevel);
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
       <DialogContent className="max-w-xs">
         <div className="flex flex-col items-center text-center py-4">
           <div className="h-20 w-20 rounded-full bg-background border-4 border-background flex items-center justify-center font-serif text-2xl text-gold-gradient bg-[var(--gradient-card)] overflow-hidden ring-2 ring-primary/30">
