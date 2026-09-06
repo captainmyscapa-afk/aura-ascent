@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, Lock, RefreshCw, MapPin, ChevronLeft, Clock, Flame } from "lucide-react";
+import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, ChevronDown, Lock, RefreshCw, MapPin, ChevronLeft, Clock, Flame } from "lucide-react";
 import React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -25,6 +25,16 @@ export const Route = createFileRoute("/dashboard")({
 
 // Curated so the celebration fires at meaningful gaps, not every single day.
 const STREAK_MILESTONES = [7, 14, 30, 60, 100, 180, 365];
+
+// CAP-123: same dot+label badge shown on every ritual/roadmap item elsewhere
+// in the app (see INDUSTRY_META in calendar.tsx) — restores it to the
+// Dashboard's own Daily Ritual list, which had dropped it.
+const RITUAL_BADGE: Record<string, { dot: string; text: string; label: string }> = {
+  yachts: { dot: "bg-blue-400", text: "text-blue-300", label: "Yacht" },
+  villas: { dot: "bg-emerald-400", text: "text-emerald-300", label: "Villa" },
+  jets: { dot: "bg-violet-400", text: "text-violet-300", label: "Jet" },
+  cars: { dot: "bg-orange-400", text: "text-orange-300", label: "Car" },
+};
 
 const INDUSTRY_TO_TRACK: Record<IndustryId, string> = {
   yachts: "yachting",
@@ -716,8 +726,9 @@ export default function Dashboard() {
             </div>
             {allDone && completionMsg && <CompletionBanner message={completionMsg} />}
             <div className="space-y-1.5">
-              {dailyTasks.map((t, i) => {
+              {dailyTasks.map((task, i) => {
                 const isDone = !!done[i];
+                const badge = RITUAL_BADGE[industryId];
                 return (
                   <button
                     key={i}
@@ -725,15 +736,22 @@ export default function Dashboard() {
                     className={`group w-full text-left flex items-center gap-4 px-4 py-3.5 rounded-lg transition-all ${isDone ? "bg-secondary/20" : "hover:bg-secondary/40"}`}
                   >
                     <div
-                      className={`h-5 w-5 rounded-full flex items-center justify-center border transition-colors ${isDone ? "bg-primary border-primary" : "border-border/70 group-hover:border-primary/60"}`}
+                      className={`h-5 w-5 shrink-0 rounded-full flex items-center justify-center border transition-colors ${isDone ? "bg-primary border-primary" : "border-border/70 group-hover:border-primary/60"}`}
                     >
                       {isDone && <Check className="h-3 w-3 text-primary-foreground" />}
                     </div>
                     <div
                       className={`flex-1 text-[15px] leading-snug ${isDone ? "text-muted-foreground/70 line-through" : "text-foreground"}`}
                     >
-                      {t}
+                      {task}
                     </div>
+                    {badge && (
+                      <span className="hidden sm:flex items-center gap-1 shrink-0" title={`${badge.label} Mode`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
+                        <span className={`text-[8px] tracking-[0.15em] uppercase ${badge.text}`}>{badge.label}</span>
+                      </span>
+                    )}
+                    <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground/40" />
                   </button>
                 );
               })}
