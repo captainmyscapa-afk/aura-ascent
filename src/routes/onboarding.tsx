@@ -464,7 +464,7 @@ function Generating({ mode }: { mode: string }) {
           "Mapping ecosystem intelligence feeds",
           "Calibrating 30-day execution roadmap",
           "Selecting networking opportunities",
-          "Initializing AI mentor persona",
+          "Initializing mentor persona",
         ].map((l, i) => (
           <div
             key={l}

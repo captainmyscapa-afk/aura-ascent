@@ -64,7 +64,7 @@ export function UsageBar({
 }
 
 /**
- * PageLock — full-page gate for Pro-only routes (e.g. Roadmap, AI Tutor).
+ * PageLock — full-page gate for Pro-only routes (e.g. Roadmap, Tutor).
  * Renders instead of the page's normal content for free-plan users, with a CTA
  * that opens UpgradeModal. Callers are responsible for the isPro/loading check
  * and for not running paid-API side effects (e.g. auto-generation) while locked.
