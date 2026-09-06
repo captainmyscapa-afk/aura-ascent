@@ -143,7 +143,7 @@ function Studio() {
   const generate = useServerFn(generateStudioContent);
 
   const [mode, setMode] = useState<Mode>("assisted");
-  const [videoDuration, setVideoDuration] = useState<10 | 15 | 30 | 60>(15);
+  const [videoDuration, setVideoDuration] = useState<5 | 10 | 15 | 20>(10);
   const [idea, setIdea] = useState("");
   const [goal, setGoal] = useState("");
   const [intel, setIntel] = useState<IntelEntry[]>([]);
@@ -832,30 +832,10 @@ function Studio() {
             />
           </div>
 
-          {/* CAP-128: the format picker (post/image/video, which used to
-              gate which 3-of-6 platforms got captions) and the orientation
-              picker are gone -- every generation now targets all 6
-              platforms at once. Video length stays a real choice since
-              image/video generation are still separate manual steps. */}
-          <div className="glass rounded-xl p-5">
-            <Label>{t.stuDurationLabel}</Label>
-            <div className="grid grid-cols-4 gap-2">
-              {([
-                { d: 10 as const, label: "10s" },
-                { d: 15 as const, label: "15s" },
-                { d: 30 as const, label: "30s" },
-                { d: 60 as const, label: t.stuDuration1Min },
-              ]).map(({ d, label }) => (
-                <button
-                  key={d}
-                  onClick={() => setVideoDuration(d)}
-                  className={`text-xs py-2.5 rounded-lg border transition-all font-mono ${videoDuration === d ? "border-primary/60 bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:border-primary/30"}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* CAP-128: the format/orientation picker is gone -- every
+              generation now targets all 6 platforms at once. Video length
+              moved under the Generate Video box itself (CAP-129) since it
+              only matters once you're about to generate a video. */}
 
           <button
             onClick={() => void run()}
@@ -965,6 +945,8 @@ function Studio() {
               videoError={videoError}
               videoComingSoon={videoComingSoon}
               videoUnavailableMessage={videoUnavailableMessage}
+              videoDuration={videoDuration}
+              onVideoDurationChange={setVideoDuration}
               onGenerateVideo={() => generateVideo((editablePlan ?? plan!).script)}
               onDownloadVideo={downloadVideo}
               onShare={shareToplatform}
@@ -1132,6 +1114,8 @@ function PlanOutput({
   videoError,
   videoComingSoon,
   videoUnavailableMessage,
+  videoDuration,
+  onVideoDurationChange,
   onGenerateVideo,
   onDownloadVideo,
   onShare,
@@ -1157,6 +1141,8 @@ function PlanOutput({
   videoError: boolean;
   videoComingSoon: boolean;
   videoUnavailableMessage: string | null;
+  videoDuration: 5 | 10 | 15 | 20;
+  onVideoDurationChange: (d: 5 | 10 | 15 | 20) => void;
   onGenerateVideo: () => void;
   onDownloadVideo: () => void;
   onShare?: (platform: string, text: string, key: string) => void;
@@ -1442,12 +1428,28 @@ function PlanOutput({
           )}
 
           {!editingScript && !videoUrl && !videoLoading && !videoComingSoon && (
-            <button
-              onClick={onGenerateVideo}
-              className="w-full h-10 rounded-xl border border-primary/40 text-primary text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary/10 transition-all"
-            >
-              <Video className="h-4 w-4" /> {t.stuGenerateVideo}
-            </button>
+            <div className="space-y-2">
+              <div>
+                <Label>{t.stuDurationLabel}</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {([5, 10, 15, 20] as const).map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => onVideoDurationChange(d)}
+                      className={`text-xs py-2 rounded-lg border transition-all font-mono ${videoDuration === d ? "border-primary/60 bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:border-primary/30"}`}
+                    >
+                      {d}s
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={onGenerateVideo}
+                className="w-full h-10 rounded-xl border border-primary/40 text-primary text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary/10 transition-all"
+              >
+                <Video className="h-4 w-4" /> {t.stuGenerateVideo}
+              </button>
+            </div>
           )}
 
           {videoLoading && (
