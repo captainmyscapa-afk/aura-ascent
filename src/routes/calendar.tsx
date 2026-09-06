@@ -870,7 +870,7 @@ function CalendarPage() {
                               </div>
                               <div className="flex items-center gap-1 shrink-0">
                                 <button
-                                  onClick={() => void navigate({ to: "/studio", search: { intel: undefined, idea: undefined } })}
+                                  onClick={() => void navigate({ to: "/studio", search: { intel: undefined, idea: undefined, scheduledPostId: p.id } })}
                                   title={t.calOpenInStudio}
                                   className="text-muted-foreground hover:text-primary transition-colors p-1"
                                 >

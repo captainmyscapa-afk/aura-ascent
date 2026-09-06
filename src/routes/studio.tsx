@@ -47,6 +47,10 @@ export const Route = createFileRoute("/studio")({
   validateSearch: (search: Record<string, unknown>) => ({
     intel: search.intel as string | undefined,
     idea: search.idea as string | undefined,
+    // CAP-126: Calendar's "Open in Studio" on a scheduled post links straight
+    // here so the generated content loads immediately, instead of landing on
+    // a blank Studio the person then has to dig through history to find.
+    scheduledPostId: search.scheduledPostId as string | undefined,
   }),
 });
 
@@ -76,6 +80,21 @@ type HistoryEntry = {
   image_url: string | null;
   video_url: string | null;
   created_at: string;
+};
+
+// CAP-126: the row shape read back from scheduled_posts when jumping in from
+// Calendar's "Open in Studio" — a narrower set of fields than HistoryEntry
+// since scheduled_posts has no idea/goal/video_url columns.
+type ScheduledPostRow = {
+  id: string;
+  format: string | null;
+  title: string | null;
+  viral_hook: string | null;
+  platforms: Record<string, string> | null;
+  script: string[] | null;
+  hashtags: string[] | null;
+  visual_prompt: string | null;
+  image_url: string | null;
 };
 
 function useTilt(strength = 8) {
@@ -154,7 +173,7 @@ function Studio() {
 
   const LOAD_STEPS = t.stuLoadSteps;
 
-  const { intel: preselectedIntel, idea: preselectedIdea } = Route.useSearch();
+  const { intel: preselectedIntel, idea: preselectedIdea, scheduledPostId } = Route.useSearch();
 
   useEffect(() => {
     if (preselectedIntel && intel.length > 0) {
@@ -170,6 +189,21 @@ function Studio() {
       setGoal("Create content to build authority and visibility before this event");
     }
   }, [preselectedIdea]);
+
+  // CAP-126: land directly on the generated content when Calendar links in with
+  // a specific scheduled post, instead of a blank Studio.
+  useEffect(() => {
+    if (!scheduledPostId || !user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("scheduled_posts")
+        .select("id, format, title, viral_hook, platforms, script, hashtags, visual_prompt, image_url")
+        .eq("id", scheduledPostId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) loadFromScheduledPost(data as unknown as ScheduledPostRow);
+    })();
+  }, [scheduledPostId, user]);
 
   useEffect(() => {
     (async () => {
@@ -281,6 +315,33 @@ function Studio() {
     setPlan(restoredPlan);
     setShowHistory(false);
     // Rebuild editable plan from history entry
+    setEditablePlan({ ...restoredPlan });
+  };
+
+  // CAP-126: same shape as loadFromHistory, sourced from scheduled_posts instead —
+  // no idea/goal (not columns on that table) and no video_url (scheduled_posts
+  // predates the video feature's video_url column, so any generated video for a
+  // scheduled post was never persisted). lastSavedId is deliberately left alone:
+  // scheduled_posts and user_content_history are different tables/ids, so a
+  // regenerate here shouldn't try to write an image/video update against the
+  // wrong table.
+  const loadFromScheduledPost = (row: ScheduledPostRow) => {
+    setEditablePlan(null);
+    setImageUrl(row.image_url || null);
+    setVideoUrl(null);
+    setVideoError(false);
+    setVideoComingSoon(false);
+    const restoredPlan: StudioContentPlan = {
+      title: row.title || "",
+      viralHook: row.viral_hook || "",
+      platforms: row.platforms || {},
+      script: row.script || [],
+      hashtags: row.hashtags || [],
+      visualPrompt: row.visual_prompt || "",
+      format: row.format || "post",
+    };
+    setPlan(restoredPlan);
+    setShowHistory(false);
     setEditablePlan({ ...restoredPlan });
   };
 

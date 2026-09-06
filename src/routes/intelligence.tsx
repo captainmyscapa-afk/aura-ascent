@@ -183,7 +183,7 @@ function Intelligence() {
                     onClick={(evt) => {
                       evt.preventDefault();
                       evt.stopPropagation();
-                      navigate({ to: "/studio", search: { intel: String(e.id), idea: undefined } });
+                      navigate({ to: "/studio", search: { intel: String(e.id), idea: undefined, scheduledPostId: undefined } });
                     }}
                     className="flex items-center gap-1 text-[11px] tracking-[0.2em] uppercase text-primary/80 hover:text-primary transition-colors"
                   >

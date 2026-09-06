@@ -946,7 +946,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 pt-2">
-                  <Link to="/studio" search={{ idea: selectedEvent.title + " — " + selectedEvent.location + ". " + selectedEvent.description, intel: undefined }} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
+                  <Link to="/studio" search={{ idea: selectedEvent.title + " — " + selectedEvent.location + ". " + selectedEvent.description, intel: undefined, scheduledPostId: undefined }} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
                     <Sparkles className="w-3.5 h-3.5" />{t.dashCreateContentForEvent}
                   </Link>
                   {selectedEvent.url && (
