@@ -417,7 +417,6 @@ export type T = {
   stuGoalLabel: string;
   stuOptional: string;
   stuGoalPlaceholder: string;
-  stuDurationLabel: string;
   stuGenerateButton: string;
   stuApprox30s: string;
   stuReadyTitle: string;
@@ -1266,7 +1265,6 @@ export const translations: Record<Lang, T> = {
     stuGoalLabel: "GOAL",
     stuOptional: "(optional)",
     stuGoalPlaceholder: "e.g. attract UHNW charter clients",
-    stuDurationLabel: "DURATION",
     stuGenerateButton: "Generate viral content",
     stuApprox30s: "~30s",
     stuReadyTitle: "Your content, ready in 30s",
@@ -2219,7 +2217,6 @@ export const translations: Record<Lang, T> = {
     stuGoalLabel: "OBJECTIF",
     stuOptional: "(facultatif)",
     stuGoalPlaceholder: "ex. attirer des clients de charter UHNW",
-    stuDurationLabel: "DURÉE",
     stuGenerateButton: "Générer du contenu viral",
     stuApprox30s: "~30 s",
     stuReadyTitle: "Votre contenu, prêt en 30 s",

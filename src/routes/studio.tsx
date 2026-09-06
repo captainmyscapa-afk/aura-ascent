@@ -143,7 +143,6 @@ function Studio() {
   const generate = useServerFn(generateStudioContent);
 
   const [mode, setMode] = useState<Mode>("assisted");
-  const [videoDuration, setVideoDuration] = useState<5 | 10 | 15 | 20>(10);
   const [idea, setIdea] = useState("");
   const [goal, setGoal] = useState("");
   const [intel, setIntel] = useState<IntelEntry[]>([]);
@@ -945,8 +944,6 @@ function Studio() {
               videoError={videoError}
               videoComingSoon={videoComingSoon}
               videoUnavailableMessage={videoUnavailableMessage}
-              videoDuration={videoDuration}
-              onVideoDurationChange={setVideoDuration}
               onGenerateVideo={() => generateVideo((editablePlan ?? plan!).script)}
               onDownloadVideo={downloadVideo}
               onShare={shareToplatform}
@@ -1114,8 +1111,6 @@ function PlanOutput({
   videoError,
   videoComingSoon,
   videoUnavailableMessage,
-  videoDuration,
-  onVideoDurationChange,
   onGenerateVideo,
   onDownloadVideo,
   onShare,
@@ -1141,8 +1136,6 @@ function PlanOutput({
   videoError: boolean;
   videoComingSoon: boolean;
   videoUnavailableMessage: string | null;
-  videoDuration: 5 | 10 | 15 | 20;
-  onVideoDurationChange: (d: 5 | 10 | 15 | 20) => void;
   onGenerateVideo: () => void;
   onDownloadVideo: () => void;
   onShare?: (platform: string, text: string, key: string) => void;
@@ -1427,29 +1420,17 @@ function PlanOutput({
             </ol>
           )}
 
+          {/* CAP-130: Veo 3.1 only supports 4/6/8s per single call, and
+              1080p forces 8s regardless -- the 5/10/15/20s picker (CAP-129)
+              never mapped to a real option, so it's gone. Every video is a
+              fixed 8s clip at 1080p, matching what Veo already generates. */}
           {!editingScript && !videoUrl && !videoLoading && !videoComingSoon && (
-            <div className="space-y-2">
-              <div>
-                <Label>{t.stuDurationLabel}</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  {([5, 10, 15, 20] as const).map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => onVideoDurationChange(d)}
-                      className={`text-xs py-2 rounded-lg border transition-all font-mono ${videoDuration === d ? "border-primary/60 bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:border-primary/30"}`}
-                    >
-                      {d}s
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <button
-                onClick={onGenerateVideo}
-                className="w-full h-10 rounded-xl border border-primary/40 text-primary text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary/10 transition-all"
-              >
-                <Video className="h-4 w-4" /> {t.stuGenerateVideo}
-              </button>
-            </div>
+            <button
+              onClick={onGenerateVideo}
+              className="w-full h-10 rounded-xl border border-primary/40 text-primary text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary/10 transition-all"
+            >
+              <Video className="h-4 w-4" /> {t.stuGenerateVideo}
+            </button>
           )}
 
           {videoLoading && (
