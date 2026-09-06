@@ -137,6 +137,11 @@ export type T = {
   calAttendees: (n: number) => string;
   calDeleteEvent: string;
   calOrganizedBy: (name: string) => string;
+  // Calendar — Scheduled content (CAP-122)
+  calScheduledTitle: string;
+  calLegendScheduled: string;
+  calOpenInStudio: string;
+  calDeleteScheduled: string;
   // Roadmap
   roadmapEyebrow: (mode: string) => string;
   roadmapBuilding: string;
@@ -902,6 +907,10 @@ export const translations: Record<Lang, T> = {
     calAttendees: (n) => (n === 1 ? "1 going" : `${n} going`),
     calDeleteEvent: "Delete event",
     calOrganizedBy: (name) => `Hosted by ${name}`,
+    calScheduledTitle: "Scheduled Content",
+    calLegendScheduled: "Scheduled post",
+    calOpenInStudio: "Open in Studio",
+    calDeleteScheduled: "Cancel",
     // Roadmap
     roadmapEyebrow: (mode) => `ROADMAP · ${mode.toUpperCase()}`,
     roadmapBuilding: "Building your roadmap…",
@@ -1809,6 +1818,10 @@ export const translations: Record<Lang, T> = {
     calAttendees: (n) => (n === 1 ? "1 participant" : `${n} participants`),
     calDeleteEvent: "Supprimer l'événement",
     calOrganizedBy: (name) => `Organisé par ${name}`,
+    calScheduledTitle: "Contenu programmé",
+    calLegendScheduled: "Publication programmée",
+    calOpenInStudio: "Ouvrir dans Studio",
+    calDeleteScheduled: "Annuler",
     // Roadmap
     roadmapEyebrow: (mode) => `PROGRAMME · ${mode.toUpperCase()}`,
     roadmapBuilding: "Création de votre programme…",

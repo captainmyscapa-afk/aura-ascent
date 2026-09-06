@@ -21,6 +21,13 @@ import {
   MapPin,
   Users,
   Flag,
+  Send,
+  Instagram,
+  Facebook,
+  Linkedin,
+  Twitter,
+  Youtube,
+  Film,
 } from "lucide-react";
 import { AppShell } from "@/components/aurum/AppShell";
 import { AnimateIn } from "@/components/aurum/AnimateIn";
@@ -117,6 +124,30 @@ type PublicProfile = {
   current_level: string | null;
 };
 
+// CAP-122: Content Studio's "Schedule Post" feature (scheduled_posts table) linked
+// onto the calendar, so a queued post shows up on the day it's due to go out —
+// same per-day grid + selected-day-list pattern as community events above.
+type ScheduledPost = {
+  id: string;
+  title: string | null;
+  scheduled_at: string;
+  format: string | null;
+  industry: string | null;
+  selected_platforms: string[] | null;
+  status: string | null;
+};
+
+// Mirrors ALL_PUBLISH_PLATFORMS in studio.tsx (kept local — same duplication
+// pattern already used for PublicProfile across network.tsx/calendar.tsx).
+const PLATFORM_ICON: Record<string, typeof Send> = {
+  instagram: Instagram,
+  tiktok: Film,
+  youtube_shorts: Youtube,
+  facebook: Facebook,
+  linkedin: Linkedin,
+  twitter: Twitter,
+};
+
 function CalendarPage() {
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -193,6 +224,41 @@ function CalendarPage() {
     void loadUpcoming();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // ── Scheduled content (CAP-122) — Content Studio's "Schedule Post" queue, shown
+  //    on the day each post is due to go out. Only "scheduled" status: "saved"
+  //    drafts are timestamped "now" at save time and would otherwise clutter
+  //    today's cell forever. ──
+  const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
+  const [postMutatingId, setPostMutatingId] = useState<string | null>(null);
+
+  const loadScheduledPosts = async () => {
+    if (!user) return;
+    const monthStart = new Date(viewYear, viewMonth, 1);
+    const monthEnd = new Date(viewYear, viewMonth + 1, 1);
+    const { data } = await supabase
+      .from("scheduled_posts")
+      .select("id, title, scheduled_at, format, industry, selected_platforms, status")
+      .eq("user_id", user.id)
+      .eq("status", "scheduled")
+      .gte("scheduled_at", monthStart.toISOString())
+      .lt("scheduled_at", monthEnd.toISOString())
+      .order("scheduled_at", { ascending: true });
+    setScheduledPosts(data ?? []);
+  };
+
+  useEffect(() => {
+    void loadScheduledPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, viewMonth, viewYear]);
+
+  const deleteScheduledPost = async (id: string) => {
+    if (!user) return;
+    setPostMutatingId(id);
+    await supabase.from("scheduled_posts").delete().eq("id", id).eq("user_id", user.id);
+    setScheduledPosts((prev) => prev.filter((p) => p.id !== id));
+    setPostMutatingId(null);
+  };
 
   // ── Community events (CAP-98) — global across industries; each event still carries
   //    the industry it was shared from, shown as a badge in the list. ──
@@ -362,6 +428,16 @@ function CalendarPage() {
     return map;
   }, [communityEvents]);
 
+  const postsByDay = useMemo(() => {
+    const map: Record<string, ScheduledPost[]> = {};
+    scheduledPosts.forEach((p) => {
+      const key = isoDay(new Date(p.scheduled_at));
+      if (!map[key]) map[key] = [];
+      map[key].push(p);
+    });
+    return map;
+  }, [scheduledPosts]);
+
   const monthActivePct = useMemo(() => {
     const lastDay = new Date(viewYear, viewMonth + 1, 0).getDate();
     const activeDays = Object.keys(completedByDay).length;
@@ -432,6 +508,7 @@ function CalendarPage() {
   const selectedCompleted = completedByDay[selectedDate];
   const selectedDue = (tasksByDueDay[selectedDate] ?? []).sort((a, b) => (a.priority === b.priority ? 0 : a.priority === "high" ? -1 : 1));
   const selectedEvents = (eventsByDay[selectedDate] ?? []).sort((a, b) => a.start_at.localeCompare(b.start_at));
+  const selectedPosts = (postsByDay[selectedDate] ?? []).sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
 
   return (
     <AppShell>
@@ -539,6 +616,7 @@ function CalendarPage() {
               const overdue = due.some((tk) => tk.status !== "completed" && dateStr < todayStr);
               const hasReminder = due.some((tk) => !!tk.remind_at);
               const dayEvents = eventsByDay[dateStr] ?? [];
+              const dayPosts = postsByDay[dateStr] ?? [];
 
               const isDragOver = dragOverDate === dateStr;
 
@@ -569,6 +647,12 @@ function CalendarPage() {
                         <span
                           className="h-1.5 w-1.5 rounded-full border border-primary/70"
                           title={dayEvents.length === 1 ? dayEvents[0].title : `${dayEvents.length} community events`}
+                        />
+                      )}
+                      {dayPosts.length > 0 && (
+                        <span
+                          className="h-1.5 w-1.5 rounded-full bg-fuchsia-400"
+                          title={dayPosts.length === 1 ? (dayPosts[0].title || t.calScheduledTitle) : `${dayPosts.length} ${t.calScheduledTitle}`}
                         />
                       )}
                     </span>
@@ -640,6 +724,10 @@ function CalendarPage() {
               <span className="h-1.5 w-1.5 rounded-full border border-primary/70" />
               <span className="text-[10px] text-muted-foreground">{t.calLegendEvent}</span>
             </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-fuchsia-400" />
+              <span className="text-[10px] text-muted-foreground">{t.calLegendScheduled}</span>
+            </div>
           </div>
         </div>
 
@@ -661,7 +749,7 @@ function CalendarPage() {
               </button>
             </div>
 
-            {(!selectedCompleted || (selectedCompleted.ritual.length === 0 && selectedCompleted.roadmap.length === 0)) && selectedDue.length === 0 && selectedEvents.length === 0 ? (
+            {(!selectedCompleted || (selectedCompleted.ritual.length === 0 && selectedCompleted.roadmap.length === 0)) && selectedDue.length === 0 && selectedEvents.length === 0 && selectedPosts.length === 0 ? (
               <div className="text-center py-8">
                 <CalendarDays className="h-6 w-6 mx-auto text-muted-foreground/40 mb-2" />
                 <p className="text-xs text-muted-foreground">{t.calEmptyDay}</p>
@@ -742,6 +830,61 @@ function CalendarPage() {
                               >
                                 {going ? t.calRsvped : t.calRsvp}
                               </button>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                {selectedPosts.length > 0 && (
+                  <div>
+                    {((selectedCompleted && (selectedCompleted.ritual.length > 0 || selectedCompleted.roadmap.length > 0)) || selectedDue.length > 0 || selectedEvents.length > 0) && <div className="border-t border-border/40 pt-3" />}
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Send className="h-3 w-3 text-fuchsia-400" />
+                      <span className="text-[10px] tracking-[0.2em] text-muted-foreground uppercase">{t.calScheduledTitle}</span>
+                      <span className="ml-auto font-mono text-[10px] text-fuchsia-400">{selectedPosts.length}</span>
+                    </div>
+                    <ul className="space-y-2">
+                      {selectedPosts.map((p) => {
+                        const time = new Date(p.scheduled_at);
+                        const meta = p.industry ? INDUSTRY_META[p.industry] : null;
+                        return (
+                          <li key={p.id} className="rounded-lg border border-border/60 p-2.5">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-medium text-foreground truncate">{p.title || t.calScheduledTitle}</span>
+                                  {meta && <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${meta.dot}`} title={meta.label} />}
+                                </div>
+                                <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
+                                  <span>{time.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span>
+                                  <span className="flex items-center gap-1">
+                                    {(p.selected_platforms ?? []).map((key) => {
+                                      const Icon = PLATFORM_ICON[key];
+                                      return Icon ? <Icon key={key} className="h-2.5 w-2.5" /> : null;
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  onClick={() => void navigate({ to: "/studio", search: { intel: undefined, idea: undefined } })}
+                                  title={t.calOpenInStudio}
+                                  className="text-muted-foreground hover:text-primary transition-colors p-1"
+                                >
+                                  <Send className="h-3 w-3" />
+                                </button>
+                                <button
+                                  onClick={() => deleteScheduledPost(p.id)}
+                                  disabled={postMutatingId === p.id}
+                                  title={t.calDeleteScheduled}
+                                  className="text-muted-foreground hover:text-destructive transition-colors p-1 disabled:opacity-40"
+                                >
+                                  {postMutatingId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                </button>
+                              </div>
                             </div>
                           </li>
                         );
