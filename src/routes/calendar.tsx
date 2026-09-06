@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type DragEvent } from "react";
 import {
   CalendarDays,
@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/aurum/AppShell";
 import { AnimateIn } from "@/components/aurum/AnimateIn";
+import { UserCardDialog } from "@/components/aurum/UserCardDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
@@ -107,6 +108,7 @@ type PublicProfile = { full_name: string | null; photo_url: string | null };
 function CalendarPage() {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { state: core } = useAurumCoreState();
   const { industryId } = useIndustry();
 
@@ -282,6 +284,18 @@ function CalendarPage() {
     if (userId === user?.id) return t.comYou;
     return eventProfiles[userId]?.full_name || t.comMember;
   };
+
+  // Same pattern as Network: your own name goes to the real Identity page,
+  // anyone else opens a read-only card scoped to what's actually public.
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
+  const openUser = (userId: string) => {
+    if (userId === user?.id) {
+      void navigate({ to: "/profile" });
+      return;
+    }
+    setViewingUserId(userId);
+  };
+  const viewingUser = viewingUserId ? (eventProfiles[viewingUserId] ?? null) : null;
 
   const completedByDay = useMemo(() => {
     const map: Record<string, { ritual: CompletedItem[]; roadmap: CompletedItem[] }> = {};
@@ -686,7 +700,13 @@ function CalendarPage() {
                                   {meta && <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${meta.dot}`} title={meta.label} />}
                                 </div>
                                 <div className="text-[10px] text-muted-foreground mt-0.5">
-                                  {start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })} · {eventOrganizerName(ev.user_id)}
+                                  {start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })} ·{" "}
+                                  <button
+                                    onClick={() => openUser(ev.user_id)}
+                                    className="hover:text-foreground hover:underline transition-colors"
+                                  >
+                                    {eventOrganizerName(ev.user_id)}
+                                  </button>
                                 </div>
                               </div>
                               <button
@@ -772,7 +792,12 @@ function CalendarPage() {
                         </div>
                         {ev.description && <p className="text-[11px] text-muted-foreground/80 mt-1.5 line-clamp-2">{ev.description}</p>}
                         <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground">
-                          <span>{eventOrganizerName(ev.user_id)}</span>
+                          <button
+                            onClick={() => openUser(ev.user_id)}
+                            className="hover:text-foreground hover:underline transition-colors"
+                          >
+                            {eventOrganizerName(ev.user_id)}
+                          </button>
                           <span className="flex items-center gap-1"><Users className="h-2.5 w-2.5" />{t.calAttendees(ev.attendee_count)}</span>
                         </div>
                       </div>
@@ -862,6 +887,13 @@ function CalendarPage() {
           </div>
         </div>
       )}
+
+      <UserCardDialog
+        open={!!viewingUserId}
+        onClose={() => setViewingUserId(null)}
+        name={viewingUser?.full_name ?? null}
+        photoUrl={viewingUser?.photo_url ?? null}
+      />
     </AppShell>
   );
 }

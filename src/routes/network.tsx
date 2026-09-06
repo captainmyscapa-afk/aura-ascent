@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { generateIntroMessage } from "@/lib/network.functions";
 import { useProGate } from "@/components/aurum/ProGate";
 import { UpgradeModal } from "@/components/aurum/UpgradeModal";
+import { UserCardDialog } from "@/components/aurum/UserCardDialog";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { T } from "@/lib/i18n/translations";
 
@@ -120,6 +121,7 @@ function Network() {
   const { industry, industryId } = useIndustry();
   const { profile } = useUserProfile();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const genIntro = useServerFn(generateIntroMessage);
 
   const { tab: seedTab, openAdd: seedOpenAdd } = Route.useSearch();
@@ -402,6 +404,19 @@ function Network() {
     return profilesMap[userId]?.full_name || t.comMember;
   }
 
+  // Clicking your own name goes to the real Identity page; anyone else opens
+  // a read-only card scoped to what's actually public (name + photo — see
+  // UserCardDialog for why nothing richer is shown here).
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
+  const openUser = (userId: string) => {
+    if (userId === user?.id) {
+      void navigate({ to: "/profile" });
+      return;
+    }
+    setViewingUserId(userId);
+  };
+  const viewingUser = viewingUserId ? (profilesMap[viewingUserId] ?? null) : null;
+
   const selectedPost = posts.find((p) => p.id === selectedPostId) ?? null;
 
   // Deep-link support: Roadmap's "get help" action for networking/outreach
@@ -533,6 +548,12 @@ function Network() {
   return (
     <AppShell>
       <UpgradeModal open={networkGate.showUpgrade} onClose={() => networkGate.setShowUpgrade(false)} reason={t.netGateMessage} />
+      <UserCardDialog
+        open={!!viewingUserId}
+        onClose={() => setViewingUserId(null)}
+        name={viewingUser?.full_name ?? null}
+        photoUrl={viewingUser?.photo_url ?? null}
+      />
       {/* Header */}
       <div className="mb-8 animate-fade-up">
         <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">
@@ -923,7 +944,12 @@ function Network() {
                         </div>
                         <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{p.body}</p>
                         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                          <span>{authorName(p.user_id)}</span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openUser(p.user_id); }}
+                            className="hover:text-foreground hover:underline transition-colors"
+                          >
+                            {authorName(p.user_id)}
+                          </button>
                           <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatDate(p.created_at, t, dateLocale)}</span>
                           <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" />{t.comRepliesCount(p.reply_count)}</span>
                         </div>
@@ -974,7 +1000,12 @@ function Network() {
                     </div>
                     <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap mb-3">{selectedPost.body}</p>
                     <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                      <span>{authorName(selectedPost.user_id)}</span>
+                      <button
+                        onClick={() => openUser(selectedPost.user_id)}
+                        className="hover:text-foreground hover:underline transition-colors"
+                      >
+                        {authorName(selectedPost.user_id)}
+                      </button>
                       <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatDate(selectedPost.created_at, t, dateLocale)}</span>
                     </div>
                   </div>
@@ -1031,7 +1062,12 @@ function Network() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-1.5">
-                          <span className="font-medium text-foreground/80">{authorName(r.user_id)}</span>
+                          <button
+                            onClick={() => openUser(r.user_id)}
+                            className="font-medium text-foreground/80 hover:text-primary hover:underline transition-colors"
+                          >
+                            {authorName(r.user_id)}
+                          </button>
                           <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatDate(r.created_at, t, dateLocale)}</span>
                         </div>
                         <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{r.body}</p>
