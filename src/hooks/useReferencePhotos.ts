@@ -14,7 +14,8 @@ export type ReferencePhoto = {
   label: string;
   image_url: string;
   storage_path: string;
-  rights_acknowledged_at: string;
+  rights_acknowledged_at: string | null;
+  collection_id: string | null;
   created_at: string;
 };
 
@@ -103,5 +104,16 @@ export function useReferencePhotos() {
     [user],
   );
 
-  return { photos, loading, error, upload, remove, refetch };
+  // CAP-135: assigns (or clears, with collectionId null) which named folder
+  // ("M/Y Scapa", etc.) this photo belongs to, so it groups with every other
+  // reference photo and generated image of the same boat.
+  const setCollection = useCallback(
+    async (photoId: string, collectionId: string | null) => {
+      setPhotos((prev) => prev.map((p) => (p.id === photoId ? { ...p, collection_id: collectionId } : p)));
+      await supabase.from("studio_reference_photos").update({ collection_id: collectionId }).eq("id", photoId);
+    },
+    [],
+  );
+
+  return { photos, loading, error, upload, remove, setCollection, refetch };
 }

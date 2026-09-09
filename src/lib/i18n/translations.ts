@@ -455,6 +455,17 @@ export type T = {
   stuFlagAddPicture: string;
   stuFlagFreeRemaining: (n: number) => string;
   stuFlagBilledNotice: string;
+  stuFlagChooseFile: string;
+  stuFlagChooseFromLibrary: string;
+  stuFlagClearPicture: string;
+  stuFlagLibraryEmpty: string;
+  stuLibraryAddedTab: (n: number) => string;
+  stuLibraryGeneratedTab: (n: number) => string;
+  stuLibraryAllFolders: string;
+  stuLibraryNewFolder: string;
+  stuLibraryFolderNamePlaceholder: string;
+  stuLibraryNoFolder: string;
+  stuLibraryAddedEmpty: string;
   stuGenerateImage: string;
   stuGeneratingVisual: string;
   stuImageFailed: string;
@@ -1323,6 +1334,17 @@ export const translations: Record<Lang, T> = {
     stuFlagAddPicture: "Add a picture to help it regenerate better (optional)",
     stuFlagFreeRemaining: (n) => `Free regenerate used — ${n} left this month.`,
     stuFlagBilledNotice: "You've used your 10 free monthly regenerates — this one counted as a normal generation.",
+    stuFlagChooseFile: "Choose file",
+    stuFlagChooseFromLibrary: "Choose from library",
+    stuFlagClearPicture: "Remove",
+    stuFlagLibraryEmpty: "Your library is empty — upload a reference photo or generate an image first.",
+    stuLibraryAddedTab: (n) => `Added to Library (${n})`,
+    stuLibraryGeneratedTab: (n) => `AI Generated (${n})`,
+    stuLibraryAllFolders: "All",
+    stuLibraryNewFolder: "New folder",
+    stuLibraryFolderNamePlaceholder: "Folder name (e.g. M/Y Scapa)",
+    stuLibraryNoFolder: "No folder",
+    stuLibraryAddedEmpty: "No photos added yet — upload a reference photo to save it here.",
     stuGenerateImage: "Generate image",
     stuGeneratingVisual: "Generating your visual…",
     stuImageFailed: "Image generation failed. Try again.",
@@ -2290,6 +2312,17 @@ export const translations: Record<Lang, T> = {
     stuFlagAddPicture: "Ajouter une photo pour aider à mieux régénérer (facultatif)",
     stuFlagFreeRemaining: (n) => `Régénération gratuite utilisée — ${n} restantes ce mois-ci.`,
     stuFlagBilledNotice: "Vous avez utilisé vos 10 régénérations gratuites du mois — celle-ci compte comme une génération normale.",
+    stuFlagChooseFile: "Choisir un fichier",
+    stuFlagChooseFromLibrary: "Choisir depuis la bibliothèque",
+    stuFlagClearPicture: "Retirer",
+    stuFlagLibraryEmpty: "Votre bibliothèque est vide — ajoutez une photo de référence ou générez une image d'abord.",
+    stuLibraryAddedTab: (n) => `Ajoutées à la bibliothèque (${n})`,
+    stuLibraryGeneratedTab: (n) => `Générées par IA (${n})`,
+    stuLibraryAllFolders: "Tous",
+    stuLibraryNewFolder: "Nouveau dossier",
+    stuLibraryFolderNamePlaceholder: "Nom du dossier (ex. M/Y Scapa)",
+    stuLibraryNoFolder: "Aucun dossier",
+    stuLibraryAddedEmpty: "Aucune photo ajoutée pour l'instant — ajoutez une photo de référence pour l'enregistrer ici.",
     stuGenerateImage: "Générer l'image",
     stuGeneratingVisual: "Génération de votre visuel…",
     stuImageFailed: "La génération de l'image a échoué. Réessayez.",

@@ -44,6 +44,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { generateStudioContent, type StudioContentPlan } from "@/lib/studio.functions";
 import { useReferencePhotos, type ReferencePhoto } from "@/hooks/useReferencePhotos";
 import { useGeneratedLibrary } from "@/hooks/useGeneratedLibrary";
+import { useMediaCollections } from "@/hooks/useMediaCollections";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { T } from "@/lib/i18n/translations";
 
@@ -186,6 +187,13 @@ function Studio() {
   // so nothing generated is ever lost, even if it gets flagged/replaced.
   const generatedLibrary = useGeneratedLibrary();
   const [showGeneratedLibrary, setShowGeneratedLibrary] = useState(false);
+  // CAP-135: named folders grouping a boat's reference photos AND its
+  // generated images together, shared across both Library sub-tabs.
+  const mediaCollections = useMediaCollections();
+  const [libraryTab, setLibraryTab] = useState<"added" | "generated">("added");
+  const [libraryCollectionFilter, setLibraryCollectionFilter] = useState<string | null>(null);
+  const [showNewCollection, setShowNewCollection] = useState(false);
+  const [newCollectionName, setNewCollectionName] = useState("");
   // CAP-134: surfaced under the flag form after a flagged regenerate --
   // tells the user whether that regenerate was free or just counted
   // against their normal monthly quota (10 free flags/month).
@@ -584,10 +592,13 @@ function Studio() {
     await generateImage(visualPrompt, { referenceImages });
   };
 
-  // CAP-134: an optional attachment photo on the flag itself -- e.g. a
+  // CAP-134/135: an optional attachment photo on the flag itself -- e.g. a
   // close-up of what's wrong, or a better angle of the real boat -- rides
   // along as just another reference image, on top of whatever's selected
-  // from the saved library (capped at 6 total server-side).
+  // from the saved library (capped at 6 total server-side). The attachment
+  // can be a fresh upload OR a picture already saved to the library
+  // (reference photo or a past generation), since the point is reusing a
+  // photo the user already has of the same boat.
   const fileToReferenceImage = async (file: File): Promise<{ data: string; mimeType: string }> => {
     const base64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -598,11 +609,29 @@ function Studio() {
     return { data: base64, mimeType: file.type || "image/jpeg" };
   };
 
-  const flagAndRegenerateImage = async (visualPrompt: string, reason: string, attachment?: File | null) => {
+  const urlToReferenceImage = async (url: string): Promise<{ data: string; mimeType: string }> => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string).split(",")[1] ?? "");
+      reader.onerror = () => reject(new Error("Failed to read library photo"));
+      reader.readAsDataURL(blob);
+    });
+    return { data: base64, mimeType: blob.type || "image/jpeg" };
+  };
+
+  const flagAndRegenerateImage = async (
+    visualPrompt: string,
+    reason: string,
+    attachment?: { file: File } | { url: string } | null,
+  ) => {
     const referenceImages = await fetchSelectedReferenceImages();
     if (attachment) {
       try {
-        referenceImages.push(await fileToReferenceImage(attachment));
+        referenceImages.push(
+          "file" in attachment ? await fileToReferenceImage(attachment.file) : await urlToReferenceImage(attachment.url),
+        );
       } catch {
         // A bad attachment shouldn't block the flagged regenerate itself.
       }
@@ -836,7 +865,7 @@ function Studio() {
                 {t.stuHistory(history.length)}
               </button>
             )}
-            {!generatedLibrary.loading && (
+            {!generatedLibrary.loading && !referencePhotoLibrary.loading && (
               <button
                 onClick={() => setShowGeneratedLibrary(!showGeneratedLibrary)}
                 className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs tracking-[0.2em] uppercase border transition-all hover:-translate-y-0.5 ${showGeneratedLibrary ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-primary hover:border-primary/40"}`}
@@ -910,40 +939,161 @@ function Studio() {
               <X className="h-4 w-4" />
             </button>
           </div>
-          {generatedLibrary.items.length === 0 ? (
-            <div className="text-[12px] text-muted-foreground text-center py-6">{t.stuGeneratedLibraryEmpty}</div>
-          ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-80 overflow-y-auto pr-1">
-            {generatedLibrary.items.map((m) => (
-              <a
-                key={m.id}
-                href={m.media_url}
-                target="_blank"
-                rel="noreferrer"
-                className="group relative aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/40 transition-all"
-                title={m.prompt ?? ""}
-              >
-                {m.type === "video" ? (
-                  <video src={m.media_url} className="h-full w-full object-cover" muted />
-                ) : (
-                  <img src={m.media_url} alt="" className="h-full w-full object-cover" />
-                )}
-                {m.type === "video" && (
-                  <div className="absolute top-1 left-1 rounded bg-black/60 p-0.5">
-                    <Film className="h-3 w-3 text-white" />
-                  </div>
-                )}
-                {m.flagged && (
-                  <div className="absolute top-1 right-1 rounded bg-destructive/80 p-0.5" title={m.flag_reason ?? t.stuFlagInaccurate}>
-                    <Flag className="h-3 w-3 text-white" />
-                  </div>
-                )}
-                <div className="absolute inset-x-0 bottom-0 bg-black/50 px-1.5 py-1 text-[9px] text-white/90 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
-                  {new Date(m.created_at).toLocaleDateString(dateLocale, { month: "short", day: "numeric" })}
-                </div>
-              </a>
-            ))}
+
+          {/* CAP-135: "Added to Library" (uploaded reference photos) and
+              "AI Generated" (everything Studio has generated) used to be
+              two unrelated concepts -- now one Library, two tabs. */}
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => setLibraryTab("added")}
+              className={`px-3 py-1.5 rounded-lg text-[11px] uppercase tracking-wide border transition-all ${libraryTab === "added" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+            >
+              {t.stuLibraryAddedTab(referencePhotoLibrary.photos.length)}
+            </button>
+            <button
+              onClick={() => setLibraryTab("generated")}
+              className={`px-3 py-1.5 rounded-lg text-[11px] uppercase tracking-wide border transition-all ${libraryTab === "generated" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+            >
+              {t.stuLibraryGeneratedTab(generatedLibrary.items.length)}
+            </button>
           </div>
+
+          {/* Folders group a boat's reference photos and generated images
+              together across both tabs, so they're easy to find as a set
+              next time. */}
+          <div className="flex flex-wrap items-center gap-1.5 mb-3">
+            <button
+              onClick={() => setLibraryCollectionFilter(null)}
+              className={`px-2.5 py-1 rounded-full text-[10px] border transition-all ${libraryCollectionFilter === null ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+            >
+              {t.stuLibraryAllFolders}
+            </button>
+            {mediaCollections.collections.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setLibraryCollectionFilter(c.id)}
+                className={`px-2.5 py-1 rounded-full text-[10px] border transition-all ${libraryCollectionFilter === c.id ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+              >
+                {c.name}
+              </button>
+            ))}
+            {!showNewCollection ? (
+              <button
+                onClick={() => setShowNewCollection(true)}
+                className="px-2.5 py-1 rounded-full text-[10px] border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/40 transition-all flex items-center gap-1"
+              >
+                <Plus className="h-2.5 w-2.5" /> {t.stuLibraryNewFolder}
+              </button>
+            ) : (
+              <span className="flex items-center gap-1">
+                <input
+                  autoFocus
+                  value={newCollectionName}
+                  onChange={(e) => setNewCollectionName(e.target.value)}
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter" && newCollectionName.trim()) {
+                      await mediaCollections.create(newCollectionName.trim());
+                      setNewCollectionName("");
+                      setShowNewCollection(false);
+                    } else if (e.key === "Escape") {
+                      setShowNewCollection(false);
+                      setNewCollectionName("");
+                    }
+                  }}
+                  placeholder={t.stuLibraryFolderNamePlaceholder}
+                  className="h-6 w-28 bg-transparent border border-border rounded-full px-2 text-[10px] outline-none focus:border-primary/50"
+                />
+                <button
+                  onClick={async () => {
+                    if (newCollectionName.trim()) await mediaCollections.create(newCollectionName.trim());
+                    setNewCollectionName("");
+                    setShowNewCollection(false);
+                  }}
+                  className="text-[10px] text-primary hover:underline"
+                >
+                  {t.stuSave}
+                </button>
+              </span>
+            )}
+          </div>
+
+          {libraryTab === "added" ? (
+            (() => {
+              const filtered = referencePhotoLibrary.photos.filter(
+                (p) => libraryCollectionFilter === null || p.collection_id === libraryCollectionFilter,
+              );
+              return filtered.length === 0 ? (
+                <div className="text-[12px] text-muted-foreground text-center py-6">{t.stuLibraryAddedEmpty}</div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-80 overflow-y-auto pr-1">
+                  {filtered.map((photo) => (
+                    <div key={photo.id} className="group relative aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/40 transition-all">
+                      <img src={photo.image_url} alt={photo.label} title={photo.label} className="h-full w-full object-cover" />
+                      <button
+                        onClick={() => referencePhotoLibrary.remove(photo)}
+                        title={t.stuDeleteDraft}
+                        className="absolute top-1 right-1 h-5 w-5 rounded-full bg-destructive/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                      <select
+                        value={photo.collection_id ?? ""}
+                        onChange={(e) => referencePhotoLibrary.setCollection(photo.id, e.target.value || null)}
+                        className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] px-1 py-0.5 outline-none opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <option value="">{t.stuLibraryNoFolder}</option>
+                        {mediaCollections.collections.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()
+          ) : (
+            (() => {
+              const filtered = generatedLibrary.items.filter(
+                (m) => libraryCollectionFilter === null || m.collection_id === libraryCollectionFilter,
+              );
+              return filtered.length === 0 ? (
+                <div className="text-[12px] text-muted-foreground text-center py-6">{t.stuGeneratedLibraryEmpty}</div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-80 overflow-y-auto pr-1">
+                  {filtered.map((m) => (
+                    <div key={m.id} className="group relative aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/40 transition-all" title={m.prompt ?? ""}>
+                      <a href={m.media_url} target="_blank" rel="noreferrer" className="block h-full w-full">
+                        {m.type === "video" ? (
+                          <video src={m.media_url} className="h-full w-full object-cover" muted />
+                        ) : (
+                          <img src={m.media_url} alt="" className="h-full w-full object-cover" />
+                        )}
+                      </a>
+                      {m.type === "video" && (
+                        <div className="absolute top-1 left-1 rounded bg-black/60 p-0.5 pointer-events-none">
+                          <Film className="h-3 w-3 text-white" />
+                        </div>
+                      )}
+                      {m.flagged && (
+                        <div className="absolute top-1 right-1 rounded bg-destructive/80 p-0.5 pointer-events-none" title={m.flag_reason ?? t.stuFlagInaccurate}>
+                          <Flag className="h-3 w-3 text-white" />
+                        </div>
+                      )}
+                      <select
+                        value={m.collection_id ?? ""}
+                        onChange={(e) => generatedLibrary.setCollection(m.id, e.target.value || null)}
+                        className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] px-1 py-0.5 outline-none opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <option value="">{t.stuLibraryNoFolder}</option>
+                        {mediaCollections.collections.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()
           )}
         </div>
       )}
@@ -1169,6 +1319,12 @@ function Studio() {
               onGenerateImage={() => generateImageWithReferences((editablePlan ?? plan!).visualPrompt)}
               onFlagInaccurate={(reason, attachment) => flagAndRegenerateImage((editablePlan ?? plan!).visualPrompt, reason, attachment)}
               flagNotice={flagNotice}
+              flagAttachmentChoices={[
+                ...referencePhotoLibrary.photos.map((p) => ({ id: `ref-${p.id}`, url: p.image_url, label: p.label })),
+                ...generatedLibrary.items
+                  .filter((m) => m.type === "image")
+                  .map((m) => ({ id: `gen-${m.id}`, url: m.media_url, label: m.prompt ?? "" })),
+              ]}
               onDownloadImage={downloadImage}
               referencePhotos={referencePhotoLibrary.photos}
               referencePhotosLoading={referencePhotoLibrary.loading}
@@ -1183,6 +1339,7 @@ function Studio() {
                 })
               }
               onUploadReferencePhoto={referencePhotoLibrary.upload}
+              onRemoveReferencePhoto={referencePhotoLibrary.remove}
               videoUrl={videoUrl}
               videoLoading={videoLoading}
               videoError={videoError}
@@ -1351,6 +1508,7 @@ function PlanOutput({
   onGenerateImage,
   onFlagInaccurate,
   flagNotice,
+  flagAttachmentChoices,
   onDownloadImage,
   referencePhotos,
   referencePhotosLoading,
@@ -1358,6 +1516,7 @@ function PlanOutput({
   selectedReferenceIds,
   onToggleReferencePhoto,
   onUploadReferencePhoto,
+  onRemoveReferencePhoto,
   videoUrl,
   videoLoading,
   videoError,
@@ -1382,8 +1541,9 @@ function PlanOutput({
   imageLoading: boolean;
   imageError: boolean;
   onGenerateImage: () => void;
-  onFlagInaccurate: (reason: string, attachment?: File | null) => void;
+  onFlagInaccurate: (reason: string, attachment?: { file: File } | { url: string } | null) => void;
   flagNotice: string | null;
+  flagAttachmentChoices: { id: string; url: string; label: string }[];
   onDownloadImage: () => void;
   referencePhotos: ReferencePhoto[];
   referencePhotosLoading: boolean;
@@ -1391,6 +1551,7 @@ function PlanOutput({
   selectedReferenceIds: Set<string>;
   onToggleReferencePhoto: (id: string) => void;
   onUploadReferencePhoto: (file: File, label: string, rightsAcknowledged: boolean) => Promise<ReferencePhoto | null>;
+  onRemoveReferencePhoto: (photo: ReferencePhoto) => void;
   videoUrl: string | null;
   videoLoading: boolean;
   videoError: boolean;
@@ -1421,10 +1582,12 @@ function PlanOutput({
   const [showFlagForm, setShowFlagForm] = useState(false);
   const [flagReasonDraft, setFlagReasonDraft] = useState("");
   const [flagSubmitting, setFlagSubmitting] = useState(false);
-  // CAP-134: an optional photo attached to the flag itself -- e.g. a
+  // CAP-134/135: an optional photo attached to the flag itself -- e.g. a
   // close-up of what's wrong, or a clearer angle of the real boat -- to
-  // help the regenerate get it right.
-  const [flagAttachment, setFlagAttachment] = useState<File | null>(null);
+  // help the regenerate get it right. Either a fresh upload or a picture
+  // already saved to the library.
+  const [flagAttachment, setFlagAttachment] = useState<{ file: File } | { url: string } | null>(null);
+  const [flagAttachmentMode, setFlagAttachmentMode] = useState<"file" | "library">("file");
 
   // Inline editing
   const [editingCaption, setEditingCaption] = useState<string | null>(null);
@@ -1640,19 +1803,30 @@ function PlanOutput({
                 {referencePhotos.map((photo) => {
                   const selected = selectedReferenceIds.has(photo.id);
                   return (
-                    <button
-                      key={photo.id}
-                      onClick={() => onToggleReferencePhoto(photo.id)}
-                      title={photo.label}
-                      className={`relative h-16 w-16 rounded-lg overflow-hidden border-2 transition-all ${selected ? "border-primary" : "border-border hover:border-primary/40"}`}
-                    >
-                      <img src={photo.image_url} alt={photo.label} className="h-full w-full object-cover" />
-                      {selected && (
-                        <span className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                          <Check className="h-4 w-4 text-white drop-shadow" />
-                        </span>
-                      )}
-                    </button>
+                    <div key={photo.id} className="relative h-16 w-16 shrink-0">
+                      <button
+                        onClick={() => onToggleReferencePhoto(photo.id)}
+                        title={photo.label}
+                        className={`h-16 w-16 rounded-lg overflow-hidden border-2 transition-all ${selected ? "border-primary" : "border-border hover:border-primary/40"}`}
+                      >
+                        <img src={photo.image_url} alt={photo.label} className="h-full w-full object-cover" />
+                        {selected && (
+                          <span className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                            <Check className="h-4 w-4 text-white drop-shadow" />
+                          </span>
+                        )}
+                      </button>
+                      {/* CAP-135: delete was previously only possible from
+                          the Library panel -- there was no way to remove a
+                          reference photo from right where you pick it. */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onRemoveReferencePhoto(photo); }}
+                        title={t.stuDeleteDraft}
+                        className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-destructive text-white flex items-center justify-center shadow hover:scale-110 transition-transform"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -1774,16 +1948,70 @@ function PlanOutput({
                   rows={2}
                   className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-xs outline-none focus:border-primary/50 resize-y transition-colors"
                 />
-                <label className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => setFlagAttachment(e.target.files?.[0] ?? null)}
-                  />
-                  <Paperclip className="h-3 w-3 shrink-0" />
-                  {flagAttachment ? flagAttachment.name : t.stuFlagAddPicture}
-                </label>
+
+                {/* CAP-135: attach a photo from a fresh upload, or pick one
+                    already saved in the Library instead of re-uploading. */}
+                <div className="flex items-center gap-1 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => setFlagAttachmentMode("file")}
+                    className={`px-2 py-1 rounded-md border transition-colors ${flagAttachmentMode === "file" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {t.stuFlagChooseFile}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFlagAttachmentMode("library")}
+                    className={`px-2 py-1 rounded-md border transition-colors ${flagAttachmentMode === "library" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {t.stuFlagChooseFromLibrary}
+                  </button>
+                  {flagAttachment && (
+                    <button
+                      type="button"
+                      onClick={() => setFlagAttachment(null)}
+                      className="ml-auto flex items-center gap-1 text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <X className="h-3 w-3" /> {t.stuFlagClearPicture}
+                    </button>
+                  )}
+                </div>
+
+                {flagAttachmentMode === "file" ? (
+                  <label className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        setFlagAttachment(file ? { file } : null);
+                      }}
+                    />
+                    <Paperclip className="h-3 w-3 shrink-0" />
+                    {flagAttachment && "file" in flagAttachment ? flagAttachment.file.name : t.stuFlagAddPicture}
+                  </label>
+                ) : flagAttachmentChoices.length === 0 ? (
+                  <div className="text-[11px] text-muted-foreground">{t.stuFlagLibraryEmpty}</div>
+                ) : (
+                  <div className="grid grid-cols-6 gap-1.5 max-h-24 overflow-y-auto pr-1">
+                    {flagAttachmentChoices.map((choice) => {
+                      const selected = !!flagAttachment && "url" in flagAttachment && flagAttachment.url === choice.url;
+                      return (
+                        <button
+                          key={choice.id}
+                          type="button"
+                          title={choice.label}
+                          onClick={() => setFlagAttachment({ url: choice.url })}
+                          className={`aspect-square rounded-md overflow-hidden border-2 transition-all ${selected ? "border-primary" : "border-transparent hover:border-primary/40"}`}
+                        >
+                          <img src={choice.url} alt={choice.label} className="h-full w-full object-cover" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <div className="flex gap-2">
                   <button
                     disabled={!flagReasonDraft.trim() || flagSubmitting}

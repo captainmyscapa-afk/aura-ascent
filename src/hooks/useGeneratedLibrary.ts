@@ -12,6 +12,7 @@ export type GeneratedMedia = {
   id: string;
   user_id: string;
   content_history_id: string | null;
+  collection_id: string | null;
   type: "image" | "video";
   media_url: string;
   storage_path: string | null;
@@ -80,5 +81,16 @@ export function useGeneratedLibrary() {
     [user],
   );
 
-  return { items, loading, refetch, logItem };
+  // CAP-135: assigns (or clears) which named folder this generated image/
+  // video belongs to -- same grouping as reference photos, so a boat's
+  // uploaded photos and its generated images end up in one place.
+  const setCollection = useCallback(
+    async (mediaId: string, collectionId: string | null) => {
+      setItems((prev) => prev.map((m) => (m.id === mediaId ? { ...m, collection_id: collectionId } : m)));
+      await supabase.from("studio_generated_media").update({ collection_id: collectionId }).eq("id", mediaId);
+    },
+    [],
+  );
+
+  return { items, loading, refetch, logItem, setCollection };
 }

@@ -813,6 +813,7 @@ export type Database = {
       }
       studio_generated_media: {
         Row: {
+          collection_id: string | null
           content_history_id: string | null
           created_at: string
           flag_reason: string | null
@@ -825,6 +826,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          collection_id?: string | null
           content_history_id?: string | null
           created_at?: string
           flag_reason?: string | null
@@ -837,6 +839,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          collection_id?: string | null
           content_history_id?: string | null
           created_at?: string
           flag_reason?: string | null
@@ -849,6 +852,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "studio_generated_media_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "studio_media_collections"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "studio_generated_media_content_history_id_fkey"
             columns: ["content_history_id"]
@@ -888,8 +898,30 @@ export type Database = {
         }
         Relationships: []
       }
+      studio_media_collections: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       studio_reference_photos: {
         Row: {
+          collection_id: string | null
           created_at: string
           id: string
           image_url: string
@@ -899,6 +931,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          collection_id?: string | null
           created_at?: string
           id?: string
           image_url: string
@@ -908,6 +941,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          collection_id?: string | null
           created_at?: string
           id?: string
           image_url?: string
@@ -916,7 +950,15 @@ export type Database = {
           storage_path?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "studio_reference_photos_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "studio_media_collections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_content_history: {
         Row: {
