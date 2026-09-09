@@ -102,3 +102,84 @@ ${data.avoidPrompts?.length ? `Previously used prompts — do not repeat: ${data
     if (!result.args) throw new Error("AI did not return quick invocations.");
     return { prompts: (result.args as { prompts: string[] }).prompts };
   });
+
+const lessonStartersTool: AiTool = {
+  type: "function",
+  function: {
+    name: "emit_lesson_starters",
+    description: "Return 4 personalized tutor lesson-starter prompts.",
+    parameters: {
+      type: "object",
+      properties: {
+        starters: {
+          type: "array",
+          minItems: 4,
+          maxItems: 4,
+          items: { type: "string" },
+        },
+      },
+      required: ["starters"],
+      additionalProperties: false,
+    },
+  },
+};
+
+export type TutorLessonStartersInput = {
+  mode: string;
+  trackName: string;
+  completed: number;
+  total: number;
+  phaseNumber?: number;
+  phaseTitle?: string;
+  // Previously-issued starters for this mode, so the model doesn't repeat
+  // itself batch after batch.
+  avoidPrompts?: string[];
+};
+
+// CAP-132: "Lesson Starters" in Tutor used to be a static, hardcoded list per
+// industry that always said "Walk me through module 1" -- even for a user
+// who finished the whole track. This generates 4 fresh, first-person prompts
+// grounded in the user's REAL academy progress, so a beginner and someone
+// who's 90% through the track see different suggestions.
+export const generateTutorLessonStarters = createServerFn({ method: "POST" })
+  .inputValidator((d: TutorLessonStartersInput) => d)
+  .handler(async ({ data }) => {
+    await requireServerAuth();
+    const progressContext =
+      data.total === 0
+        ? "The curriculum has no modules seeded yet -- keep starters generic to the industry."
+        : data.completed === 0
+          ? "The user hasn't completed any modules yet -- this is their first lesson."
+          : data.completed >= data.total
+            ? "The user has completed every module in this track -- treat them as advanced; suggest applying or deepening knowledge, not getting started."
+            : `The user has completed ${data.completed} of ${data.total} modules. Their next unfinished topic area is "${data.phaseTitle ?? "unknown"}".`;
+    const result = await ai.complete(
+      [
+        {
+          role: "system",
+          content: `You are AURUM Tutor, an educational assistant for the ${data.mode} industry (${data.trackName} curriculum). Generate 4 short, first-person "lesson starter" prompts a learner could tap to instantly start a tutoring lesson -- the kind of thing THEY would type, e.g. "Explain how yacht surveys work" or "Quiz me on brokerage commission structures".
+
+Ground the prompts in the user's real progress, not a generic list:
+- ${progressContext}
+- At least one prompt must target that specific current topic/phase by name when one is given -- never default to "module 1" for a user who has already progressed past it.
+- Vary the other prompts across styles: one foundational/definition, one practical example applied to ${data.mode.toLowerCase()}, one self-test/quiz-style question.
+- Keep every prompt under 12 words, no quotes, no trailing punctuation, no emoji.
+- Do not repeat any of the previously-used prompts listed below.
+
+Always invoke emit_lesson_starters.`,
+        },
+        {
+          role: "user",
+          content: `Industry: ${data.mode}
+Track: ${data.trackName}
+Progress: ${data.completed}/${data.total} modules complete
+${data.phaseTitle ? `Current phase: ${data.phaseTitle}` : ""}
+${data.avoidPrompts?.length ? `Previously used prompts -- do not repeat: ${data.avoidPrompts.join(" | ")}` : ""}`,
+        },
+      ],
+      [lessonStartersTool],
+      "emit_lesson_starters",
+    );
+    if (!result.args) throw new Error("AI did not return lesson starters.");
+    return { starters: (result.args as { starters: string[] }).starters };
+  });

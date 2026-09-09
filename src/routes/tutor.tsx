@@ -5,7 +5,8 @@ import { AppShell } from "@/components/aurum/AppShell";
 import { GraduationCap, Send, BookOpen, Lightbulb, ListChecks, HelpCircle, Plus, Clock, X } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { askGemini } from "@/lib/gemini.functions";
-import { generateConversationTitle } from "@/lib/mentor.functions";
+import { generateConversationTitle, generateTutorLessonStarters } from "@/lib/mentor.functions";
+import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useMentorConversations } from "@/hooks/useMentorConversations";
 import type { ConversationMessage } from "@/hooks/useMentorConversations";
 import { useProGate, PageLock } from "@/components/aurum/ProGate";
@@ -20,6 +21,15 @@ export const Route = createFileRoute("/tutor")({
 });
 
 const promptIcons = [BookOpen, Lightbulb, ListChecks, HelpCircle];
+
+// Local calendar date, not UTC -- keeps "today" in sync with the user's
+// actual local day, matching the same helper in dashboard.tsx / mentor.tsx.
+function isoDay(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 function formatDate(iso: string, t: T, dateLocale: string) {
   const d = new Date(iso);
@@ -41,7 +51,9 @@ function Tutor() {
   const academyProgress = useAcademyProgress(industryId);
   const ask = useServerFn(askGemini);
   const genTitle = useServerFn(generateConversationTitle);
+  const genLessonStarters = useServerFn(generateTutorLessonStarters);
   const { conversations, loading: convsLoading, createConversation, updateConversation, deleteConversation } = useMentorConversations();
+  const { state: core, update: updateCore } = useAurumCoreState();
 
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
@@ -52,6 +64,7 @@ function Tutor() {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lessonStartersLoadingRef = useRef(false);
 
   const systemPrompt = `You are AURUM Tutor, an educational assistant for the ${industry.label} (${industry.trackName}) curriculum. Teach topics step-by-step in a simple, structured way:
 1) Start with a one-sentence definition.
@@ -64,12 +77,67 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
   const seed: ConversationMessage[] = [{ r: "ai", t: opener }];
   const displayMessages = messages.length > 0 ? messages : seed;
 
-  const suggestions = t.tutSuggestions(industryId);
+  const [suggestions, setSuggestions] = useState<string[]>(() => t.tutSuggestions(industryId));
 
   useEffect(() => {
     if (messages.length === 0 && !pending) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, pending]);
+
+  // Static per-industry fallback (t.tutSuggestions) shows instantly on
+  // industry switch, before the personalized batch below is ready or if it
+  // ever fails.
+  useEffect(() => {
+    setSuggestions(t.tutSuggestions(industryId));
+  }, [industryId, t]);
+
+  // CAP-132: "Lesson Starters" used to be a static, hardcoded list per
+  // industry that always said "Walk me through module 1" -- even for a user
+  // who finished the whole track. Generates 4 fresh, first-person starters
+  // grounded in the user's REAL academy progress (mirrors CAP-131's Mentor
+  // Quick Invocations). Cached once per local day per industry, reusing the
+  // same mentor_quick_prompts column, keyed "<industryId>-tutor" the same
+  // way mentor_conversations already distinguishes tutor from mentor chats.
+  useEffect(() => {
+    if (!core) return;
+    const tutorKey = `${industryId}-tutor`;
+    const cachedForMode = core.mentor_quick_prompts?.[tutorKey]?.prompts;
+    const isFreshToday = core.mentor_quick_prompts_date === isoDay();
+    if (isFreshToday && cachedForMode?.length) {
+      setSuggestions(cachedForMode);
+      return;
+    }
+    if (academyProgress.loading) return; // wait for real progress numbers before generating
+    if (lessonStartersLoadingRef.current) return;
+    lessonStartersLoadingRef.current = true;
+    (async () => {
+      try {
+        const { starters } = await genLessonStarters({
+          data: {
+            mode: industry.label,
+            trackName: industry.trackName,
+            completed: academyProgress.completed,
+            total: academyProgress.total,
+            phaseNumber: academyProgress.phaseNumber ?? undefined,
+            phaseTitle: academyProgress.phaseTitle ?? undefined,
+            avoidPrompts: cachedForMode,
+          },
+        });
+        setSuggestions(starters);
+        const existingMap = isFreshToday ? (core.mentor_quick_prompts ?? {}) : {};
+        await updateCore({
+          mentor_quick_prompts: { ...existingMap, [tutorKey]: { prompts: starters } },
+          mentor_quick_prompts_date: isoDay(),
+        });
+      } catch (e) {
+        console.error(e);
+        // Static per-industry fallback (t.tutSuggestions) stays on screen.
+      } finally {
+        lessonStartersLoadingRef.current = false;
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [core?.mentor_quick_prompts_date, industryId, academyProgress.loading, academyProgress.completed, academyProgress.total, academyProgress.phaseTitle]);
 
   const scheduleSave = (msgs: ConversationMessage[], convId: string | null) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
