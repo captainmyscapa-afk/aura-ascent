@@ -194,6 +194,18 @@ function Studio() {
   const [libraryCollectionFilter, setLibraryCollectionFilter] = useState<string | null>(null);
   const [showNewCollection, setShowNewCollection] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
+  // CAP-138: "Add picture" back in the Library panel too (in addition to
+  // the Reference Photos panel) -- same file-or-library + folder pattern,
+  // scoped with its own state since this one lives at the Library panel
+  // level, not inside PlanOutput.
+  const [showAddPicture, setShowAddPicture] = useState(false);
+  const [addPictureMode, setAddPictureMode] = useState<"file" | "library">("file");
+  const [addPictureFile, setAddPictureFile] = useState<File | null>(null);
+  const [addPictureRightsChecked, setAddPictureRightsChecked] = useState(false);
+  const [addPictureUploading, setAddPictureUploading] = useState(false);
+  const [addPictureCollectionId, setAddPictureCollectionId] = useState<string | null>(null);
+  const [addPictureCreatingFolder, setAddPictureCreatingFolder] = useState(false);
+  const [addPictureNewFolderName, setAddPictureNewFolderName] = useState("");
   // CAP-134: surfaced under the flag form after a flagged regenerate --
   // tells the user whether that regenerate was free or just counted
   // against their normal monthly quota (10 free flags/month).
@@ -658,6 +670,21 @@ function Studio() {
     return created;
   };
 
+  // CAP-138: submits the Library panel's own "Add picture" (file mode).
+  const submitAddPictureFile = async () => {
+    if (!addPictureFile) return;
+    setAddPictureUploading(true);
+    const created = await referencePhotoLibrary.upload(addPictureFile, "", addPictureRightsChecked);
+    if (created && addPictureCollectionId) await referencePhotoLibrary.setCollection(created.id, addPictureCollectionId);
+    setAddPictureUploading(false);
+    if (created) {
+      setShowAddPicture(false);
+      setAddPictureFile(null);
+      setAddPictureRightsChecked(false);
+      setAddPictureCollectionId(null);
+    }
+  };
+
   const downloadImage = async () => {
     if (!imageUrl) return;
     try {
@@ -951,13 +978,163 @@ function Studio() {
             <div className="text-[10px] tracking-[0.34em] text-primary/80">
               {t.stuGeneratedLibraryTitle}
             </div>
-            <button
-              onClick={() => setShowGeneratedLibrary(false)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-3">
+              {/* CAP-138: add a picture right from the Library panel too --
+                  defaults into whichever folder is currently selected. */}
+              <button
+                onClick={() => {
+                  setAddPictureCollectionId(libraryCollectionFilter);
+                  setShowAddPicture((v) => !v);
+                }}
+                className={`flex items-center gap-1 text-[10px] tracking-[0.15em] uppercase transition-colors ${showAddPicture ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+              >
+                <Plus className="h-3 w-3" /> {t.stuAddReferencePhoto}
+              </button>
+              <button
+                onClick={() => setShowGeneratedLibrary(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
+
+          {showAddPicture && (
+            <div className="space-y-2 p-3 rounded-lg border border-border mb-3">
+              <div className="flex items-center gap-1 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => setAddPictureMode("file")}
+                  className={`px-2 py-1 rounded-md border transition-colors ${addPictureMode === "file" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                >
+                  {t.stuFlagChooseFile}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAddPictureMode("library")}
+                  className={`px-2 py-1 rounded-md border transition-colors ${addPictureMode === "library" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                >
+                  {t.stuFlagChooseFromLibrary}
+                </button>
+              </div>
+
+              {addPictureMode === "file" ? (
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setAddPictureFile(e.target.files?.[0] ?? null)}
+                  className="w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-primary/10 file:text-primary"
+                />
+              ) : generatedLibrary.items.filter((i) => i.type === "image").length === 0 ? (
+                <div className="text-[11px] text-muted-foreground">{t.stuFlagLibraryEmpty}</div>
+              ) : (
+                <div className="grid grid-cols-6 gap-1.5 max-h-32 overflow-y-auto pr-1">
+                  {generatedLibrary.items
+                    .filter((i) => i.type === "image")
+                    .map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        disabled={addPictureUploading}
+                        title={item.prompt ?? ""}
+                        onClick={async () => {
+                          setAddPictureUploading(true);
+                          const created = await importGeneratedImageAsReference(item, addPictureCollectionId);
+                          setAddPictureUploading(false);
+                          if (created) {
+                            setShowAddPicture(false);
+                            setAddPictureCollectionId(null);
+                          }
+                        }}
+                        className="aspect-square rounded-md overflow-hidden border border-transparent hover:border-primary/40 transition-all disabled:opacity-40"
+                      >
+                        <img src={item.media_url} alt={item.prompt ?? ""} className="h-full w-full object-cover" />
+                      </button>
+                    ))}
+                </div>
+              )}
+
+              <select
+                value={addPictureCreatingFolder ? "__new__" : (addPictureCollectionId ?? "")}
+                onChange={(e) => {
+                  if (e.target.value === "__new__") {
+                    setAddPictureCreatingFolder(true);
+                  } else {
+                    setAddPictureCreatingFolder(false);
+                    setAddPictureCollectionId(e.target.value || null);
+                  }
+                }}
+                className="w-full bg-transparent border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary/50 transition-colors"
+              >
+                <option value="">{t.stuLibraryNoFolder}</option>
+                {mediaCollections.collections.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+                <option value="__new__">+ {t.stuLibraryNewFolder}</option>
+              </select>
+              {addPictureCreatingFolder && (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    autoFocus
+                    value={addPictureNewFolderName}
+                    onChange={(e) => setAddPictureNewFolderName(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter" && addPictureNewFolderName.trim()) {
+                        const created = await mediaCollections.create(addPictureNewFolderName.trim());
+                        if (created) setAddPictureCollectionId(created.id);
+                        setAddPictureNewFolderName("");
+                        setAddPictureCreatingFolder(false);
+                      } else if (e.key === "Escape") {
+                        setAddPictureCreatingFolder(false);
+                        setAddPictureNewFolderName("");
+                      }
+                    }}
+                    placeholder={t.stuLibraryFolderNamePlaceholder}
+                    className="flex-1 h-7 bg-transparent border border-border rounded-lg px-2 text-xs outline-none focus:border-primary/50"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (addPictureNewFolderName.trim()) {
+                        const created = await mediaCollections.create(addPictureNewFolderName.trim());
+                        if (created) setAddPictureCollectionId(created.id);
+                      }
+                      setAddPictureNewFolderName("");
+                      setAddPictureCreatingFolder(false);
+                    }}
+                    className="text-[10px] text-primary hover:underline shrink-0"
+                  >
+                    {t.stuSave}
+                  </button>
+                </div>
+              )}
+
+              {addPictureMode === "file" && (
+                <>
+                  <label className="flex items-start gap-2 text-[11px] text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={addPictureRightsChecked}
+                      onChange={(e) => setAddPictureRightsChecked(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    {t.stuReferencePhotoRightsLabel}
+                  </label>
+                  <button
+                    disabled={!addPictureFile || addPictureUploading}
+                    onClick={submitAddPictureFile}
+                    className="w-full h-8 rounded-lg text-primary-foreground text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-40"
+                    style={{ background: "var(--gradient-gold)" }}
+                  >
+                    {addPictureUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                    {t.stuUploadReferencePhoto}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
 
           {/* CAP-135: "Added to Library" (uploaded reference photos) and
               "AI Generated" (everything Studio has generated) used to be
@@ -1358,7 +1535,6 @@ function Studio() {
                 })
               }
               onUploadReferencePhoto={referencePhotoLibrary.upload}
-              onRemoveReferencePhoto={referencePhotoLibrary.remove}
               mediaCollections={mediaCollections.collections}
               onCreateCollection={mediaCollections.create}
               onSetReferencePhotoCollection={referencePhotoLibrary.setCollection}
@@ -1542,7 +1718,6 @@ function PlanOutput({
   selectedReferenceIds,
   onToggleReferencePhoto,
   onUploadReferencePhoto,
-  onRemoveReferencePhoto,
   mediaCollections,
   onCreateCollection,
   onSetReferencePhotoCollection,
@@ -1582,7 +1757,6 @@ function PlanOutput({
   selectedReferenceIds: Set<string>;
   onToggleReferencePhoto: (id: string) => void;
   onUploadReferencePhoto: (file: File, label: string, rightsAcknowledged: boolean) => Promise<ReferencePhoto | null>;
-  onRemoveReferencePhoto: (photo: ReferencePhoto) => void;
   mediaCollections: { id: string; name: string }[];
   onCreateCollection: (name: string) => Promise<{ id: string; name: string } | null>;
   onSetReferencePhotoCollection: (photoId: string, collectionId: string | null) => Promise<void>;
@@ -1860,16 +2034,19 @@ function PlanOutput({
                           </span>
                         )}
                       </button>
-                      {/* CAP-135: delete was previously only possible from
-                          the Library panel -- there was no way to remove a
-                          reference photo from right where you pick it. */}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onRemoveReferencePhoto(photo); }}
-                        title={t.stuDeleteDraft}
-                        className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-destructive text-white flex items-center justify-center shadow hover:scale-110 transition-transform"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                      {/* CAP-138: this "x" only removes the photo from
+                          THIS content (deselects it) -- it never deletes
+                          the photo itself. Deleting a photo for good is a
+                          Library-panel-only action now. */}
+                      {selected && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onToggleReferencePhoto(photo.id); }}
+                          title={t.stuFlagClearPicture}
+                          className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-destructive text-white flex items-center justify-center shadow hover:scale-110 transition-transform"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
                     </div>
                   );
                 })}
