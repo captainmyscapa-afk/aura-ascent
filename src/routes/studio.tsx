@@ -194,16 +194,6 @@ function Studio() {
   const [libraryCollectionFilter, setLibraryCollectionFilter] = useState<string | null>(null);
   const [showNewCollection, setShowNewCollection] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
-  // CAP-136: "Add picture" directly from the Library panel (All or any
-  // specific folder) -- either upload a fresh photo of the boat, or pull
-  // in an image Studio already generated, so it's on hand as a reusable
-  // reference photo next time instead of re-uploading it.
-  const [showAddPicture, setShowAddPicture] = useState(false);
-  const [addPictureMode, setAddPictureMode] = useState<"file" | "library">("file");
-  const [addPictureFile, setAddPictureFile] = useState<File | null>(null);
-  const [addPictureLabel, setAddPictureLabel] = useState("");
-  const [addPictureRightsChecked, setAddPictureRightsChecked] = useState(false);
-  const [addPictureUploading, setAddPictureUploading] = useState(false);
   // CAP-134: surfaced under the flag form after a flagged regenerate --
   // tells the user whether that regenerate was free or just counted
   // against their normal monthly quota (10 free flags/month).
@@ -649,44 +639,23 @@ function Studio() {
     await generateImage(visualPrompt, { referenceImages, flagReason: reason });
   };
 
-  // CAP-136: upload a fresh photo directly into the Library (optionally
-  // straight into whichever folder is currently selected).
-  const submitAddPictureFile = async () => {
-    if (!addPictureFile) return;
-    setAddPictureUploading(true);
-    const created = await referencePhotoLibrary.upload(addPictureFile, addPictureLabel, addPictureRightsChecked);
-    setAddPictureUploading(false);
-    if (created) {
-      if (libraryCollectionFilter) await referencePhotoLibrary.setCollection(created.id, libraryCollectionFilter);
-      setShowAddPicture(false);
-      setAddPictureFile(null);
-      setAddPictureLabel("");
-      setAddPictureRightsChecked(false);
-    }
-  };
-
-  // CAP-136: "choose from library" in Add Picture -- copies an already
-  // generated image into Added-to-Library as its own reference photo (a
-  // fresh storage object, not a pointer to the generated one, so deleting
-  // either copy later never breaks the other) so it's selectable as a
-  // reference for future generations of the same boat.
-  const importGeneratedImageToLibrary = async (item: { id: string; media_url: string; prompt: string | null }) => {
-    setAddPictureUploading(true);
-    try {
-      const res = await fetch(item.media_url);
-      const blob = await res.blob();
-      const ext = (item.media_url.split("?")[0].split(".").pop() || "jpg").slice(0, 5);
-      const file = new File([blob], `generated-${item.id}.${ext}`, { type: blob.type || "image/jpeg" });
-      const created = await referencePhotoLibrary.upload(file, item.prompt?.slice(0, 60) || "Generated image", true);
-      if (created && libraryCollectionFilter) {
-        await referencePhotoLibrary.setCollection(created.id, libraryCollectionFilter);
-      }
-      if (created) setShowAddPicture(false);
-    } catch {
-      // A failed import shouldn't be a dead end -- the form just stays open.
-    } finally {
-      setAddPictureUploading(false);
-    }
+  // CAP-137: "choose from library" in the Reference Photos panel -- copies
+  // an already generated image into Added-to-Library as its own reference
+  // photo (a fresh storage object, not a pointer to the generated one, so
+  // deleting either copy later never breaks the other), optionally straight
+  // into a chosen folder, so it's selectable as a reference for future
+  // generations of the same boat without re-uploading it.
+  const importGeneratedImageAsReference = async (
+    item: { id: string; media_url: string; prompt: string | null },
+    collectionId: string | null,
+  ): Promise<ReferencePhoto | null> => {
+    const res = await fetch(item.media_url);
+    const blob = await res.blob();
+    const ext = (item.media_url.split("?")[0].split(".").pop() || "jpg").slice(0, 5);
+    const file = new File([blob], `generated-${item.id}.${ext}`, { type: blob.type || "image/jpeg" });
+    const created = await referencePhotoLibrary.upload(file, item.prompt?.slice(0, 60) || "Generated image", true);
+    if (created && collectionId) await referencePhotoLibrary.setCollection(created.id, collectionId);
+    return created;
   };
 
   const downloadImage = async () => {
@@ -982,111 +951,13 @@ function Studio() {
             <div className="text-[10px] tracking-[0.34em] text-primary/80">
               {t.stuGeneratedLibraryTitle}
             </div>
-            <div className="flex items-center gap-3">
-              {/* CAP-136: add a picture straight into whichever folder (or
-                  "All") is currently selected, instead of only being able
-                  to add reference photos from the generation picker above. */}
-              <button
-                onClick={() => setShowAddPicture((v) => !v)}
-                className={`flex items-center gap-1 text-[10px] tracking-[0.15em] uppercase transition-colors ${showAddPicture ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
-              >
-                <Plus className="h-3 w-3" /> {t.stuLibraryAddPicture}
-              </button>
-              <button
-                onClick={() => setShowGeneratedLibrary(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+            <button
+              onClick={() => setShowGeneratedLibrary(false)}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-
-          {showAddPicture && (
-            <div className="space-y-2 p-3 rounded-lg border border-border mb-3">
-              <div className="flex items-center gap-1 text-[10px]">
-                <button
-                  type="button"
-                  onClick={() => setAddPictureMode("file")}
-                  className={`px-2 py-1 rounded-md border transition-colors ${addPictureMode === "file" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
-                >
-                  {t.stuFlagChooseFile}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAddPictureMode("library")}
-                  className={`px-2 py-1 rounded-md border transition-colors ${addPictureMode === "library" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
-                >
-                  {t.stuFlagChooseFromLibrary}
-                </button>
-              </div>
-
-              {addPictureMode === "file" ? (
-                <>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setAddPictureFile(e.target.files?.[0] ?? null)}
-                      className="flex-1 text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-primary/10 file:text-primary"
-                    />
-                    {addPictureFile && (
-                      <button
-                        type="button"
-                        onClick={() => setAddPictureFile(null)}
-                        title={t.stuFlagClearPicture}
-                        className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    value={addPictureLabel}
-                    onChange={(e) => setAddPictureLabel(e.target.value)}
-                    placeholder={t.stuReferencePhotoLabelPlaceholder}
-                    className="w-full bg-transparent border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary/50 transition-colors"
-                  />
-                  <label className="flex items-start gap-2 text-[11px] text-muted-foreground cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={addPictureRightsChecked}
-                      onChange={(e) => setAddPictureRightsChecked(e.target.checked)}
-                      className="mt-0.5"
-                    />
-                    {t.stuReferencePhotoRightsLabel}
-                  </label>
-                  <button
-                    disabled={!addPictureFile || addPictureUploading}
-                    onClick={submitAddPictureFile}
-                    className="w-full h-8 rounded-lg text-primary-foreground text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-40"
-                    style={{ background: "var(--gradient-gold)" }}
-                  >
-                    {addPictureUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                    {t.stuUploadReferencePhoto}
-                  </button>
-                </>
-              ) : generatedLibrary.items.filter((i) => i.type === "image").length === 0 ? (
-                <div className="text-[11px] text-muted-foreground">{t.stuFlagLibraryEmpty}</div>
-              ) : (
-                <div className="grid grid-cols-6 gap-1.5 max-h-32 overflow-y-auto pr-1">
-                  {generatedLibrary.items
-                    .filter((i) => i.type === "image")
-                    .map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        disabled={addPictureUploading}
-                        title={item.prompt ?? ""}
-                        onClick={() => void importGeneratedImageToLibrary(item)}
-                        className="aspect-square rounded-md overflow-hidden border border-transparent hover:border-primary/40 transition-all disabled:opacity-40"
-                      >
-                        <img src={item.media_url} alt={item.prompt ?? ""} className="h-full w-full object-cover" />
-                      </button>
-                    ))}
-                </div>
-              )}
-            </div>
-          )}
 
           {/* CAP-135: "Added to Library" (uploaded reference photos) and
               "AI Generated" (everything Studio has generated) used to be
@@ -1488,6 +1359,13 @@ function Studio() {
               }
               onUploadReferencePhoto={referencePhotoLibrary.upload}
               onRemoveReferencePhoto={referencePhotoLibrary.remove}
+              mediaCollections={mediaCollections.collections}
+              onCreateCollection={mediaCollections.create}
+              onSetReferencePhotoCollection={referencePhotoLibrary.setCollection}
+              generatedImages={generatedLibrary.items
+                .filter((m) => m.type === "image")
+                .map((m) => ({ id: m.id, media_url: m.media_url, prompt: m.prompt }))}
+              onImportGeneratedImage={importGeneratedImageAsReference}
               videoUrl={videoUrl}
               videoLoading={videoLoading}
               videoError={videoError}
@@ -1665,6 +1543,11 @@ function PlanOutput({
   onToggleReferencePhoto,
   onUploadReferencePhoto,
   onRemoveReferencePhoto,
+  mediaCollections,
+  onCreateCollection,
+  onSetReferencePhotoCollection,
+  generatedImages,
+  onImportGeneratedImage,
   videoUrl,
   videoLoading,
   videoError,
@@ -1700,6 +1583,14 @@ function PlanOutput({
   onToggleReferencePhoto: (id: string) => void;
   onUploadReferencePhoto: (file: File, label: string, rightsAcknowledged: boolean) => Promise<ReferencePhoto | null>;
   onRemoveReferencePhoto: (photo: ReferencePhoto) => void;
+  mediaCollections: { id: string; name: string }[];
+  onCreateCollection: (name: string) => Promise<{ id: string; name: string } | null>;
+  onSetReferencePhotoCollection: (photoId: string, collectionId: string | null) => Promise<void>;
+  generatedImages: { id: string; media_url: string; prompt: string | null }[];
+  onImportGeneratedImage: (
+    item: { id: string; media_url: string; prompt: string | null },
+    collectionId: string | null,
+  ) => Promise<ReferencePhoto | null>;
   videoUrl: string | null;
   videoLoading: boolean;
   videoError: boolean;
@@ -1723,10 +1614,15 @@ function PlanOutput({
   // and the flag-as-inaccurate mini-form -- both are transient, nothing
   // here needs to persist beyond this component.
   const [showReferenceUpload, setShowReferenceUpload] = useState(false);
+  const [referenceUploadMode, setReferenceUploadMode] = useState<"file" | "library">("file");
   const [referenceUploadFile, setReferenceUploadFile] = useState<File | null>(null);
-  const [referenceUploadLabel, setReferenceUploadLabel] = useState("");
   const [referenceRightsChecked, setReferenceRightsChecked] = useState(false);
   const [referenceUploading, setReferenceUploading] = useState(false);
+  // CAP-137: which folder (if any) a newly added photo should land in --
+  // picked from existing folders, or a brand new one created inline.
+  const [referenceUploadCollectionId, setReferenceUploadCollectionId] = useState<string | null>(null);
+  const [referenceUploadCreatingFolder, setReferenceUploadCreatingFolder] = useState(false);
+  const [referenceUploadNewFolderName, setReferenceUploadNewFolderName] = useState("");
   const [showFlagForm, setShowFlagForm] = useState(false);
   const [flagReasonDraft, setFlagReasonDraft] = useState("");
   const [flagSubmitting, setFlagSubmitting] = useState(false);
@@ -1986,48 +1882,157 @@ function PlanOutput({
 
             {showReferenceUpload && (
               <div className="space-y-2 p-3 rounded-lg border border-border">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setReferenceUploadFile(e.target.files?.[0] ?? null)}
-                  className="w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-primary/10 file:text-primary"
-                />
-                <input
-                  value={referenceUploadLabel}
-                  onChange={(e) => setReferenceUploadLabel(e.target.value)}
-                  placeholder={t.stuReferencePhotoLabelPlaceholder}
-                  className="w-full bg-transparent border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary/50 transition-colors"
-                />
-                <label className="flex items-start gap-2 text-[11px] text-muted-foreground cursor-pointer">
+                {/* CAP-137: a fresh upload, or pull in a photo Studio
+                    already generated -- either way it lands in the folder
+                    picked below. */}
+                <div className="flex items-center gap-1 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => setReferenceUploadMode("file")}
+                    className={`px-2 py-1 rounded-md border transition-colors ${referenceUploadMode === "file" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {t.stuFlagChooseFile}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReferenceUploadMode("library")}
+                    className={`px-2 py-1 rounded-md border transition-colors ${referenceUploadMode === "library" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {t.stuFlagChooseFromLibrary}
+                  </button>
+                </div>
+
+                {referenceUploadMode === "file" ? (
                   <input
-                    type="checkbox"
-                    checked={referenceRightsChecked}
-                    onChange={(e) => setReferenceRightsChecked(e.target.checked)}
-                    className="mt-0.5"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setReferenceUploadFile(e.target.files?.[0] ?? null)}
+                    className="w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-primary/10 file:text-primary"
                   />
-                  {t.stuReferencePhotoRightsLabel}
-                </label>
-                {referencePhotoError && <div className="text-[11px] text-destructive">{referencePhotoError}</div>}
-                <button
-                  disabled={!referenceUploadFile || referenceUploading}
-                  onClick={async () => {
-                    if (!referenceUploadFile) return;
-                    setReferenceUploading(true);
-                    const result = await onUploadReferencePhoto(referenceUploadFile, referenceUploadLabel, referenceRightsChecked);
-                    setReferenceUploading(false);
-                    if (result) {
-                      setShowReferenceUpload(false);
-                      setReferenceUploadFile(null);
-                      setReferenceUploadLabel("");
-                      setReferenceRightsChecked(false);
+                ) : generatedImages.length === 0 ? (
+                  <div className="text-[11px] text-muted-foreground">{t.stuFlagLibraryEmpty}</div>
+                ) : (
+                  <div className="grid grid-cols-6 gap-1.5 max-h-32 overflow-y-auto pr-1">
+                    {generatedImages.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        disabled={referenceUploading}
+                        title={item.prompt ?? ""}
+                        onClick={async () => {
+                          setReferenceUploading(true);
+                          const result = await onImportGeneratedImage(item, referenceUploadCollectionId);
+                          setReferenceUploading(false);
+                          if (result) {
+                            setShowReferenceUpload(false);
+                            setReferenceUploadCollectionId(null);
+                          }
+                        }}
+                        className="aspect-square rounded-md overflow-hidden border border-transparent hover:border-primary/40 transition-all disabled:opacity-40"
+                      >
+                        <img src={item.media_url} alt={item.prompt ?? ""} className="h-full w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* CAP-137: which folder this photo belongs to -- pick an
+                    existing one or create a new one, right where the photo
+                    is added instead of only from the Library panel. */}
+                <select
+                  value={referenceUploadCreatingFolder ? "__new__" : (referenceUploadCollectionId ?? "")}
+                  onChange={(e) => {
+                    if (e.target.value === "__new__") {
+                      setReferenceUploadCreatingFolder(true);
+                    } else {
+                      setReferenceUploadCreatingFolder(false);
+                      setReferenceUploadCollectionId(e.target.value || null);
                     }
                   }}
-                  className="w-full h-8 rounded-lg text-primary-foreground text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-40"
-                  style={{ background: "var(--gradient-gold)" }}
+                  className="w-full bg-transparent border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary/50 transition-colors"
                 >
-                  {referenceUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                  {t.stuUploadReferencePhoto}
-                </button>
+                  <option value="">{t.stuLibraryNoFolder}</option>
+                  {mediaCollections.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                  <option value="__new__">+ {t.stuLibraryNewFolder}</option>
+                </select>
+                {referenceUploadCreatingFolder && (
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      autoFocus
+                      value={referenceUploadNewFolderName}
+                      onChange={(e) => setReferenceUploadNewFolderName(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key === "Enter" && referenceUploadNewFolderName.trim()) {
+                          const created = await onCreateCollection(referenceUploadNewFolderName.trim());
+                          if (created) setReferenceUploadCollectionId(created.id);
+                          setReferenceUploadNewFolderName("");
+                          setReferenceUploadCreatingFolder(false);
+                        } else if (e.key === "Escape") {
+                          setReferenceUploadCreatingFolder(false);
+                          setReferenceUploadNewFolderName("");
+                        }
+                      }}
+                      placeholder={t.stuLibraryFolderNamePlaceholder}
+                      className="flex-1 h-7 bg-transparent border border-border rounded-lg px-2 text-xs outline-none focus:border-primary/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (referenceUploadNewFolderName.trim()) {
+                          const created = await onCreateCollection(referenceUploadNewFolderName.trim());
+                          if (created) setReferenceUploadCollectionId(created.id);
+                        }
+                        setReferenceUploadNewFolderName("");
+                        setReferenceUploadCreatingFolder(false);
+                      }}
+                      className="text-[10px] text-primary hover:underline shrink-0"
+                    >
+                      {t.stuSave}
+                    </button>
+                  </div>
+                )}
+
+                {referenceUploadMode === "file" && (
+                  <>
+                    <label className="flex items-start gap-2 text-[11px] text-muted-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={referenceRightsChecked}
+                        onChange={(e) => setReferenceRightsChecked(e.target.checked)}
+                        className="mt-0.5"
+                      />
+                      {t.stuReferencePhotoRightsLabel}
+                    </label>
+                    {referencePhotoError && <div className="text-[11px] text-destructive">{referencePhotoError}</div>}
+                    <button
+                      disabled={!referenceUploadFile || referenceUploading}
+                      onClick={async () => {
+                        if (!referenceUploadFile) return;
+                        setReferenceUploading(true);
+                        const result = await onUploadReferencePhoto(referenceUploadFile, "", referenceRightsChecked);
+                        if (result && referenceUploadCollectionId) {
+                          await onSetReferencePhotoCollection(result.id, referenceUploadCollectionId);
+                        }
+                        setReferenceUploading(false);
+                        if (result) {
+                          setShowReferenceUpload(false);
+                          setReferenceUploadFile(null);
+                          setReferenceRightsChecked(false);
+                          setReferenceUploadCollectionId(null);
+                        }
+                      }}
+                      className="w-full h-8 rounded-lg text-primary-foreground text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-40"
+                      style={{ background: "var(--gradient-gold)" }}
+                    >
+                      {referenceUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                      {t.stuUploadReferencePhoto}
+                    </button>
+                  </>
+                )}
               </div>
             )}
 

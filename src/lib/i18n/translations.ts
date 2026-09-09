@@ -459,7 +459,6 @@ export type T = {
   stuFlagChooseFromLibrary: string;
   stuFlagClearPicture: string;
   stuFlagLibraryEmpty: string;
-  stuLibraryAddPicture: string;
   stuLibraryAddedTab: (n: number) => string;
   stuLibraryGeneratedTab: (n: number) => string;
   stuLibraryAllFolders: string;
@@ -1339,7 +1338,6 @@ export const translations: Record<Lang, T> = {
     stuFlagChooseFromLibrary: "Choose from library",
     stuFlagClearPicture: "Remove",
     stuFlagLibraryEmpty: "Your library is empty — upload a reference photo or generate an image first.",
-    stuLibraryAddPicture: "Add picture",
     stuLibraryAddedTab: (n) => `Added to Library (${n})`,
     stuLibraryGeneratedTab: (n) => `AI Generated (${n})`,
     stuLibraryAllFolders: "All",
@@ -2318,7 +2316,6 @@ export const translations: Record<Lang, T> = {
     stuFlagChooseFromLibrary: "Choisir depuis la bibliothèque",
     stuFlagClearPicture: "Retirer",
     stuFlagLibraryEmpty: "Votre bibliothèque est vide — ajoutez une photo de référence ou générez une image d'abord.",
-    stuLibraryAddPicture: "Ajouter une photo",
     stuLibraryAddedTab: (n) => `Ajoutées à la bibliothèque (${n})`,
     stuLibraryGeneratedTab: (n) => `Générées par IA (${n})`,
     stuLibraryAllFolders: "Tous",
