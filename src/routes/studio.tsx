@@ -836,7 +836,7 @@ function Studio() {
                 {t.stuHistory(history.length)}
               </button>
             )}
-            {generatedLibrary.items.length > 0 && (
+            {!generatedLibrary.loading && (
               <button
                 onClick={() => setShowGeneratedLibrary(!showGeneratedLibrary)}
                 className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs tracking-[0.2em] uppercase border transition-all hover:-translate-y-0.5 ${showGeneratedLibrary ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-primary hover:border-primary/40"}`}
@@ -910,6 +910,9 @@ function Studio() {
               <X className="h-4 w-4" />
             </button>
           </div>
+          {generatedLibrary.items.length === 0 ? (
+            <div className="text-[12px] text-muted-foreground text-center py-6">{t.stuGeneratedLibraryEmpty}</div>
+          ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-80 overflow-y-auto pr-1">
             {generatedLibrary.items.map((m) => (
               <a
@@ -941,6 +944,7 @@ function Studio() {
               </a>
             ))}
           </div>
+          )}
         </div>
       )}
 

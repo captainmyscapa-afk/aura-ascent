@@ -404,6 +404,7 @@ export type T = {
   stuContentHistory: (label: string) => string;
   stuGeneratedLibrary: (n: number) => string;
   stuGeneratedLibraryTitle: string;
+  stuGeneratedLibraryEmpty: string;
   stuUntitled: string;
   stuDeleteDraft: string;
   stuModeAssisted: string;
@@ -1266,6 +1267,7 @@ export const translations: Record<Lang, T> = {
     stuContentHistory: (label) => `CONTENT HISTORY · ${label}`,
     stuGeneratedLibrary: (n) => `Library (${n})`,
     stuGeneratedLibraryTitle: "GENERATED LIBRARY · EVERY IMAGE & VIDEO YOU'VE MADE",
+    stuGeneratedLibraryEmpty: "Nothing generated yet — every image and video you create in Studio will be saved here, even ones you flag or don't end up using.",
     stuUntitled: "Untitled",
     stuDeleteDraft: "Delete draft",
     stuModeAssisted: "AI Assisted",
@@ -2232,6 +2234,7 @@ export const translations: Record<Lang, T> = {
     stuContentHistory: (label) => `HISTORIQUE DE CONTENU · ${label}`,
     stuGeneratedLibrary: (n) => `Bibliothèque (${n})`,
     stuGeneratedLibraryTitle: "BIBLIOTHÈQUE GÉNÉRÉE · TOUTES VOS IMAGES ET VIDÉOS",
+    stuGeneratedLibraryEmpty: "Rien de généré pour l'instant — chaque image et vidéo créée dans Studio sera enregistrée ici, même celles que vous signalez ou n'utilisez pas.",
     stuUntitled: "Sans titre",
     stuDeleteDraft: "Supprimer le brouillon",
     stuModeAssisted: "Assisté par IA",
