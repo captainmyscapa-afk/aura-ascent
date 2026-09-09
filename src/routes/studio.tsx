@@ -1790,6 +1790,19 @@ function PlanOutput({
   const [showReferenceUpload, setShowReferenceUpload] = useState(false);
   const [referenceUploadMode, setReferenceUploadMode] = useState<"file" | "library">("file");
   const [referenceUploadFile, setReferenceUploadFile] = useState<File | null>(null);
+  // CAP-142: a real thumbnail preview of the picked file (not just its
+  // filename) so "Choose file" shows the same box-with-x treatment as the
+  // selected-reference-photos box above it.
+  const [referenceUploadPreviewUrl, setReferenceUploadPreviewUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!referenceUploadFile) {
+      setReferenceUploadPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(referenceUploadFile);
+    setReferenceUploadPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [referenceUploadFile]);
   const [referenceRightsChecked, setReferenceRightsChecked] = useState(false);
   const [referenceUploading, setReferenceUploading] = useState(false);
   // CAP-137: which folder (if any) a newly added photo should land in --
@@ -2076,22 +2089,34 @@ function PlanOutput({
                 </div>
 
                 {referenceUploadMode === "file" ? (
-                  <div className="flex items-center gap-2">
+                  <div className="space-y-2">
                     <input
                       type="file"
                       accept="image/*"
                       onChange={(e) => setReferenceUploadFile(e.target.files?.[0] ?? null)}
-                      className="flex-1 text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-primary/10 file:text-primary"
+                      className="w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-primary/10 file:text-primary"
                     />
-                    {referenceUploadFile && (
-                      <button
-                        type="button"
-                        onClick={() => setReferenceUploadFile(null)}
-                        title={t.stuFlagClearPicture}
-                        className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
+                    {/* CAP-142: same box-with-x preview as the selected
+                        reference photos above -- a real thumbnail, not just
+                        a filename, so a wrong pick is obvious before it's
+                        even added. */}
+                    {referenceUploadFile && referenceUploadPreviewUrl && (
+                      <div className="relative h-14 w-14 shrink-0">
+                        <img
+                          src={referenceUploadPreviewUrl}
+                          alt={referenceUploadFile.name}
+                          title={referenceUploadFile.name}
+                          className="h-14 w-14 rounded-lg object-cover border-2 border-primary"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setReferenceUploadFile(null)}
+                          title={t.stuFlagClearPicture}
+                          className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-destructive text-white flex items-center justify-center shadow hover:scale-110 transition-transform"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 ) : referencePhotos.length === 0 && generatedImages.length === 0 ? (
