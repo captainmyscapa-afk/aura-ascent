@@ -2016,43 +2016,10 @@ function PlanOutput({
               </button>
             </div>
 
-            {!referencePhotosLoading && referencePhotos.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {referencePhotos.map((photo) => {
-                  const selected = selectedReferenceIds.has(photo.id);
-                  return (
-                    <div key={photo.id} className="relative h-16 w-16 shrink-0">
-                      <button
-                        onClick={() => onToggleReferencePhoto(photo.id)}
-                        title={photo.label}
-                        className={`h-16 w-16 rounded-lg overflow-hidden border-2 transition-all ${selected ? "border-primary" : "border-border hover:border-primary/40"}`}
-                      >
-                        <img src={photo.image_url} alt={photo.label} className="h-full w-full object-cover" />
-                        {selected && (
-                          <span className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                            <Check className="h-4 w-4 text-white drop-shadow" />
-                          </span>
-                        )}
-                      </button>
-                      {/* CAP-138: this "x" only removes the photo from
-                          THIS content (deselects it) -- it never deletes
-                          the photo itself. Deleting a photo for good is a
-                          Library-panel-only action now. */}
-                      {selected && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onToggleReferencePhoto(photo.id); }}
-                          title={t.stuFlagClearPicture}
-                          className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-destructive text-white flex items-center justify-center shadow hover:scale-110 transition-transform"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
+            {/* CAP-139: the old always-visible photo strip here duplicated
+                what the Add Photo form's "Choose from library" now covers --
+                removed in favor of picking/adding there, so a photo is only
+                ever shown once you actually choose it. */}
             {selectedReferenceIds.size > 0 && (
               <div className="text-[11px] text-muted-foreground">{t.stuReferencePhotosSelected(selectedReferenceIds.size)}</div>
             )}
@@ -2080,19 +2047,54 @@ function PlanOutput({
                 </div>
 
                 {referenceUploadMode === "file" ? (
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setReferenceUploadFile(e.target.files?.[0] ?? null)}
-                    className="w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-primary/10 file:text-primary"
-                  />
-                ) : generatedImages.length === 0 ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setReferenceUploadFile(e.target.files?.[0] ?? null)}
+                      className="flex-1 text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-primary/10 file:text-primary"
+                    />
+                    {referenceUploadFile && (
+                      <button
+                        type="button"
+                        onClick={() => setReferenceUploadFile(null)}
+                        title={t.stuFlagClearPicture}
+                        className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ) : referencePhotos.length === 0 && generatedImages.length === 0 ? (
                   <div className="text-[11px] text-muted-foreground">{t.stuFlagLibraryEmpty}</div>
                 ) : (
                   <div className="grid grid-cols-6 gap-1.5 max-h-32 overflow-y-auto pr-1">
+                    {/* CAP-139: an already-saved reference photo just gets
+                        selected for this generation (no re-upload needed) --
+                        a generated image gets copied in as a new reference
+                        photo and selected right away. */}
+                    {referencePhotos.map((photo) => {
+                      const selected = selectedReferenceIds.has(photo.id);
+                      return (
+                        <button
+                          key={`ref-${photo.id}`}
+                          type="button"
+                          title={photo.label}
+                          onClick={() => onToggleReferencePhoto(photo.id)}
+                          className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${selected ? "border-primary" : "border-transparent hover:border-primary/40"}`}
+                        >
+                          <img src={photo.image_url} alt={photo.label} className="h-full w-full object-cover" />
+                          {selected && (
+                            <span className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                              <Check className="h-4 w-4 text-white drop-shadow" />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                     {generatedImages.map((item) => (
                       <button
-                        key={item.id}
+                        key={`gen-${item.id}`}
                         type="button"
                         disabled={referenceUploading}
                         title={item.prompt ?? ""}
@@ -2101,6 +2103,7 @@ function PlanOutput({
                           const result = await onImportGeneratedImage(item, referenceUploadCollectionId);
                           setReferenceUploading(false);
                           if (result) {
+                            onToggleReferencePhoto(result.id);
                             setShowReferenceUpload(false);
                             setReferenceUploadCollectionId(null);
                           }
@@ -2196,6 +2199,7 @@ function PlanOutput({
                         }
                         setReferenceUploading(false);
                         if (result) {
+                          onToggleReferencePhoto(result.id);
                           setShowReferenceUpload(false);
                           setReferenceUploadFile(null);
                           setReferenceRightsChecked(false);
