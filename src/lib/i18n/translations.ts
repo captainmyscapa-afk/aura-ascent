@@ -446,6 +446,7 @@ export type T = {
   stuReferencePhotos: string;
   stuAddReferencePhoto: string;
   stuReferencePhotosSelected: (n: number) => string;
+  stuReferencePhotosTip: string;
   stuReferencePhotoLabelPlaceholder: string;
   stuReferencePhotoRightsLabel: string;
   stuUploadReferencePhoto: string;
@@ -1325,6 +1326,7 @@ export const translations: Record<Lang, T> = {
     stuReferencePhotos: "REFERENCE PHOTOS",
     stuAddReferencePhoto: "+ Add photo",
     stuReferencePhotosSelected: (n) => `${n} reference photo${n === 1 ? "" : "s"} selected`,
+    stuReferencePhotosTip: "Tip: 2-4 clear, well-lit photos from different angles reproduce the boat more accurately than many photos at once.",
     stuReferencePhotoLabelPlaceholder: "Label (e.g. \"Sunseeker 88 - starboard\")",
     stuReferencePhotoRightsLabel: "I own this photo or have rights to use it",
     stuUploadReferencePhoto: "Add to library",
@@ -2303,6 +2305,7 @@ export const translations: Record<Lang, T> = {
     stuReferencePhotos: "PHOTOS DE RÉFÉRENCE",
     stuAddReferencePhoto: "+ Ajouter une photo",
     stuReferencePhotosSelected: (n) => `${n} photo${n === 1 ? "" : "s"} de référence sélectionnée${n === 1 ? "" : "s"}`,
+    stuReferencePhotosTip: "Astuce : 2 à 4 photos nettes et bien éclairées, sous des angles différents, reproduisent le bateau plus fidèlement qu'un grand nombre de photos à la fois.",
     stuReferencePhotoLabelPlaceholder: "Nom (ex. \"Sunseeker 88 - tribord\")",
     stuReferencePhotoRightsLabel: "Je possède cette photo ou j'ai le droit de l'utiliser",
     stuUploadReferencePhoto: "Ajouter à la bibliothèque",

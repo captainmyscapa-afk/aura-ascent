@@ -2023,6 +2023,11 @@ function PlanOutput({
             {selectedReferenceIds.size > 0 && (
               <div className="text-[11px] text-muted-foreground">{t.stuReferencePhotosSelected(selectedReferenceIds.size)}</div>
             )}
+            {/* CAP-140: accuracy tip -- Nano Banana Pro's own docs say
+                subject fidelity is "not always" perfect, and community
+                testing found too many reference photos dilutes it. Purely
+                informational, never blocks selection. */}
+            <div className="text-[10px] text-muted-foreground/70">{t.stuReferencePhotosTip}</div>
 
             {showReferenceUpload && (
               <div className="space-y-2 p-3 rounded-lg border border-border">
