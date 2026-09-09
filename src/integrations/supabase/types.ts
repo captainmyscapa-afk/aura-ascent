@@ -844,7 +844,7 @@ export type Database = {
           id: string
           image_url: string
           label: string
-          rights_acknowledged_at: string
+          rights_acknowledged_at: string | null
           storage_path: string
           user_id: string
         }
@@ -853,7 +853,7 @@ export type Database = {
           id?: string
           image_url: string
           label: string
-          rights_acknowledged_at?: string
+          rights_acknowledged_at?: string | null
           storage_path: string
           user_id: string
         }
@@ -862,7 +862,7 @@ export type Database = {
           id?: string
           image_url?: string
           label?: string
-          rights_acknowledged_at?: string
+          rights_acknowledged_at?: string | null
           storage_path?: string
           user_id?: string
         }

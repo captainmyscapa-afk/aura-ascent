@@ -47,10 +47,11 @@ export function useReferencePhotos() {
     void refetch();
   }, [refetch]);
 
-  // rightsAcknowledged must be explicitly true (a checkbox the user ticked
-  // for THIS upload) -- never defaulted or remembered across uploads, since
-  // this is the one place Aurum has any evidence the uploader has rights to
-  // use the photo.
+  // The rights checkbox is shown to the user on every upload but does not
+  // block the upload -- we record whether it was actually ticked
+  // (rights_acknowledged_at is null when it wasn't) so there's still an
+  // honest record of what was presented and what the user did, without
+  // Aurum gatekeeping the feature on it.
   const upload = useCallback(
     async (
       file: File,
@@ -58,10 +59,6 @@ export function useReferencePhotos() {
       rightsAcknowledged: boolean,
     ): Promise<ReferencePhoto | null> => {
       if (!user) return null;
-      if (!rightsAcknowledged) {
-        setError("You must confirm you own or have rights to use this photo.");
-        return null;
-      }
       setError(null);
       const ext = file.name.split(".").pop() || "jpg";
       const path = `reference-photos/${user.id}/${crypto.randomUUID()}.${ext}`;
@@ -81,6 +78,7 @@ export function useReferencePhotos() {
           label: label.trim() || file.name,
           image_url: pub.publicUrl,
           storage_path: path,
+          rights_acknowledged_at: rightsAcknowledged ? new Date().toISOString() : null,
         })
         .select("*")
         .maybeSingle();

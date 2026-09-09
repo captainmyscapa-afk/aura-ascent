@@ -1505,7 +1505,7 @@ function PlanOutput({
                 </label>
                 {referencePhotoError && <div className="text-[11px] text-destructive">{referencePhotoError}</div>}
                 <button
-                  disabled={!referenceUploadFile || !referenceRightsChecked || referenceUploading}
+                  disabled={!referenceUploadFile || referenceUploading}
                   onClick={async () => {
                     if (!referenceUploadFile) return;
                     setReferenceUploading(true);
