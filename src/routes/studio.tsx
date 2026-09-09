@@ -2016,12 +2016,36 @@ function PlanOutput({
               </button>
             </div>
 
-            {/* CAP-139: the old always-visible photo strip here duplicated
-                what the Add Photo form's "Choose from library" now covers --
-                removed in favor of picking/adding there, so a photo is only
-                ever shown once you actually choose it. */}
+            {/* CAP-141: exactly what's being sent as reference for THIS
+                generation -- separate from "Choose from library" (which
+                browses everything you've ever saved), this only ever shows
+                what's currently selected, with its own "x" to drop a wrong
+                pick without touching the saved photo itself. */}
             {selectedReferenceIds.size > 0 && (
-              <div className="text-[11px] text-muted-foreground">{t.stuReferencePhotosSelected(selectedReferenceIds.size)}</div>
+              <div className="space-y-1.5 p-2.5 rounded-lg border border-border/60 bg-secondary/10">
+                <div className="text-[10px] text-muted-foreground">{t.stuReferencePhotosSelected(selectedReferenceIds.size)}</div>
+                <div className="flex flex-wrap gap-2">
+                  {referencePhotos
+                    .filter((photo) => selectedReferenceIds.has(photo.id))
+                    .map((photo) => (
+                      <div key={photo.id} className="relative h-14 w-14 shrink-0">
+                        <img
+                          src={photo.image_url}
+                          alt={photo.label}
+                          title={photo.label}
+                          className="h-14 w-14 rounded-lg object-cover border-2 border-primary"
+                        />
+                        <button
+                          onClick={() => onToggleReferencePhoto(photo.id)}
+                          title={t.stuFlagClearPicture}
+                          className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-destructive text-white flex items-center justify-center shadow hover:scale-110 transition-transform"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
             )}
             {/* CAP-140: accuracy tip -- Nano Banana Pro's own docs say
                 subject fidelity is "not always" perfect, and community
