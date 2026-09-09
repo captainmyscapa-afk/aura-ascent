@@ -143,6 +143,33 @@ export type Database = {
           },
         ]
       }
+      ai_generation_usage: {
+        Row: {
+          cost_usd: number
+          created_at: string
+          id: string
+          kind: string
+          provider: string
+          user_id: string
+        }
+        Insert: {
+          cost_usd?: number
+          created_at?: string
+          id?: string
+          kind: string
+          provider: string
+          user_id: string
+        }
+        Update: {
+          cost_usd?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          provider?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       aurum_core_state: {
         Row: {
           active_mode: string | null
@@ -163,6 +190,8 @@ export type Database = {
           id: string
           last_active: string | null
           level: string | null
+          mentor_quick_prompts: Json | null
+          mentor_quick_prompts_date: string | null
           mode: string | null
           ritual_profile: Json | null
           roadmap: Json | null
@@ -196,6 +225,8 @@ export type Database = {
           id?: string
           last_active?: string | null
           level?: string | null
+          mentor_quick_prompts?: Json | null
+          mentor_quick_prompts_date?: string | null
           mode?: string | null
           ritual_profile?: Json | null
           roadmap?: Json | null
@@ -229,6 +260,8 @@ export type Database = {
           id?: string
           last_active?: string | null
           level?: string | null
+          mentor_quick_prompts?: Json | null
+          mentor_quick_prompts_date?: string | null
           mode?: string | null
           ritual_profile?: Json | null
           roadmap?: Json | null
@@ -775,6 +808,63 @@ export type Database = {
           refresh_token?: string | null
           user_id?: string | null
           username?: string | null
+        }
+        Relationships: []
+      }
+      studio_generation_flags: {
+        Row: {
+          created_at: string
+          id: string
+          prompt: string
+          reason: string | null
+          used_reference_photos: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          prompt: string
+          reason?: string | null
+          used_reference_photos?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          prompt?: string
+          reason?: string | null
+          used_reference_photos?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      studio_reference_photos: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          label: string
+          rights_acknowledged_at: string
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          label: string
+          rights_acknowledged_at?: string
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          label?: string
+          rights_acknowledged_at?: string
+          storage_path?: string
+          user_id?: string
         }
         Relationships: []
       }

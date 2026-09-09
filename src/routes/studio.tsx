@@ -30,6 +30,8 @@ import {
   Facebook,
   CheckSquare,
   Square,
+  Plus,
+  Flag,
 } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_TO_CATEGORY } from "@/lib/industry/categoryMap";
@@ -38,6 +40,7 @@ import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { generateStudioContent, type StudioContentPlan } from "@/lib/studio.functions";
+import { useReferencePhotos, type ReferencePhoto } from "@/hooks/useReferencePhotos";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { T } from "@/lib/i18n/translations";
 
@@ -170,6 +173,11 @@ function Studio() {
   const [loadStep, setLoadStep] = useState(0);
   const [editablePlan, setEditablePlan] = useState<StudioContentPlan | null>(null);
   const [connectedPlatforms, setConnectedPlatforms] = useState<Set<string>>(new Set());
+  // CAP-133: saved reference photos let generation stay accurate to the
+  // real boat instead of hallucinating one. Selection is per-generation;
+  // the library itself persists across sessions.
+  const referencePhotoLibrary = useReferencePhotos();
+  const [selectedReferenceIds, setSelectedReferenceIds] = useState<Set<string>>(new Set());
 
   const LOAD_STEPS = t.stuLoadSteps;
 
@@ -403,7 +411,36 @@ function Studio() {
     }
   };
 
-  const generateImage = async (visualPrompt: string) => {
+  // CAP-133: fetches the currently-selected saved reference photos and
+  // converts each to base64 so they can ride along in the generate-image
+  // request body -- this is what lets Nano Banana Pro composite around the
+  // real boat instead of hallucinating one from the text prompt alone.
+  const fetchSelectedReferenceImages = async (): Promise<{ data: string; mimeType: string }[]> => {
+    const selected = referencePhotoLibrary.photos.filter((p) => selectedReferenceIds.has(p.id));
+    const results: { data: string; mimeType: string }[] = [];
+    for (const photo of selected) {
+      try {
+        const res = await fetch(photo.image_url);
+        const blob = await res.blob();
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string).split(",")[1] ?? "");
+          reader.onerror = () => reject(new Error("Failed to read reference photo"));
+          reader.readAsDataURL(blob);
+        });
+        if (base64) results.push({ data: base64, mimeType: blob.type || "image/jpeg" });
+      } catch {
+        // A single bad reference photo shouldn't block generation -- it's
+        // just skipped, same spirit as every other fallback in this flow.
+      }
+    }
+    return results;
+  };
+
+  const generateImage = async (
+    visualPrompt: string,
+    opts?: { referenceImages?: { data: string; mimeType: string }[]; flagReason?: string },
+  ) => {
     setImageLoading(true);
     setImageError(false);
     setImageUrl(null);
@@ -417,7 +454,11 @@ function Studio() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session?.access_token ?? ""}`,
           },
-          body: JSON.stringify({ prompt: visualPrompt }),
+          body: JSON.stringify({
+            prompt: visualPrompt,
+            referenceImages: opts?.referenceImages?.length ? opts.referenceImages : undefined,
+            flagReason: opts?.flagReason,
+          }),
         }
       );
 
@@ -458,6 +499,19 @@ function Studio() {
     } finally {
       setImageLoading(false);
     }
+  };
+
+  // CAP-133: the actual entry points wired to the UI -- both pull in
+  // whichever reference photos are currently selected, so accuracy applies
+  // whether this is a first attempt or a flagged retry.
+  const generateImageWithReferences = async (visualPrompt: string) => {
+    const referenceImages = await fetchSelectedReferenceImages();
+    await generateImage(visualPrompt, { referenceImages });
+  };
+
+  const flagAndRegenerateImage = async (visualPrompt: string, reason: string) => {
+    const referenceImages = await fetchSelectedReferenceImages();
+    await generateImage(visualPrompt, { referenceImages, flagReason: reason });
   };
 
   const downloadImage = async () => {
@@ -937,8 +991,22 @@ function Studio() {
               imageUrl={imageUrl}
               imageLoading={imageLoading}
               imageError={imageError}
-              onGenerateImage={() => generateImage((editablePlan ?? plan!).visualPrompt)}
+              onGenerateImage={() => generateImageWithReferences((editablePlan ?? plan!).visualPrompt)}
+              onFlagInaccurate={(reason) => flagAndRegenerateImage((editablePlan ?? plan!).visualPrompt, reason)}
               onDownloadImage={downloadImage}
+              referencePhotos={referencePhotoLibrary.photos}
+              referencePhotosLoading={referencePhotoLibrary.loading}
+              referencePhotoError={referencePhotoLibrary.error}
+              selectedReferenceIds={selectedReferenceIds}
+              onToggleReferencePhoto={(id) =>
+                setSelectedReferenceIds((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(id)) next.delete(id);
+                  else next.add(id);
+                  return next;
+                })
+              }
+              onUploadReferencePhoto={referencePhotoLibrary.upload}
               videoUrl={videoUrl}
               videoLoading={videoLoading}
               videoError={videoError}
@@ -1105,7 +1173,14 @@ function PlanOutput({
   imageLoading,
   imageError,
   onGenerateImage,
+  onFlagInaccurate,
   onDownloadImage,
+  referencePhotos,
+  referencePhotosLoading,
+  referencePhotoError,
+  selectedReferenceIds,
+  onToggleReferencePhoto,
+  onUploadReferencePhoto,
   videoUrl,
   videoLoading,
   videoError,
@@ -1130,7 +1205,14 @@ function PlanOutput({
   imageLoading: boolean;
   imageError: boolean;
   onGenerateImage: () => void;
+  onFlagInaccurate: (reason: string) => void;
   onDownloadImage: () => void;
+  referencePhotos: ReferencePhoto[];
+  referencePhotosLoading: boolean;
+  referencePhotoError: string | null;
+  selectedReferenceIds: Set<string>;
+  onToggleReferencePhoto: (id: string) => void;
+  onUploadReferencePhoto: (file: File, label: string, rightsAcknowledged: boolean) => Promise<ReferencePhoto | null>;
   videoUrl: string | null;
   videoLoading: boolean;
   videoError: boolean;
@@ -1149,6 +1231,18 @@ function PlanOutput({
 }) {
   const platformKeys = Object.keys(plan.platforms).filter((k) => plan.platforms[k]);
   const [activeTab, setActiveTab] = useState(platformKeys[0] ?? "");
+
+  // CAP-133: local UI-only state for the reference-photo upload mini-form
+  // and the flag-as-inaccurate mini-form -- both are transient, nothing
+  // here needs to persist beyond this component.
+  const [showReferenceUpload, setShowReferenceUpload] = useState(false);
+  const [referenceUploadFile, setReferenceUploadFile] = useState<File | null>(null);
+  const [referenceUploadLabel, setReferenceUploadLabel] = useState("");
+  const [referenceRightsChecked, setReferenceRightsChecked] = useState(false);
+  const [referenceUploading, setReferenceUploading] = useState(false);
+  const [showFlagForm, setShowFlagForm] = useState(false);
+  const [flagReasonDraft, setFlagReasonDraft] = useState("");
+  const [flagSubmitting, setFlagSubmitting] = useState(false);
 
   // Inline editing
   const [editingCaption, setEditingCaption] = useState<string | null>(null);
@@ -1345,12 +1439,101 @@ function PlanOutput({
         )}
 
         {!imageUrl && !imageLoading && (
-          <button
-            onClick={onGenerateImage}
-            className="w-full h-10 rounded-xl border border-primary/40 text-primary text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary/10 transition-all"
-          >
-            <ImageIcon className="h-4 w-4" /> {t.stuGenerateImage}
-          </button>
+          <div className="space-y-3 mb-3">
+            {/* CAP-133: saved reference photos -- select up to 6 real photos
+                of the actual boat/asset so generation composites around it
+                instead of hallucinating one from the text prompt alone. */}
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">{t.stuReferencePhotos}</div>
+              <button
+                onClick={() => setShowReferenceUpload((v) => !v)}
+                className="text-[10px] tracking-[0.2em] uppercase text-primary hover:underline"
+              >
+                {t.stuAddReferencePhoto}
+              </button>
+            </div>
+
+            {!referencePhotosLoading && referencePhotos.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {referencePhotos.map((photo) => {
+                  const selected = selectedReferenceIds.has(photo.id);
+                  return (
+                    <button
+                      key={photo.id}
+                      onClick={() => onToggleReferencePhoto(photo.id)}
+                      title={photo.label}
+                      className={`relative h-16 w-16 rounded-lg overflow-hidden border-2 transition-all ${selected ? "border-primary" : "border-border hover:border-primary/40"}`}
+                    >
+                      <img src={photo.image_url} alt={photo.label} className="h-full w-full object-cover" />
+                      {selected && (
+                        <span className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                          <Check className="h-4 w-4 text-white drop-shadow" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {selectedReferenceIds.size > 0 && (
+              <div className="text-[11px] text-muted-foreground">{t.stuReferencePhotosSelected(selectedReferenceIds.size)}</div>
+            )}
+
+            {showReferenceUpload && (
+              <div className="space-y-2 p-3 rounded-lg border border-border">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setReferenceUploadFile(e.target.files?.[0] ?? null)}
+                  className="w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-primary/10 file:text-primary"
+                />
+                <input
+                  value={referenceUploadLabel}
+                  onChange={(e) => setReferenceUploadLabel(e.target.value)}
+                  placeholder={t.stuReferencePhotoLabelPlaceholder}
+                  className="w-full bg-transparent border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary/50 transition-colors"
+                />
+                <label className="flex items-start gap-2 text-[11px] text-muted-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={referenceRightsChecked}
+                    onChange={(e) => setReferenceRightsChecked(e.target.checked)}
+                    className="mt-0.5"
+                  />
+                  {t.stuReferencePhotoRightsLabel}
+                </label>
+                {referencePhotoError && <div className="text-[11px] text-destructive">{referencePhotoError}</div>}
+                <button
+                  disabled={!referenceUploadFile || !referenceRightsChecked || referenceUploading}
+                  onClick={async () => {
+                    if (!referenceUploadFile) return;
+                    setReferenceUploading(true);
+                    const result = await onUploadReferencePhoto(referenceUploadFile, referenceUploadLabel, referenceRightsChecked);
+                    setReferenceUploading(false);
+                    if (result) {
+                      setShowReferenceUpload(false);
+                      setReferenceUploadFile(null);
+                      setReferenceUploadLabel("");
+                      setReferenceRightsChecked(false);
+                    }
+                  }}
+                  className="w-full h-8 rounded-lg text-primary-foreground text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-40"
+                  style={{ background: "var(--gradient-gold)" }}
+                >
+                  {referenceUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                  {t.stuUploadReferencePhoto}
+                </button>
+              </div>
+            )}
+
+            <button
+              onClick={onGenerateImage}
+              className="w-full h-10 rounded-xl border border-primary/40 text-primary text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary/10 transition-all"
+            >
+              <ImageIcon className="h-4 w-4" /> {t.stuGenerateImage}
+            </button>
+          </div>
         )}
 
         {imageLoading && (
@@ -1387,6 +1570,50 @@ function PlanOutput({
                 <ImageIcon className="h-4 w-4" /> {t.stuRegenerate}
               </button>
             </div>
+
+            {/* CAP-133: even with a reference photo, the model can still
+                drift -- flagging gets a free regenerate that doesn't count
+                against the monthly cap, and logs what went wrong. */}
+            {!showFlagForm ? (
+              <button
+                onClick={() => setShowFlagForm(true)}
+                className="w-full flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground hover:text-destructive transition-colors"
+              >
+                <Flag className="h-3 w-3" /> {t.stuFlagInaccurate}
+              </button>
+            ) : (
+              <div className="space-y-2 p-3 rounded-lg border border-border">
+                <textarea
+                  value={flagReasonDraft}
+                  onChange={(e) => setFlagReasonDraft(e.target.value)}
+                  placeholder={t.stuFlagReasonPlaceholder}
+                  rows={2}
+                  className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-xs outline-none focus:border-primary/50 resize-y transition-colors"
+                />
+                <div className="flex gap-2">
+                  <button
+                    disabled={!flagReasonDraft.trim() || flagSubmitting}
+                    onClick={async () => {
+                      setFlagSubmitting(true);
+                      onFlagInaccurate(flagReasonDraft.trim());
+                      setFlagSubmitting(false);
+                      setShowFlagForm(false);
+                      setFlagReasonDraft("");
+                    }}
+                    className="flex-1 h-8 rounded-lg text-primary-foreground text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-40"
+                    style={{ background: "var(--gradient-gold)" }}
+                  >
+                    <Flag className="h-3.5 w-3.5" /> {t.stuFlagAndRegenerate}
+                  </button>
+                  <button
+                    onClick={() => { setShowFlagForm(false); setFlagReasonDraft(""); }}
+                    className="px-3 h-8 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {t.stuCancel}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

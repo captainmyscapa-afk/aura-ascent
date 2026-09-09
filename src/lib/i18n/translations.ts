@@ -440,6 +440,15 @@ export type T = {
   stuHashtags: string;
   stuHashtagsPlaceholder: string;
   stuVisualPrompt: string;
+  stuReferencePhotos: string;
+  stuAddReferencePhoto: string;
+  stuReferencePhotosSelected: (n: number) => string;
+  stuReferencePhotoLabelPlaceholder: string;
+  stuReferencePhotoRightsLabel: string;
+  stuUploadReferencePhoto: string;
+  stuFlagInaccurate: string;
+  stuFlagReasonPlaceholder: string;
+  stuFlagAndRegenerate: string;
   stuGenerateImage: string;
   stuGeneratingVisual: string;
   stuImageFailed: string;
@@ -1293,6 +1302,15 @@ export const translations: Record<Lang, T> = {
     stuHashtags: "HASHTAGS",
     stuHashtagsPlaceholder: "#yacht #luxury …",
     stuVisualPrompt: "VISUAL PROMPT",
+    stuReferencePhotos: "REFERENCE PHOTOS",
+    stuAddReferencePhoto: "+ Add photo",
+    stuReferencePhotosSelected: (n) => `${n} reference photo${n === 1 ? "" : "s"} selected`,
+    stuReferencePhotoLabelPlaceholder: "Label (e.g. \"Sunseeker 88 - starboard\")",
+    stuReferencePhotoRightsLabel: "I own this photo or have rights to use it",
+    stuUploadReferencePhoto: "Add to library",
+    stuFlagInaccurate: "Not accurate? Flag & regenerate free",
+    stuFlagReasonPlaceholder: "What's wrong with this image? (e.g. wrong hull color, wrong boat)",
+    stuFlagAndRegenerate: "Flag & regenerate",
     stuGenerateImage: "Generate image",
     stuGeneratingVisual: "Generating your visual…",
     stuImageFailed: "Image generation failed. Try again.",
@@ -2245,6 +2263,15 @@ export const translations: Record<Lang, T> = {
     stuHashtags: "HASHTAGS",
     stuHashtagsPlaceholder: "#yacht #luxe …",
     stuVisualPrompt: "PROMPT VISUEL",
+    stuReferencePhotos: "PHOTOS DE RÉFÉRENCE",
+    stuAddReferencePhoto: "+ Ajouter une photo",
+    stuReferencePhotosSelected: (n) => `${n} photo${n === 1 ? "" : "s"} de référence sélectionnée${n === 1 ? "" : "s"}`,
+    stuReferencePhotoLabelPlaceholder: "Nom (ex. \"Sunseeker 88 - tribord\")",
+    stuReferencePhotoRightsLabel: "Je possède cette photo ou j'ai le droit de l'utiliser",
+    stuUploadReferencePhoto: "Ajouter à la bibliothèque",
+    stuFlagInaccurate: "Pas fidèle ? Signaler et régénérer gratuitement",
+    stuFlagReasonPlaceholder: "Qu'est-ce qui ne va pas ? (ex. mauvaise couleur de coque, mauvais bateau)",
+    stuFlagAndRegenerate: "Signaler et régénérer",
     stuGenerateImage: "Générer l'image",
     stuGeneratingVisual: "Génération de votre visuel…",
     stuImageFailed: "La génération de l'image a échoué. Réessayez.",
