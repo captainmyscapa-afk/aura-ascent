@@ -466,6 +466,8 @@ export type T = {
   stuLibraryNewFolder: string;
   stuLibraryFolderNamePlaceholder: string;
   stuLibraryNoFolder: string;
+  stuLibrarySelectAll: string;
+  stuLibraryDeselectAll: string;
   stuLibraryAddedEmpty: string;
   stuGenerateImage: string;
   stuGeneratingVisual: string;
@@ -1346,6 +1348,8 @@ export const translations: Record<Lang, T> = {
     stuLibraryNewFolder: "New folder",
     stuLibraryFolderNamePlaceholder: "Folder name (e.g. M/Y Scapa)",
     stuLibraryNoFolder: "No folder",
+    stuLibrarySelectAll: "Select all",
+    stuLibraryDeselectAll: "Deselect all",
     stuLibraryAddedEmpty: "No photos added yet — upload a reference photo to save it here.",
     stuGenerateImage: "Generate image",
     stuGeneratingVisual: "Generating your visual…",
@@ -2325,6 +2329,8 @@ export const translations: Record<Lang, T> = {
     stuLibraryNewFolder: "Nouveau dossier",
     stuLibraryFolderNamePlaceholder: "Nom du dossier (ex. M/Y Scapa)",
     stuLibraryNoFolder: "Aucun dossier",
+    stuLibrarySelectAll: "Tout sélectionner",
+    stuLibraryDeselectAll: "Tout désélectionner",
     stuLibraryAddedEmpty: "Aucune photo ajoutée pour l'instant — ajoutez une photo de référence pour l'enregistrer ici.",
     stuGenerateImage: "Générer l'image",
     stuGeneratingVisual: "Génération de votre visuel…",

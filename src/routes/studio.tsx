@@ -1028,7 +1028,7 @@ function Studio() {
               ) : generatedLibrary.items.filter((i) => i.type === "image").length === 0 ? (
                 <div className="text-[11px] text-muted-foreground">{t.stuFlagLibraryEmpty}</div>
               ) : (
-                <div className="grid grid-cols-6 gap-1.5 max-h-32 overflow-y-auto pr-1">
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-1.5 max-h-56 overflow-y-auto pr-1">
                   {generatedLibrary.items
                     .filter((i) => i.type === "image")
                     .map((item) => (
@@ -1540,7 +1540,7 @@ function Studio() {
               onSetReferencePhotoCollection={referencePhotoLibrary.setCollection}
               generatedImages={generatedLibrary.items
                 .filter((m) => m.type === "image")
-                .map((m) => ({ id: m.id, media_url: m.media_url, prompt: m.prompt }))}
+                .map((m) => ({ id: m.id, media_url: m.media_url, prompt: m.prompt, collection_id: m.collection_id }))}
               onImportGeneratedImage={importGeneratedImageAsReference}
               videoUrl={videoUrl}
               videoLoading={videoLoading}
@@ -1760,7 +1760,7 @@ function PlanOutput({
   mediaCollections: { id: string; name: string }[];
   onCreateCollection: (name: string) => Promise<{ id: string; name: string } | null>;
   onSetReferencePhotoCollection: (photoId: string, collectionId: string | null) => Promise<void>;
-  generatedImages: { id: string; media_url: string; prompt: string | null }[];
+  generatedImages: { id: string; media_url: string; prompt: string | null; collection_id: string | null }[];
   onImportGeneratedImage: (
     item: { id: string; media_url: string; prompt: string | null },
     collectionId: string | null,
@@ -2119,56 +2119,97 @@ function PlanOutput({
                       </div>
                     )}
                   </div>
-                ) : referencePhotos.length === 0 && generatedImages.length === 0 ? (
-                  <div className="text-[11px] text-muted-foreground">{t.stuFlagLibraryEmpty}</div>
-                ) : (
-                  <div className="grid grid-cols-6 gap-1.5 max-h-32 overflow-y-auto pr-1">
-                    {/* CAP-139: an already-saved reference photo just gets
-                        selected for this generation (no re-upload needed) --
-                        a generated image gets copied in as a new reference
-                        photo and selected right away. */}
-                    {referencePhotos.map((photo) => {
-                      const selected = selectedReferenceIds.has(photo.id);
-                      return (
-                        <button
-                          key={`ref-${photo.id}`}
-                          type="button"
-                          title={photo.label}
-                          onClick={() => onToggleReferencePhoto(photo.id)}
-                          className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${selected ? "border-primary" : "border-transparent hover:border-primary/40"}`}
-                        >
-                          <img src={photo.image_url} alt={photo.label} className="h-full w-full object-cover" />
-                          {selected && (
-                            <span className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                              <Check className="h-4 w-4 text-white drop-shadow" />
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                    {generatedImages.map((item) => (
-                      <button
-                        key={`gen-${item.id}`}
-                        type="button"
-                        disabled={referenceUploading}
-                        title={item.prompt ?? ""}
-                        onClick={async () => {
-                          setReferenceUploading(true);
-                          const result = await onImportGeneratedImage(item, referenceUploadCollectionId);
-                          setReferenceUploading(false);
-                          if (result) {
-                            onToggleReferencePhoto(result.id);
-                            setShowReferenceUpload(false);
-                            setReferenceUploadCollectionId(null);
-                          }
-                        }}
-                        className="aspect-square rounded-md overflow-hidden border border-transparent hover:border-primary/40 transition-all disabled:opacity-40"
-                      >
-                        <img src={item.media_url} alt={item.prompt ?? ""} className="h-full w-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                )}
+                ) : (() => {
+                  // CAP-143: once a folder is picked below, narrow the
+                  // library grid to just that folder's pictures -- with a
+                  // lot of boats saved, browsing everything at once made it
+                  // hard to find the right one.
+                  const visibleReferencePhotos = referenceUploadCollectionId
+                    ? referencePhotos.filter((p) => p.collection_id === referenceUploadCollectionId)
+                    : referencePhotos;
+                  const visibleGeneratedImages = referenceUploadCollectionId
+                    ? generatedImages.filter((i) => i.collection_id === referenceUploadCollectionId)
+                    : generatedImages;
+                  if (visibleReferencePhotos.length === 0 && visibleGeneratedImages.length === 0) {
+                    return <div className="text-[11px] text-muted-foreground">{t.stuFlagLibraryEmpty}</div>;
+                  }
+                  return (
+                    <div className="space-y-1.5">
+                      {visibleReferencePhotos.length > 0 && (
+                        <div className="flex items-center justify-end gap-3 text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              visibleReferencePhotos.forEach((p) => {
+                                if (!selectedReferenceIds.has(p.id)) onToggleReferencePhoto(p.id);
+                              })
+                            }
+                            className="text-primary hover:underline"
+                          >
+                            {t.stuLibrarySelectAll}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              visibleReferencePhotos.forEach((p) => {
+                                if (selectedReferenceIds.has(p.id)) onToggleReferencePhoto(p.id);
+                              })
+                            }
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            {t.stuLibraryDeselectAll}
+                          </button>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-1.5 max-h-56 overflow-y-auto pr-1">
+                        {/* CAP-139: an already-saved reference photo just gets
+                            selected for this generation (no re-upload needed) --
+                            a generated image gets copied in as a new reference
+                            photo and selected right away. */}
+                        {visibleReferencePhotos.map((photo) => {
+                          const selected = selectedReferenceIds.has(photo.id);
+                          return (
+                            <button
+                              key={`ref-${photo.id}`}
+                              type="button"
+                              title={photo.label}
+                              onClick={() => onToggleReferencePhoto(photo.id)}
+                              className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${selected ? "border-primary" : "border-transparent hover:border-primary/40"}`}
+                            >
+                              <img src={photo.image_url} alt={photo.label} className="h-full w-full object-cover" />
+                              {selected && (
+                                <span className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                  <Check className="h-4 w-4 text-white drop-shadow" />
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                        {visibleGeneratedImages.map((item) => (
+                          <button
+                            key={`gen-${item.id}`}
+                            type="button"
+                            disabled={referenceUploading}
+                            title={item.prompt ?? ""}
+                            onClick={async () => {
+                              setReferenceUploading(true);
+                              const result = await onImportGeneratedImage(item, referenceUploadCollectionId);
+                              setReferenceUploading(false);
+                              if (result) {
+                                onToggleReferencePhoto(result.id);
+                                setShowReferenceUpload(false);
+                                setReferenceUploadCollectionId(null);
+                              }
+                            }}
+                            className="aspect-square rounded-md overflow-hidden border border-transparent hover:border-primary/40 transition-all disabled:opacity-40"
+                          >
+                            <img src={item.media_url} alt={item.prompt ?? ""} className="h-full w-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* CAP-137: which folder this photo belongs to -- pick an
                     existing one or create a new one, right where the photo
@@ -2382,7 +2423,7 @@ function PlanOutput({
                 ) : flagAttachmentChoices.length === 0 ? (
                   <div className="text-[11px] text-muted-foreground">{t.stuFlagLibraryEmpty}</div>
                 ) : (
-                  <div className="grid grid-cols-6 gap-1.5 max-h-24 overflow-y-auto pr-1">
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-1.5 max-h-56 overflow-y-auto pr-1">
                     {flagAttachmentChoices.map((choice) => {
                       const selected = !!flagAttachment && "url" in flagAttachment && flagAttachment.url === choice.url;
                       return (
