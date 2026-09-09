@@ -194,6 +194,16 @@ function Studio() {
   const [libraryCollectionFilter, setLibraryCollectionFilter] = useState<string | null>(null);
   const [showNewCollection, setShowNewCollection] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
+  // CAP-136: "Add picture" directly from the Library panel (All or any
+  // specific folder) -- either upload a fresh photo of the boat, or pull
+  // in an image Studio already generated, so it's on hand as a reusable
+  // reference photo next time instead of re-uploading it.
+  const [showAddPicture, setShowAddPicture] = useState(false);
+  const [addPictureMode, setAddPictureMode] = useState<"file" | "library">("file");
+  const [addPictureFile, setAddPictureFile] = useState<File | null>(null);
+  const [addPictureLabel, setAddPictureLabel] = useState("");
+  const [addPictureRightsChecked, setAddPictureRightsChecked] = useState(false);
+  const [addPictureUploading, setAddPictureUploading] = useState(false);
   // CAP-134: surfaced under the flag form after a flagged regenerate --
   // tells the user whether that regenerate was free or just counted
   // against their normal monthly quota (10 free flags/month).
@@ -639,6 +649,46 @@ function Studio() {
     await generateImage(visualPrompt, { referenceImages, flagReason: reason });
   };
 
+  // CAP-136: upload a fresh photo directly into the Library (optionally
+  // straight into whichever folder is currently selected).
+  const submitAddPictureFile = async () => {
+    if (!addPictureFile) return;
+    setAddPictureUploading(true);
+    const created = await referencePhotoLibrary.upload(addPictureFile, addPictureLabel, addPictureRightsChecked);
+    setAddPictureUploading(false);
+    if (created) {
+      if (libraryCollectionFilter) await referencePhotoLibrary.setCollection(created.id, libraryCollectionFilter);
+      setShowAddPicture(false);
+      setAddPictureFile(null);
+      setAddPictureLabel("");
+      setAddPictureRightsChecked(false);
+    }
+  };
+
+  // CAP-136: "choose from library" in Add Picture -- copies an already
+  // generated image into Added-to-Library as its own reference photo (a
+  // fresh storage object, not a pointer to the generated one, so deleting
+  // either copy later never breaks the other) so it's selectable as a
+  // reference for future generations of the same boat.
+  const importGeneratedImageToLibrary = async (item: { id: string; media_url: string; prompt: string | null }) => {
+    setAddPictureUploading(true);
+    try {
+      const res = await fetch(item.media_url);
+      const blob = await res.blob();
+      const ext = (item.media_url.split("?")[0].split(".").pop() || "jpg").slice(0, 5);
+      const file = new File([blob], `generated-${item.id}.${ext}`, { type: blob.type || "image/jpeg" });
+      const created = await referencePhotoLibrary.upload(file, item.prompt?.slice(0, 60) || "Generated image", true);
+      if (created && libraryCollectionFilter) {
+        await referencePhotoLibrary.setCollection(created.id, libraryCollectionFilter);
+      }
+      if (created) setShowAddPicture(false);
+    } catch {
+      // A failed import shouldn't be a dead end -- the form just stays open.
+    } finally {
+      setAddPictureUploading(false);
+    }
+  };
+
   const downloadImage = async () => {
     if (!imageUrl) return;
     try {
@@ -932,13 +982,111 @@ function Studio() {
             <div className="text-[10px] tracking-[0.34em] text-primary/80">
               {t.stuGeneratedLibraryTitle}
             </div>
-            <button
-              onClick={() => setShowGeneratedLibrary(false)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-3">
+              {/* CAP-136: add a picture straight into whichever folder (or
+                  "All") is currently selected, instead of only being able
+                  to add reference photos from the generation picker above. */}
+              <button
+                onClick={() => setShowAddPicture((v) => !v)}
+                className={`flex items-center gap-1 text-[10px] tracking-[0.15em] uppercase transition-colors ${showAddPicture ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+              >
+                <Plus className="h-3 w-3" /> {t.stuLibraryAddPicture}
+              </button>
+              <button
+                onClick={() => setShowGeneratedLibrary(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
+
+          {showAddPicture && (
+            <div className="space-y-2 p-3 rounded-lg border border-border mb-3">
+              <div className="flex items-center gap-1 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => setAddPictureMode("file")}
+                  className={`px-2 py-1 rounded-md border transition-colors ${addPictureMode === "file" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                >
+                  {t.stuFlagChooseFile}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAddPictureMode("library")}
+                  className={`px-2 py-1 rounded-md border transition-colors ${addPictureMode === "library" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                >
+                  {t.stuFlagChooseFromLibrary}
+                </button>
+              </div>
+
+              {addPictureMode === "file" ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setAddPictureFile(e.target.files?.[0] ?? null)}
+                      className="flex-1 text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-primary/10 file:text-primary"
+                    />
+                    {addPictureFile && (
+                      <button
+                        type="button"
+                        onClick={() => setAddPictureFile(null)}
+                        title={t.stuFlagClearPicture}
+                        className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    value={addPictureLabel}
+                    onChange={(e) => setAddPictureLabel(e.target.value)}
+                    placeholder={t.stuReferencePhotoLabelPlaceholder}
+                    className="w-full bg-transparent border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary/50 transition-colors"
+                  />
+                  <label className="flex items-start gap-2 text-[11px] text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={addPictureRightsChecked}
+                      onChange={(e) => setAddPictureRightsChecked(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    {t.stuReferencePhotoRightsLabel}
+                  </label>
+                  <button
+                    disabled={!addPictureFile || addPictureUploading}
+                    onClick={submitAddPictureFile}
+                    className="w-full h-8 rounded-lg text-primary-foreground text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-40"
+                    style={{ background: "var(--gradient-gold)" }}
+                  >
+                    {addPictureUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                    {t.stuUploadReferencePhoto}
+                  </button>
+                </>
+              ) : generatedLibrary.items.filter((i) => i.type === "image").length === 0 ? (
+                <div className="text-[11px] text-muted-foreground">{t.stuFlagLibraryEmpty}</div>
+              ) : (
+                <div className="grid grid-cols-6 gap-1.5 max-h-32 overflow-y-auto pr-1">
+                  {generatedLibrary.items
+                    .filter((i) => i.type === "image")
+                    .map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        disabled={addPictureUploading}
+                        title={item.prompt ?? ""}
+                        onClick={() => void importGeneratedImageToLibrary(item)}
+                        className="aspect-square rounded-md overflow-hidden border border-transparent hover:border-primary/40 transition-all disabled:opacity-40"
+                      >
+                        <img src={item.media_url} alt={item.prompt ?? ""} className="h-full w-full object-cover" />
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* CAP-135: "Added to Library" (uploaded reference photos) and
               "AI Generated" (everything Studio has generated) used to be
