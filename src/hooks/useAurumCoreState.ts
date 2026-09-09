@@ -5,7 +5,7 @@
 //         daily_brief, daily_brief_date, daily_tasks, daily_tasks_date, daily_tasks_history,
 //         ai_summary, ai_summary_updated_at, current_focus,
 //         upcoming_events, upcoming_events_week_start, dismissed_page_intros,
-//         total_active_seconds
+//         total_active_seconds, mentor_quick_prompts, mentor_quick_prompts_date
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,6 +53,10 @@ export type AurumCoreState = {
   ritual_profile: RitualProfile | null;
   // Page keys the user has permanently dismissed the per-page welcome/guide overlay for
   dismissed_page_intros: string[];
+  // CAP-131: keyed by industryId, like daily_tasks -- personalized "Quick Invocation"
+  // prompts for the Mentor page, aware of current events/season and user progress.
+  mentor_quick_prompts: Record<string, { prompts?: string[] }> | null;
+  mentor_quick_prompts_date: string | null;
 };
 
 // CAP-78: answers to the 5 "daily ritual" onboarding questions
@@ -153,6 +157,19 @@ function fromRow(row: Record<string, unknown> | null): AurumCoreState | null {
     free_usage: (row.free_usage as unknown) ?? null,
     ritual_profile: (row.ritual_profile as RitualProfile | null) ?? null,
     dismissed_page_intros: Array.isArray(row.dismissed_page_intros) ? (row.dismissed_page_intros as string[]) : [],
+    mentor_quick_prompts: (() => {
+      const v = row.mentor_quick_prompts;
+      if (!v) return null;
+      if (typeof v === "string") {
+        try {
+          return JSON.parse(v);
+        } catch {
+          return null;
+        }
+      }
+      return v as Record<string, { prompts?: string[] }>;
+    })(),
+    mentor_quick_prompts_date: (row.mentor_quick_prompts_date as string | null) ?? null,
   };
 }
 

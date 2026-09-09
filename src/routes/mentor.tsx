@@ -11,7 +11,7 @@ import { useProGate, UsageBar } from "@/components/aurum/ProGate";
 import { useAcademyProgress } from "@/hooks/useAcademyProgress";
 import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 import { useMentorConversations } from "@/hooks/useMentorConversations";
-import { generateConversationTitle } from "@/lib/mentor.functions";
+import { generateConversationTitle, generateMentorQuickInvocations } from "@/lib/mentor.functions";
 import type { ConversationMessage } from "@/hooks/useMentorConversations";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { T } from "@/lib/i18n/translations";
@@ -24,6 +24,15 @@ export const Route = createFileRoute("/mentor")({
 });
 
 const promptIcons = [Target, Compass, Zap, MessageCircle];
+
+// Local calendar date, not UTC -- keeps "today" in sync with the user's
+// actual local day, matching the same helper in dashboard.tsx.
+function isoDay(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 function formatDate(iso: string, t: T, dateLocale: string) {
   const d = new Date(iso);
@@ -43,11 +52,12 @@ function Mentor() {
   const dateLocale = lang === "fr" ? "fr-FR" : "en-GB";
   const { industry, industryId } = useIndustry();
   const academyProgress = useAcademyProgress(industryId);
-  const { state: core } = useAurumCoreState();
+  const { state: core, update: updateCore } = useAurumCoreState();
   const { profile: userProfile } = useUserProfile();
   const systemPrompt = useIndustrySystemPrompt(core?.current_level ?? undefined, userProfile?.mentor_tone ?? undefined);
   const ask = useServerFn(askGemini);
   const genTitle = useServerFn(generateConversationTitle);
+  const genQuickPrompts = useServerFn(generateMentorQuickInvocations);
   const { conversations, loading: convsLoading, createConversation, updateConversation, deleteConversation } = useMentorConversations();
   const mentorConversations = conversations.filter((c) => !c.industry.endsWith("-tutor"));
 
@@ -59,6 +69,7 @@ function Mentor() {
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [prompts, setPrompts] = useState<string[]>([...mentorContent.prompts]);
+  const quickPromptsLoadingRef = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { prompt: seedPrompt } = Route.useSearch();
@@ -76,6 +87,58 @@ function Mentor() {
     if (messages.length === 0 && !pending) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, pending]);
+
+  // CAP-131: personalized "Quick Invocations" -- aware of what's actually
+  // happening in the industry's calendar right now, and the user's real
+  // progress, instead of a fixed static list. Generated once per local day
+  // per industry (mirrors dashboard.tsx's daily_tasks caching), so switching
+  // industries or reopening the page doesn't re-spend an AI call.
+  useEffect(() => {
+    if (!core || !userProfile) return;
+    const cachedForMode = core.mentor_quick_prompts?.[industryId]?.prompts;
+    const isFreshToday = core.mentor_quick_prompts_date === isoDay();
+    if (isFreshToday && cachedForMode?.length) {
+      setPrompts(cachedForMode);
+      return;
+    }
+    if (quickPromptsLoadingRef.current) return;
+    quickPromptsLoadingRef.current = true;
+    (async () => {
+      try {
+        const daysSinceSignup = userProfile.created_at
+          ? Math.floor((Date.now() - new Date(userProfile.created_at).getTime()) / 86400000)
+          : undefined;
+        const recentTasks = core.daily_tasks_history?.[industryId];
+        const { prompts: generated } = await genQuickPrompts({
+          data: {
+            mode: industry.label,
+            today: new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }),
+            level: core.current_level ?? undefined,
+            phase: academyProgress.phaseTitle ?? undefined,
+            goal: userProfile.goal ?? undefined,
+            streak: core.streak,
+            executionScore: core.execution_score,
+            daysSinceSignup,
+            recentTasks,
+            avoidPrompts: cachedForMode,
+          },
+        });
+        setPrompts(generated);
+        const existingMap = isFreshToday ? (core.mentor_quick_prompts ?? {}) : {};
+        await updateCore({
+          mentor_quick_prompts: { ...existingMap, [industryId]: { prompts: generated } },
+          mentor_quick_prompts_date: isoDay(),
+        });
+      } catch (e) {
+        console.error(e);
+        // Static per-industry fallback (mentorContent.prompts) stays on screen.
+      } finally {
+        quickPromptsLoadingRef.current = false;
+      }
+    })();
+    // Re-check when the cached batch's date/mode changes or the user switches industry.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [core?.mentor_quick_prompts_date, industryId, userProfile?.user_id]);
 
   const scheduleSave = (msgs: ConversationMessage[], convId: string | null) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -231,7 +294,7 @@ function Mentor() {
           <div className="glass rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="text-[10px] tracking-[0.34em] text-muted-foreground">{t.mentorQuickInvocations}</div>
-              <button onClick={() => setPrompts([...mentorContent.prompts].sort(() => Math.random() - 0.5))} className="text-muted-foreground hover:text-primary transition-colors">
+              <button onClick={() => setPrompts((p) => [...p].sort(() => Math.random() - 0.5))} className="text-muted-foreground hover:text-primary transition-colors">
                 <RefreshCw className="h-3.5 w-3.5" />
               </button>
             </div>

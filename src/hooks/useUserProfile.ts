@@ -27,6 +27,7 @@ export type UserProfile = {
   content_tone: string | null;
   preferred_platforms: string | null;
   auto_daily_brief: boolean | null;
+  created_at: string | null;
 };
 
 export const EMPTY_PROFILE = (uid: string): UserProfile => ({
@@ -49,6 +50,7 @@ export const EMPTY_PROFILE = (uid: string): UserProfile => ({
   content_tone: "Professional",
   preferred_platforms: "All",
   auto_daily_brief: true,
+  created_at: null,
 });
 
 export function useUserProfile() {
