@@ -811,6 +811,53 @@ export type Database = {
         }
         Relationships: []
       }
+      studio_generated_media: {
+        Row: {
+          content_history_id: string | null
+          created_at: string
+          flag_reason: string | null
+          flagged: boolean
+          id: string
+          media_url: string
+          prompt: string | null
+          storage_path: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          content_history_id?: string | null
+          created_at?: string
+          flag_reason?: string | null
+          flagged?: boolean
+          id?: string
+          media_url: string
+          prompt?: string | null
+          storage_path?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          content_history_id?: string | null
+          created_at?: string
+          flag_reason?: string | null
+          flagged?: boolean
+          id?: string
+          media_url?: string
+          prompt?: string | null
+          storage_path?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_generated_media_content_history_id_fkey"
+            columns: ["content_history_id"]
+            isOneToOne: false
+            referencedRelation: "user_content_history"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       studio_generation_flags: {
         Row: {
           created_at: string
@@ -819,6 +866,7 @@ export type Database = {
           reason: string | null
           used_reference_photos: boolean
           user_id: string
+          was_free_retry: boolean
         }
         Insert: {
           created_at?: string
@@ -827,6 +875,7 @@ export type Database = {
           reason?: string | null
           used_reference_photos?: boolean
           user_id: string
+          was_free_retry?: boolean
         }
         Update: {
           created_at?: string
@@ -835,6 +884,7 @@ export type Database = {
           reason?: string | null
           used_reference_photos?: boolean
           user_id?: string
+          was_free_retry?: boolean
         }
         Relationships: []
       }

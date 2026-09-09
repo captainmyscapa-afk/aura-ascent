@@ -32,6 +32,8 @@ import {
   Square,
   Plus,
   Flag,
+  Library,
+  Paperclip,
 } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { INDUSTRY_TO_CATEGORY } from "@/lib/industry/categoryMap";
@@ -41,6 +43,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { generateStudioContent, type StudioContentPlan } from "@/lib/studio.functions";
 import { useReferencePhotos, type ReferencePhoto } from "@/hooks/useReferencePhotos";
+import { useGeneratedLibrary } from "@/hooks/useGeneratedLibrary";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { T } from "@/lib/i18n/translations";
 
@@ -178,6 +181,15 @@ function Studio() {
   // the library itself persists across sessions.
   const referencePhotoLibrary = useReferencePhotos();
   const [selectedReferenceIds, setSelectedReferenceIds] = useState<Set<string>>(new Set());
+  // CAP-134: every image/video Studio generates is logged here permanently
+  // (separate from history, which only keeps the latest per content item)
+  // so nothing generated is ever lost, even if it gets flagged/replaced.
+  const generatedLibrary = useGeneratedLibrary();
+  const [showGeneratedLibrary, setShowGeneratedLibrary] = useState(false);
+  // CAP-134: surfaced under the flag form after a flagged regenerate --
+  // tells the user whether that regenerate was free or just counted
+  // against their normal monthly quota (10 free flags/month).
+  const [flagNotice, setFlagNotice] = useState<string | null>(null);
 
   const LOAD_STEPS = t.stuLoadSteps;
 
@@ -437,6 +449,32 @@ function Studio() {
     return results;
   };
 
+  // CAP-134: uploads a generated image/video blob to permanent storage
+  // (public-assets, generated-media/{user}/...) instead of only ever
+  // producing an ephemeral blob: URL -- this is what makes history and the
+  // Generated Library survive a page reload. Returns null on any upload
+  // failure so the caller can fall back to the old blob: behavior rather
+  // than losing the generation outright.
+  const uploadPersistentMedia = async (
+    blob: Blob,
+    kind: "image" | "video",
+  ): Promise<{ url: string; storagePath: string } | null> => {
+    if (!user) return null;
+    try {
+      const ext = kind === "video" ? "mp4" : "png";
+      const path = `generated-media/${user.id}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("public-assets").upload(path, blob, {
+        contentType: blob.type || (kind === "video" ? "video/mp4" : "image/png"),
+        upsert: false,
+      });
+      if (error) return null;
+      const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+      return { url: data.publicUrl, storagePath: path };
+    } catch {
+      return null;
+    }
+  };
+
   const generateImage = async (
     visualPrompt: string,
     opts?: { referenceImages?: { data: string; mimeType: string }[]; flagReason?: string },
@@ -463,18 +501,35 @@ function Studio() {
       );
 
       if (!res.ok) throw new Error("Image generation failed");
-      const data = await res.json() as { type: "url" | "base64"; url?: string; data?: string; mimeType?: string };
+      const data = await res.json() as {
+        type: "url" | "base64";
+        url?: string;
+        data?: string;
+        mimeType?: string;
+        freeRegeneration?: boolean;
+        flagFreeRemaining?: number | null;
+      };
 
       let finalUrl: string;
+      let storagePath: string | null = null;
       if (data.type === "base64" && data.data) {
-        // Convert base64 to blob URL for display
         const byteChars = atob(data.data);
         const byteArr = new Uint8Array(byteChars.length);
         for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
         const blob = new Blob([byteArr], { type: data.mimeType ?? "image/png" });
-        finalUrl = URL.createObjectURL(blob);
+        // CAP-134: persist to storage instead of only an ephemeral blob:
+        // URL -- falls back to the blob URL if the upload itself fails, so
+        // a storage hiccup never blocks showing the generated image.
+        const uploaded = await uploadPersistentMedia(blob, "image");
+        if (uploaded) {
+          finalUrl = uploaded.url;
+          storagePath = uploaded.storagePath;
+        } else {
+          finalUrl = URL.createObjectURL(blob);
+        }
       } else if (data.type === "url" && data.url) {
-        // Pollinations URL — verify it loads
+        // Pollinations URL — verify it loads. Already a permanent,
+        // externally-hosted URL; no upload needed.
         await new Promise<void>((resolve, reject) => {
           const img = new Image();
           img.onload = () => resolve();
@@ -488,12 +543,32 @@ function Studio() {
       }
 
       setImageUrl(finalUrl);
+      // CAP-134: tell the user whether a flagged regenerate was actually
+      // free or just spent a normal generation (10 free flags/month cap).
+      setFlagNotice(
+        !opts?.flagReason
+          ? null
+          : data.freeRegeneration
+            ? t.stuFlagFreeRemaining(data.flagFreeRemaining ?? 0)
+            : t.stuFlagBilledNotice,
+      );
       if (lastSavedId) {
         await (supabase.from("user_content_history") as any)
           .update({ image_url: finalUrl })
           .eq("id", lastSavedId);
         loadHistory();
       }
+      // CAP-134: every generation lands in the permanent Generated Library,
+      // flagged or not, saved or not -- nothing generated is ever lost.
+      void generatedLibrary.logItem({
+        type: "image",
+        mediaUrl: finalUrl,
+        storagePath,
+        prompt: visualPrompt,
+        contentHistoryId: lastSavedId,
+        flagged: !!opts?.flagReason,
+        flagReason: opts?.flagReason ?? null,
+      });
     } catch {
       setImageError(true);
     } finally {
@@ -509,8 +584,29 @@ function Studio() {
     await generateImage(visualPrompt, { referenceImages });
   };
 
-  const flagAndRegenerateImage = async (visualPrompt: string, reason: string) => {
+  // CAP-134: an optional attachment photo on the flag itself -- e.g. a
+  // close-up of what's wrong, or a better angle of the real boat -- rides
+  // along as just another reference image, on top of whatever's selected
+  // from the saved library (capped at 6 total server-side).
+  const fileToReferenceImage = async (file: File): Promise<{ data: string; mimeType: string }> => {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string).split(",")[1] ?? "");
+      reader.onerror = () => reject(new Error("Failed to read attached photo"));
+      reader.readAsDataURL(file);
+    });
+    return { data: base64, mimeType: file.type || "image/jpeg" };
+  };
+
+  const flagAndRegenerateImage = async (visualPrompt: string, reason: string, attachment?: File | null) => {
     const referenceImages = await fetchSelectedReferenceImages();
+    if (attachment) {
+      try {
+        referenceImages.push(await fileToReferenceImage(attachment));
+      } catch {
+        // A bad attachment shouldn't block the flagged regenerate itself.
+      }
+    }
     await generateImage(visualPrompt, { referenceImages, flagReason: reason });
   };
 
@@ -571,12 +667,22 @@ function Studio() {
       }
 
       let finalUrl: string;
+      let storagePath: string | null = null;
       if (data.type === "base64" && data.data) {
         const byteChars = atob(data.data);
         const byteArr = new Uint8Array(byteChars.length);
         for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
         const blob = new Blob([byteArr], { type: data.mimeType ?? "video/mp4" });
-        finalUrl = URL.createObjectURL(blob);
+        // CAP-134: persist to storage instead of only an ephemeral blob:
+        // URL, same as the image path -- falls back to the blob URL if the
+        // upload itself fails.
+        const uploaded = await uploadPersistentMedia(blob, "video");
+        if (uploaded) {
+          finalUrl = uploaded.url;
+          storagePath = uploaded.storagePath;
+        } else {
+          finalUrl = URL.createObjectURL(blob);
+        }
       } else if (data.type === "url" && data.url) {
         finalUrl = data.url;
       } else {
@@ -590,6 +696,13 @@ function Studio() {
           .eq("id", lastSavedId);
         loadHistory();
       }
+      void generatedLibrary.logItem({
+        type: "video",
+        mediaUrl: finalUrl,
+        storagePath,
+        prompt: script.join("\n"),
+        contentHistoryId: lastSavedId,
+      });
     } catch {
       setVideoError(true);
     } finally {
@@ -713,15 +826,26 @@ function Studio() {
               ))}
             </div>
           </div>
-          {history.length > 0 && (
-            <button
-              onClick={() => setShowHistory(!showHistory)}
-              className={`shrink-0 flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs tracking-[0.2em] uppercase border transition-all hover:-translate-y-0.5 ${showHistory ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-primary hover:border-primary/40"}`}
-            >
-              <History className="h-4 w-4" />
-              {t.stuHistory(history.length)}
-            </button>
-          )}
+          <div className="flex shrink-0 gap-2">
+            {history.length > 0 && (
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs tracking-[0.2em] uppercase border transition-all hover:-translate-y-0.5 ${showHistory ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-primary hover:border-primary/40"}`}
+              >
+                <History className="h-4 w-4" />
+                {t.stuHistory(history.length)}
+              </button>
+            )}
+            {generatedLibrary.items.length > 0 && (
+              <button
+                onClick={() => setShowGeneratedLibrary(!showGeneratedLibrary)}
+                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs tracking-[0.2em] uppercase border transition-all hover:-translate-y-0.5 ${showGeneratedLibrary ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-primary hover:border-primary/40"}`}
+              >
+                <Library className="h-4 w-4" />
+                {t.stuGeneratedLibrary(generatedLibrary.items.length)}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -768,6 +892,53 @@ function Studio() {
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showGeneratedLibrary && (
+        <div className="glass rounded-xl p-5 mb-6 animate-fade-up">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-[10px] tracking-[0.34em] text-primary/80">
+              {t.stuGeneratedLibraryTitle}
+            </div>
+            <button
+              onClick={() => setShowGeneratedLibrary(false)}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-80 overflow-y-auto pr-1">
+            {generatedLibrary.items.map((m) => (
+              <a
+                key={m.id}
+                href={m.media_url}
+                target="_blank"
+                rel="noreferrer"
+                className="group relative aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/40 transition-all"
+                title={m.prompt ?? ""}
+              >
+                {m.type === "video" ? (
+                  <video src={m.media_url} className="h-full w-full object-cover" muted />
+                ) : (
+                  <img src={m.media_url} alt="" className="h-full w-full object-cover" />
+                )}
+                {m.type === "video" && (
+                  <div className="absolute top-1 left-1 rounded bg-black/60 p-0.5">
+                    <Film className="h-3 w-3 text-white" />
+                  </div>
+                )}
+                {m.flagged && (
+                  <div className="absolute top-1 right-1 rounded bg-destructive/80 p-0.5" title={m.flag_reason ?? t.stuFlagInaccurate}>
+                    <Flag className="h-3 w-3 text-white" />
+                  </div>
+                )}
+                <div className="absolute inset-x-0 bottom-0 bg-black/50 px-1.5 py-1 text-[9px] text-white/90 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+                  {new Date(m.created_at).toLocaleDateString(dateLocale, { month: "short", day: "numeric" })}
+                </div>
+              </a>
             ))}
           </div>
         </div>
@@ -992,7 +1163,8 @@ function Studio() {
               imageLoading={imageLoading}
               imageError={imageError}
               onGenerateImage={() => generateImageWithReferences((editablePlan ?? plan!).visualPrompt)}
-              onFlagInaccurate={(reason) => flagAndRegenerateImage((editablePlan ?? plan!).visualPrompt, reason)}
+              onFlagInaccurate={(reason, attachment) => flagAndRegenerateImage((editablePlan ?? plan!).visualPrompt, reason, attachment)}
+              flagNotice={flagNotice}
               onDownloadImage={downloadImage}
               referencePhotos={referencePhotoLibrary.photos}
               referencePhotosLoading={referencePhotoLibrary.loading}
@@ -1174,6 +1346,7 @@ function PlanOutput({
   imageError,
   onGenerateImage,
   onFlagInaccurate,
+  flagNotice,
   onDownloadImage,
   referencePhotos,
   referencePhotosLoading,
@@ -1205,7 +1378,8 @@ function PlanOutput({
   imageLoading: boolean;
   imageError: boolean;
   onGenerateImage: () => void;
-  onFlagInaccurate: (reason: string) => void;
+  onFlagInaccurate: (reason: string, attachment?: File | null) => void;
+  flagNotice: string | null;
   onDownloadImage: () => void;
   referencePhotos: ReferencePhoto[];
   referencePhotosLoading: boolean;
@@ -1243,6 +1417,10 @@ function PlanOutput({
   const [showFlagForm, setShowFlagForm] = useState(false);
   const [flagReasonDraft, setFlagReasonDraft] = useState("");
   const [flagSubmitting, setFlagSubmitting] = useState(false);
+  // CAP-134: an optional photo attached to the flag itself -- e.g. a
+  // close-up of what's wrong, or a clearer angle of the real boat -- to
+  // help the regenerate get it right.
+  const [flagAttachment, setFlagAttachment] = useState<File | null>(null);
 
   // Inline editing
   const [editingCaption, setEditingCaption] = useState<string | null>(null);
@@ -1571,9 +1749,11 @@ function PlanOutput({
               </button>
             </div>
 
-            {/* CAP-133: even with a reference photo, the model can still
-                drift -- flagging gets a free regenerate that doesn't count
-                against the monthly cap, and logs what went wrong. */}
+            {/* CAP-133/134: even with a reference photo, the model can
+                still drift -- flagging gets a regenerate (free for the
+                first 10 flags/month, then it counts as a normal
+                generation), optionally with an attached photo to help get
+                it right, and logs what went wrong. */}
             {!showFlagForm ? (
               <button
                 onClick={() => setShowFlagForm(true)}
@@ -1590,15 +1770,26 @@ function PlanOutput({
                   rows={2}
                   className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-xs outline-none focus:border-primary/50 resize-y transition-colors"
                 />
+                <label className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => setFlagAttachment(e.target.files?.[0] ?? null)}
+                  />
+                  <Paperclip className="h-3 w-3 shrink-0" />
+                  {flagAttachment ? flagAttachment.name : t.stuFlagAddPicture}
+                </label>
                 <div className="flex gap-2">
                   <button
                     disabled={!flagReasonDraft.trim() || flagSubmitting}
                     onClick={async () => {
                       setFlagSubmitting(true);
-                      onFlagInaccurate(flagReasonDraft.trim());
+                      onFlagInaccurate(flagReasonDraft.trim(), flagAttachment);
                       setFlagSubmitting(false);
                       setShowFlagForm(false);
                       setFlagReasonDraft("");
+                      setFlagAttachment(null);
                     }}
                     className="flex-1 h-8 rounded-lg text-primary-foreground text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-40"
                     style={{ background: "var(--gradient-gold)" }}
@@ -1606,13 +1797,16 @@ function PlanOutput({
                     <Flag className="h-3.5 w-3.5" /> {t.stuFlagAndRegenerate}
                   </button>
                   <button
-                    onClick={() => { setShowFlagForm(false); setFlagReasonDraft(""); }}
+                    onClick={() => { setShowFlagForm(false); setFlagReasonDraft(""); setFlagAttachment(null); }}
                     className="px-3 h-8 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {t.stuCancel}
                   </button>
                 </div>
               </div>
+            )}
+            {flagNotice && (
+              <div className="text-[11px] text-muted-foreground text-center">{flagNotice}</div>
             )}
           </div>
         )}

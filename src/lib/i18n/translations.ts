@@ -402,6 +402,8 @@ export type T = {
   stuTags: string[];
   stuHistory: (n: number) => string;
   stuContentHistory: (label: string) => string;
+  stuGeneratedLibrary: (n: number) => string;
+  stuGeneratedLibraryTitle: string;
   stuUntitled: string;
   stuDeleteDraft: string;
   stuModeAssisted: string;
@@ -449,6 +451,9 @@ export type T = {
   stuFlagInaccurate: string;
   stuFlagReasonPlaceholder: string;
   stuFlagAndRegenerate: string;
+  stuFlagAddPicture: string;
+  stuFlagFreeRemaining: (n: number) => string;
+  stuFlagBilledNotice: string;
   stuGenerateImage: string;
   stuGeneratingVisual: string;
   stuImageFailed: string;
@@ -1259,6 +1264,8 @@ export const translations: Record<Lang, T> = {
     stuTags: ["Viral hooks", "Platform captions", "Hashtags", "AI visuals"],
     stuHistory: (n) => `History (${n})`,
     stuContentHistory: (label) => `CONTENT HISTORY · ${label}`,
+    stuGeneratedLibrary: (n) => `Library (${n})`,
+    stuGeneratedLibraryTitle: "GENERATED LIBRARY · EVERY IMAGE & VIDEO YOU'VE MADE",
     stuUntitled: "Untitled",
     stuDeleteDraft: "Delete draft",
     stuModeAssisted: "AI Assisted",
@@ -1311,6 +1318,9 @@ export const translations: Record<Lang, T> = {
     stuFlagInaccurate: "Not accurate? Flag & regenerate free",
     stuFlagReasonPlaceholder: "What's wrong with this image? (e.g. wrong hull color, wrong boat)",
     stuFlagAndRegenerate: "Flag & regenerate",
+    stuFlagAddPicture: "Add a picture to help it regenerate better (optional)",
+    stuFlagFreeRemaining: (n) => `Free regenerate used — ${n} left this month.`,
+    stuFlagBilledNotice: "You've used your 10 free monthly regenerates — this one counted as a normal generation.",
     stuGenerateImage: "Generate image",
     stuGeneratingVisual: "Generating your visual…",
     stuImageFailed: "Image generation failed. Try again.",
@@ -2220,6 +2230,8 @@ export const translations: Record<Lang, T> = {
     stuTags: ["Accroches virales", "Légendes par plateforme", "Hashtags", "Visuels IA"],
     stuHistory: (n) => `Historique (${n})`,
     stuContentHistory: (label) => `HISTORIQUE DE CONTENU · ${label}`,
+    stuGeneratedLibrary: (n) => `Bibliothèque (${n})`,
+    stuGeneratedLibraryTitle: "BIBLIOTHÈQUE GÉNÉRÉE · TOUTES VOS IMAGES ET VIDÉOS",
     stuUntitled: "Sans titre",
     stuDeleteDraft: "Supprimer le brouillon",
     stuModeAssisted: "Assisté par IA",
@@ -2272,6 +2284,9 @@ export const translations: Record<Lang, T> = {
     stuFlagInaccurate: "Pas fidèle ? Signaler et régénérer gratuitement",
     stuFlagReasonPlaceholder: "Qu'est-ce qui ne va pas ? (ex. mauvaise couleur de coque, mauvais bateau)",
     stuFlagAndRegenerate: "Signaler et régénérer",
+    stuFlagAddPicture: "Ajouter une photo pour aider à mieux régénérer (facultatif)",
+    stuFlagFreeRemaining: (n) => `Régénération gratuite utilisée — ${n} restantes ce mois-ci.`,
+    stuFlagBilledNotice: "Vous avez utilisé vos 10 régénérations gratuites du mois — celle-ci compte comme une génération normale.",
     stuGenerateImage: "Générer l'image",
     stuGeneratingVisual: "Génération de votre visuel…",
     stuImageFailed: "La génération de l'image a échoué. Réessayez.",
