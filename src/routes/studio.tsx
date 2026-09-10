@@ -211,6 +211,31 @@ function Studio() {
   // against their normal monthly quota (10 free flags/month).
   const [flagNotice, setFlagNotice] = useState<string | null>(null);
 
+  // CAP-146: once a generation exists, the page shows ONLY the generated
+  // content -- no header, no form, no library/history panels, no "ideas to
+  // expand" feed -- so the result reads like a finished piece, not a work
+  // area. The "AI Assisted + Live Intel" pill (top-left, in place of the
+  // header) is the only way back to the creation form; clicking it clears
+  // just the output-related state below, not the idea/goal the user typed,
+  // so a quick tweak-and-regenerate doesn't require retyping anything.
+  const hasPlan = !!(plan || editablePlan);
+  const startNewCreation = () => {
+    setPlan(null);
+    setEditablePlan(null);
+    setImageUrl(null);
+    setImageLoading(false);
+    setImageError(false);
+    setVideoUrl(null);
+    setVideoLoading(false);
+    setVideoError(false);
+    setVideoComingSoon(false);
+    setVideoUnavailableMessage(null);
+    setError(null);
+    setFlagNotice(null);
+    setLastSavedId(null);
+    setCopied(null);
+  };
+
   const LOAD_STEPS = t.stuLoadSteps;
 
   const { intel: preselectedIntel, idea: preselectedIdea, scheduledPostId } = Route.useSearch();
@@ -845,6 +870,83 @@ function Studio() {
         onClose={() => studioGate.setShowUpgrade(false)}
         reason={t.stuUpgradeReason}
       />
+
+      {/* CAP-146: result-only view -- everything else on the page is
+          hidden once there's a plan, so the generated content is all the
+          user sees, with a single small way back to create something new. */}
+      {hasPlan && (
+        <div className="animate-fade-up">
+          <button
+            onClick={startNewCreation}
+            title={t.stuNewCreationHint}
+            className="group inline-flex items-center gap-2 rounded-full border border-border/60 glass px-4 py-2.5 text-[10px] tracking-[0.2em] uppercase text-muted-foreground transition-all hover:border-primary/40 hover:text-primary hover:-translate-y-0.5"
+          >
+            <Wand2 className="h-3.5 w-3.5 text-primary/80" />
+            <Radio className="h-3.5 w-3.5 text-violet-400/80 -ml-1.5" />
+            {t.stuNewCreationBadge}
+          </button>
+
+          <div className="mt-8 max-w-2xl mx-auto">
+            <PlanOutput
+              plan={editablePlan ?? plan!}
+              onPlanChange={setEditablePlan}
+              copied={copied}
+              onCopy={copy}
+              imageUrl={imageUrl}
+              imageLoading={imageLoading}
+              imageError={imageError}
+              onGenerateImage={() => generateImageWithReferences((editablePlan ?? plan!).visualPrompt)}
+              onFlagInaccurate={(reason, attachment) => flagAndRegenerateImage((editablePlan ?? plan!).visualPrompt, reason, attachment)}
+              flagNotice={flagNotice}
+              flagAttachmentChoices={[
+                ...referencePhotoLibrary.photos.map((p) => ({ id: `ref-${p.id}`, url: p.image_url, label: p.label })),
+                ...generatedLibrary.items
+                  .filter((m) => m.type === "image")
+                  .map((m) => ({ id: `gen-${m.id}`, url: m.media_url, label: m.prompt ?? "" })),
+              ]}
+              onDownloadImage={downloadImage}
+              referencePhotos={referencePhotoLibrary.photos}
+              referencePhotosLoading={referencePhotoLibrary.loading}
+              referencePhotoError={referencePhotoLibrary.error}
+              selectedReferenceIds={selectedReferenceIds}
+              onToggleReferencePhoto={(id) =>
+                setSelectedReferenceIds((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(id)) next.delete(id);
+                  else next.add(id);
+                  return next;
+                })
+              }
+              onUploadReferencePhoto={referencePhotoLibrary.upload}
+              mediaCollections={mediaCollections.collections}
+              onCreateCollection={mediaCollections.create}
+              onSetReferencePhotoCollection={referencePhotoLibrary.setCollection}
+              generatedImages={generatedLibrary.items
+                .filter((m) => m.type === "image")
+                .map((m) => ({ id: m.id, media_url: m.media_url, prompt: m.prompt, collection_id: m.collection_id }))}
+              onImportGeneratedImage={importGeneratedImageAsReference}
+              videoUrl={videoUrl}
+              videoLoading={videoLoading}
+              videoError={videoError}
+              videoComingSoon={videoComingSoon}
+              videoUnavailableMessage={videoUnavailableMessage}
+              onGenerateVideo={() => generateVideo((editablePlan ?? plan!).script)}
+              onDownloadVideo={downloadVideo}
+              onShare={shareToplatform}
+              sharing={sharing}
+              connectedPlatforms={connectedPlatforms}
+              session={supabase}
+              userId={user?.id}
+              industryId={industryId}
+              lastSavedId={lastSavedId}
+              t={t}
+            />
+          </div>
+        </div>
+      )}
+
+      {!hasPlan && (
+      <>
       {/* ── Header ── */}
       <div
         onMouseMove={(e) => {
@@ -1503,62 +1605,6 @@ function Studio() {
             </div>
           )}
 
-          {(plan || editablePlan) && (
-            <PlanOutput
-              plan={editablePlan ?? plan!}
-              onPlanChange={setEditablePlan}
-              copied={copied}
-              onCopy={copy}
-              imageUrl={imageUrl}
-              imageLoading={imageLoading}
-              imageError={imageError}
-              onGenerateImage={() => generateImageWithReferences((editablePlan ?? plan!).visualPrompt)}
-              onFlagInaccurate={(reason, attachment) => flagAndRegenerateImage((editablePlan ?? plan!).visualPrompt, reason, attachment)}
-              flagNotice={flagNotice}
-              flagAttachmentChoices={[
-                ...referencePhotoLibrary.photos.map((p) => ({ id: `ref-${p.id}`, url: p.image_url, label: p.label })),
-                ...generatedLibrary.items
-                  .filter((m) => m.type === "image")
-                  .map((m) => ({ id: `gen-${m.id}`, url: m.media_url, label: m.prompt ?? "" })),
-              ]}
-              onDownloadImage={downloadImage}
-              referencePhotos={referencePhotoLibrary.photos}
-              referencePhotosLoading={referencePhotoLibrary.loading}
-              referencePhotoError={referencePhotoLibrary.error}
-              selectedReferenceIds={selectedReferenceIds}
-              onToggleReferencePhoto={(id) =>
-                setSelectedReferenceIds((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(id)) next.delete(id);
-                  else next.add(id);
-                  return next;
-                })
-              }
-              onUploadReferencePhoto={referencePhotoLibrary.upload}
-              mediaCollections={mediaCollections.collections}
-              onCreateCollection={mediaCollections.create}
-              onSetReferencePhotoCollection={referencePhotoLibrary.setCollection}
-              generatedImages={generatedLibrary.items
-                .filter((m) => m.type === "image")
-                .map((m) => ({ id: m.id, media_url: m.media_url, prompt: m.prompt, collection_id: m.collection_id }))}
-              onImportGeneratedImage={importGeneratedImageAsReference}
-              videoUrl={videoUrl}
-              videoLoading={videoLoading}
-              videoError={videoError}
-              videoComingSoon={videoComingSoon}
-              videoUnavailableMessage={videoUnavailableMessage}
-              onGenerateVideo={() => generateVideo((editablePlan ?? plan!).script)}
-              onDownloadVideo={downloadVideo}
-              onShare={shareToplatform}
-              sharing={sharing}
-              connectedPlatforms={connectedPlatforms}
-              session={supabase}
-              userId={user?.id}
-              industryId={industryId}
-              lastSavedId={lastSavedId}
-              t={t}
-            />
-          )}
         </div>
       </div>
 
@@ -1597,6 +1643,8 @@ function Studio() {
           }
         </div>
       </div>
+      </>
+      )}
     </AppShell>
   );
 }

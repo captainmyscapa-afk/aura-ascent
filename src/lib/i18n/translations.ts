@@ -411,6 +411,8 @@ export type T = {
   stuModeAssistedSub: string;
   stuModeIntel: string;
   stuModeIntelSub: string;
+  stuNewCreationBadge: string;
+  stuNewCreationHint: string;
   stuYourIdea: string;
   stuIdeaPlaceholder: string;
   stuSignalsLabel: string;
@@ -1288,6 +1290,8 @@ export const translations: Record<Lang, T> = {
     stuModeAssistedSub: "Write from your own idea",
     stuModeIntel: "Live Intel",
     stuModeIntelSub: "Amplify today's signals",
+    stuNewCreationBadge: "AI Assisted + Live Intel",
+    stuNewCreationHint: "Start a new creation",
     stuYourIdea: "YOUR IDEA",
     stuIdeaPlaceholder: `e.g. "Why hybrid superyachts are the new status symbol in Monaco"`,
     stuSignalsLabel: "SIGNALS · pick what to amplify",
@@ -2269,6 +2273,8 @@ export const translations: Record<Lang, T> = {
     stuModeAssistedSub: "Rédigez à partir de votre propre idée",
     stuModeIntel: "Signaux en direct",
     stuModeIntelSub: "Amplifiez les signaux du jour",
+    stuNewCreationBadge: "Assisté par IA + Signaux en direct",
+    stuNewCreationHint: "Démarrer une nouvelle création",
     stuYourIdea: "VOTRE IDÉE",
     stuIdeaPlaceholder: `ex. « Pourquoi les superyachts hybrides sont devenus le nouveau symbole de statut à Monaco »`,
     stuSignalsLabel: "SIGNAUX · choisissez ce qu'il faut amplifier",
