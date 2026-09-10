@@ -57,10 +57,12 @@ Vous DEVEZ r\u00e9pondre UNIQUEMENT avec un objet JSON valide \u2014 pas de bali
   ${platformKeys.map(k => `"${k}": "string \u2014 l\u00e9gende pour ${k}, en fran\u00e7ais"`).join(",\n  ")},
   "script": ["tableau de strings \u2014 8-10 s\u00e9quences ordonn\u00e9es, pr\u00e9cises et cin\u00e9matographiques, en fran\u00e7ais"],
   "hashtags": ["tableau de strings \u2014 18-24 hashtags combinant ultra-niche + secteur + g\u00e9n\u00e9raux, en fran\u00e7ais quand pertinent"],
-  "visual_prompt": "string \u2014 prompt d'image IA cin\u00e9matographique, 60-100 mots, qualit\u00e9 marque de luxe (peut rester en anglais pour le mod\u00e8le d'image)"
+  "visual_prompt": "string \u2014 prompt d'image IA de SC\u00c8NE cin\u00e9matographique, 60-100 mots, qualit\u00e9 marque de luxe (peut rester en anglais pour le mod\u00e8le d'image). D\u00e9crire UNIQUEMENT le cadre, l'heure, la m\u00e9t\u00e9o, la lumi\u00e8re, l'angle de cam\u00e9ra/composition, l'ambiance et l'activit\u00e9 humaine autour du sujet."
 }
 
-Chaque l\u00e9gende doit avoir un ton et une longueur sensiblement diff\u00e9rents. Aucun remplissage. Qualit\u00e9 d'\u00e9lite uniquement. Tout le contenu textuel (title, hook, l\u00e9gendes, script, hashtags) doit \u00eatre r\u00e9dig\u00e9 en fran\u00e7ais naturel, pas une traduction litt\u00e9rale.`
+Chaque l\u00e9gende doit avoir un ton et une longueur sensiblement diff\u00e9rents. Aucun remplissage. Qualit\u00e9 d'\u00e9lite uniquement. Tout le contenu textuel (title, hook, l\u00e9gendes, script, hashtags) doit \u00eatre r\u00e9dig\u00e9 en fran\u00e7ais naturel, pas une traduction litt\u00e9rale.
+
+R\u00c8GLE CRITIQUE POUR visual_prompt : n'inventez et ne d\u00e9crivez jamais l'identit\u00e9 propre du sujet \u2014 aucune marque, mod\u00e8le, nom, couleur de coque/carrosserie, mat\u00e9riau ou d\u00e9tail de design distinctif pour le yacht, le bien immobilier, le jet ou la voiture. Le vrai sujet est fourni s\u00e9par\u00e9ment via des photos de r\u00e9f\u00e9rence au moment de la g\u00e9n\u00e9ration d'image \u2014 tout d\u00e9tail identifiant que vous inventez ici contredira ces photos et rendra l'image g\u00e9n\u00e9r\u00e9e inexacte. D\u00e9crivez uniquement la sc\u00e8ne autour du sujet (lieu, lumi\u00e8re, m\u00e9t\u00e9o, angle, ambiance, activit\u00e9) et d\u00e9signez le sujet de mani\u00e8re g\u00e9n\u00e9rique ("le yacht", "le bien", "le jet", "la voiture").`
       : `You are an elite luxury social media creative director for yachts, real estate, private jets, and exotic cars. You write world-class viral content for UHNW audiences.
 
 You MUST respond with ONLY a valid JSON object \u2014 no markdown fences, no extra text, nothing else. The JSON must have exactly these keys:
@@ -70,10 +72,12 @@ You MUST respond with ONLY a valid JSON object \u2014 no markdown fences, no ext
   ${platformKeys.map(k => `"${k}": "string \u2014 caption for ${k}"`).join(",\n  ")},
   "script": ["string array \u2014 8-10 ordered beats, specific and cinematic"],
   "hashtags": ["string array \u2014 18-24 hashtags mixing ultra-niche + industry + broad"],
-  "visual_prompt": "string \u2014 cinematic AI image prompt, 60-100 words, luxury brand quality"
+  "visual_prompt": "string \u2014 cinematic AI image SCENE prompt, 60-100 words, luxury brand quality. Describe ONLY the setting, time of day, weather, lighting, camera angle/composition, mood, and any human activity around the subject."
 }
 
-Each platform caption must be meaningfully different in voice and length. No filler. Elite quality only.`;
+Each platform caption must be meaningfully different in voice and length. No filler. Elite quality only.
+
+CRITICAL RULE FOR visual_prompt: never invent or describe the subject's own identity \u2014 no specific make, model, name, hull/exterior color, materials, or any distinguishing physical design detail for the yacht, property, jet, or car. The real subject is supplied separately as reference photos at image-generation time, so any identifying detail you invent here will contradict those photos and make the generated image inaccurate. Describe only the scene around the subject (location, lighting, weather, angle, mood, activity) and refer to the subject generically ("the yacht", "the property", "the jet", "the car").`;
 
     const userParts = isFrench
       ? [
