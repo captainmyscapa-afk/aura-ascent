@@ -526,7 +526,11 @@ function Studio() {
 
   const generateImage = async (
     visualPrompt: string,
-    opts?: { referenceImages?: { data: string; mimeType: string }[]; flagReason?: string },
+    opts?: {
+      referenceImages?: { data: string; mimeType: string }[];
+      flagReason?: string;
+      aspectRatio?: string;
+    },
   ) => {
     setImageLoading(true);
     setImageError(false);
@@ -547,6 +551,7 @@ function Studio() {
             prompt: visualPrompt,
             referenceImages: opts?.referenceImages?.length ? opts.referenceImages : undefined,
             flagReason: opts?.flagReason,
+            aspectRatio: opts?.aspectRatio,
           }),
         },
       );
@@ -630,9 +635,9 @@ function Studio() {
   // CAP-133: the actual entry points wired to the UI -- both pull in
   // whichever reference photos are currently selected, so accuracy applies
   // whether this is a first attempt or a flagged retry.
-  const generateImageWithReferences = async (visualPrompt: string) => {
+  const generateImageWithReferences = async (visualPrompt: string, aspectRatio?: string) => {
     const referenceImages = await fetchSelectedReferenceImages();
-    await generateImage(visualPrompt, { referenceImages });
+    await generateImage(visualPrompt, { referenceImages, aspectRatio });
   };
 
   // CAP-134/135: an optional attachment photo on the flag itself -- e.g. a
@@ -666,6 +671,7 @@ function Studio() {
 
   const flagAndRegenerateImage = async (
     visualPrompt: string,
+    aspectRatio: string | undefined,
     reason: string,
     attachment?: { file: File } | { url: string } | null,
   ) => {
@@ -681,7 +687,7 @@ function Studio() {
         // A bad attachment shouldn't block the flagged regenerate itself.
       }
     }
-    await generateImage(visualPrompt, { referenceImages, flagReason: reason });
+    await generateImage(visualPrompt, { referenceImages, flagReason: reason, aspectRatio });
   };
 
   // CAP-137: "choose from library" in the Reference Photos panel -- copies
@@ -916,11 +922,11 @@ function Studio() {
               imageUrl={imageUrl}
               imageLoading={imageLoading}
               imageError={imageError}
-              onGenerateImage={() =>
-                generateImageWithReferences((editablePlan ?? plan!).visualPrompt)
+              onGenerateImage={(scenePrompt, aspectRatio) =>
+                generateImageWithReferences(scenePrompt, aspectRatio)
               }
-              onFlagInaccurate={(reason, attachment) =>
-                flagAndRegenerateImage((editablePlan ?? plan!).visualPrompt, reason, attachment)
+              onFlagInaccurate={(scenePrompt, aspectRatio, reason, attachment) =>
+                flagAndRegenerateImage(scenePrompt, aspectRatio, reason, attachment)
               }
               flagNotice={flagNotice}
               flagAttachmentChoices={[
@@ -973,6 +979,7 @@ function Studio() {
               userId={user?.id}
               industryId={industryId}
               lastSavedId={lastSavedId}
+              lang={lang}
               t={t}
             />
           </div>
@@ -1989,6 +1996,267 @@ const PLATFORM_META: Record<
   },
 };
 
+// CAP-147: the Creative Brief's scene attributes. Each option's "phrase"
+// (and every Creative Direction's "phrases") is the text actually sent to
+// the image model and stays in English regardless of UI language -- same
+// convention as studio.functions.ts's French visual_prompt ("peut rester
+// en anglais pour le modele d'image"). Only "label" is localized.
+const LOCATION_RAW = [
+  {
+    id: "mediterranean_bay",
+    en: "Mediterranean Bay",
+    fr: "Baie méditerranéenne",
+    phrase: "in a secluded Mediterranean bay",
+  },
+  {
+    id: "saint_tropez",
+    en: "Saint-Tropez",
+    fr: "Saint-Tropez",
+    phrase: "off the coast of Saint-Tropez",
+  },
+  { id: "cap_dantibes", en: "Cap d'Antibes", fr: "Cap d'Antibes", phrase: "off Cap d'Antibes" },
+  { id: "pampelonne", en: "Pampelonne", fr: "Pampelonne", phrase: "along Pampelonne beach" },
+  { id: "capri", en: "Capri", fr: "Capri", phrase: "near the cliffs of Capri" },
+  { id: "monaco", en: "Monaco", fr: "Monaco", phrase: "in Monaco harbor" },
+  { id: "open_water", en: "Open Water", fr: "Pleine mer", phrase: "in open turquoise water" },
+];
+
+const VESSEL_RAW = [
+  { id: "anchored", en: "Anchored", fr: "Au mouillage", phrase: "anchored" },
+  {
+    id: "underway",
+    en: "Underway",
+    fr: "En navigation",
+    phrase: "underway, cutting through calm water",
+  },
+  { id: "docked", en: "Docked", fr: "À quai", phrase: "docked at a marina" },
+];
+
+const TIME_RAW = [
+  { id: "sunrise", en: "Sunrise", fr: "Lever du soleil", phrase: "at sunrise, soft warm light" },
+  {
+    id: "golden_hour",
+    en: "Golden Hour",
+    fr: "Heure dorée",
+    phrase: "during golden hour, warm low sunlight",
+  },
+  { id: "midday", en: "Midday", fr: "Midi", phrase: "at midday, bright clear light" },
+  {
+    id: "blue_hour",
+    en: "Blue Hour",
+    fr: "Heure bleue",
+    phrase: "during blue hour, cool twilight tones",
+  },
+  { id: "sunset", en: "Sunset", fr: "Coucher du soleil", phrase: "at sunset, dramatic warm sky" },
+  {
+    id: "night",
+    en: "Night",
+    fr: "Nuit",
+    phrase: "at night, under starlight and ambient deck lighting",
+  },
+];
+
+const CAMERA_RAW = [
+  {
+    id: "elevated_aerial",
+    en: "Elevated Aerial",
+    fr: "Aérien élevé",
+    phrase: "from an elevated aerial drone angle",
+  },
+  {
+    id: "low_aerial",
+    en: "Low Aerial",
+    fr: "Aérien bas",
+    phrase: "from a low aerial angle just above the water",
+  },
+  {
+    id: "water_level",
+    en: "Water Level",
+    fr: "Niveau de l'eau",
+    phrase: "from water level, close to the surface",
+  },
+  { id: "bow", en: "Bow", fr: "Proue", phrase: "from the bow looking aft" },
+  { id: "stern", en: "Stern", fr: "Poupe", phrase: "from the stern looking forward" },
+];
+
+const MOOD_RAW = [
+  {
+    id: "serene_exclusive",
+    en: "Serene \u00b7 Exclusive",
+    fr: "Serein \u00b7 Exclusif",
+    phrase: "serene and exclusive",
+  },
+  {
+    id: "luxury_editorial",
+    en: "Luxury Editorial",
+    fr: "Éditorial de luxe",
+    phrase: "polished, luxury-editorial",
+  },
+  {
+    id: "dynamic_adventurous",
+    en: "Dynamic \u00b7 Adventurous",
+    fr: "Dynamique \u00b7 Aventureux",
+    phrase: "dynamic and adventurous",
+  },
+  {
+    id: "romantic_intimate",
+    en: "Romantic \u00b7 Intimate",
+    fr: "Romantique \u00b7 Intime",
+    phrase: "romantic and intimate",
+  },
+];
+
+const FORMAT_RAW = [
+  { id: "ig_4_5", en: "Instagram 4:5", fr: "Instagram 4:5", aspectRatio: "4:5" },
+  { id: "ig_square", en: "Instagram 1:1", fr: "Instagram 1:1", aspectRatio: "1:1" },
+  { id: "story_9_16", en: "Story/Reel 9:16", fr: "Story/Reel 9:16", aspectRatio: "9:16" },
+  { id: "landscape_16_9", en: "Landscape 16:9", fr: "Paysage 16:9", aspectRatio: "16:9" },
+];
+
+const DIRECTION_RAW = [
+  {
+    id: "editorial",
+    en: "Editorial",
+    fr: "Éditorial",
+    phrases: [
+      "shot on a 35mm lens",
+      "controlled, deliberate composition",
+      "natural color grading",
+      "subtle depth of field",
+      "refined editorial lighting",
+      "luxury magazine aesthetic",
+    ],
+  },
+  {
+    id: "cinematic",
+    en: "Cinematic",
+    fr: "Cinématique",
+    phrases: [
+      "anamorphic widescreen feel",
+      "dramatic contrast and shadow",
+      "cinematic color grading",
+      "sweeping sense of scale",
+      "film-still composition",
+    ],
+  },
+  {
+    id: "lifestyle",
+    en: "Lifestyle",
+    fr: "Lifestyle",
+    phrases: [
+      "candid, in-the-moment framing",
+      "warm natural light",
+      "authentic lifestyle color tones",
+      "relaxed composition",
+    ],
+  },
+  {
+    id: "minimal",
+    en: "Minimal",
+    fr: "Minimaliste",
+    phrases: [
+      "clean minimal composition",
+      "generous negative space",
+      "muted restrained color palette",
+      "quiet, understated luxury",
+    ],
+  },
+];
+
+function sceneCatalog(lang: "en" | "fr") {
+  const L = (en: string, fr: string) => (lang === "fr" ? fr : en);
+  return {
+    location: LOCATION_RAW.map((o) => ({ id: o.id, label: L(o.en, o.fr), phrase: o.phrase })),
+    vessel: VESSEL_RAW.map((o) => ({ id: o.id, label: L(o.en, o.fr), phrase: o.phrase })),
+    time: TIME_RAW.map((o) => ({ id: o.id, label: L(o.en, o.fr), phrase: o.phrase })),
+    camera: CAMERA_RAW.map((o) => ({ id: o.id, label: L(o.en, o.fr), phrase: o.phrase })),
+    mood: MOOD_RAW.map((o) => ({ id: o.id, label: L(o.en, o.fr), phrase: o.phrase })),
+    format: FORMAT_RAW.map((o) => ({ id: o.id, label: L(o.en, o.fr), aspectRatio: o.aspectRatio })),
+    direction: DIRECTION_RAW.map((o) => ({ id: o.id, label: L(o.en, o.fr), phrases: o.phrases })),
+  };
+}
+
+type SceneCatalog = ReturnType<typeof sceneCatalog>;
+
+// Composes the actual technical image prompt from the structured Creative
+// Brief -- this is what "Aurum then generates the actual expert prompt
+// behind the scenes" means in practice. Kept as a plain function (not
+// stored on the plan) so it can be recomputed live as controls change,
+// with no risk of a stale-closure mismatch when Generate is clicked.
+function buildScenePrompt(
+  catalog: SceneCatalog,
+  fields: {
+    idea: string;
+    location: string;
+    vessel: string;
+    time: string;
+    camera: string;
+    mood: string;
+    direction: string;
+    extra: string;
+  },
+): string {
+  const loc = catalog.location.find((o) => o.id === fields.location);
+  const ves = catalog.vessel.find((o) => o.id === fields.vessel);
+  const tim = catalog.time.find((o) => o.id === fields.time);
+  const cam = catalog.camera.find((o) => o.id === fields.camera);
+  const moo = catalog.mood.find((o) => o.id === fields.mood);
+  const dir = catalog.direction.find((o) => o.id === fields.direction);
+
+  const settingClause = [ves?.phrase, loc?.phrase].filter(Boolean).join(" ");
+
+  return [
+    fields.idea.trim(),
+    settingClause,
+    tim?.phrase ?? "",
+    cam ? `Camera: ${cam.phrase}.` : "",
+    moo ? `Mood: ${moo.phrase}.` : "",
+    dir ? `${dir.phrases.join(", ")}.` : "",
+    fields.extra.trim(),
+  ]
+    .filter((c) => c.length > 0)
+    .join(" ");
+}
+
+// A row of compact pill options -- the "visual card" treatment for scene
+// attributes (Location, Camera, etc.) called for in CAP-147, without
+// depending on stock photography assets that don't exist for this yet.
+function SceneField({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (id: string) => void;
+  options: { id: string; label: string }[];
+}) {
+  return (
+    <div>
+      <div className="text-[9px] tracking-[0.25em] text-muted-foreground uppercase mb-1.5">
+        {label}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            onClick={() => onChange(o.id)}
+            className={`px-2.5 py-1.5 rounded-lg text-[11px] border transition-all ${
+              value === o.id
+                ? "border-primary/60 text-primary bg-primary/10"
+                : "border-border text-muted-foreground hover:text-foreground hover:border-primary/30"
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PlanOutput({
   plan,
   onPlanChange,
@@ -2027,6 +2295,7 @@ function PlanOutput({
   userId,
   industryId,
   lastSavedId,
+  lang,
   t,
 }: {
   plan: StudioContentPlan;
@@ -2036,8 +2305,13 @@ function PlanOutput({
   imageUrl: string | null;
   imageLoading: boolean;
   imageError: boolean;
-  onGenerateImage: () => void;
-  onFlagInaccurate: (reason: string, attachment?: { file: File } | { url: string } | null) => void;
+  onGenerateImage: (scenePrompt: string, aspectRatio: string) => void;
+  onFlagInaccurate: (
+    scenePrompt: string,
+    aspectRatio: string,
+    reason: string,
+    attachment?: { file: File } | { url: string } | null,
+  ) => void;
   flagNotice: string | null;
   flagAttachmentChoices: { id: string; url: string; label: string }[];
   onDownloadImage: () => void;
@@ -2078,6 +2352,7 @@ function PlanOutput({
   userId?: string;
   industryId: string;
   lastSavedId: string | null;
+  lang: "en" | "fr";
   t: T;
 }) {
   const platformKeys = Object.keys(plan.platforms).filter((k) => plan.platforms[k]);
@@ -2123,6 +2398,46 @@ function PlanOutput({
   );
   const [flagAttachmentMode, setFlagAttachmentMode] = useState<"file" | "library">("file");
 
+  // CAP-147: structured "Creative Brief" replaces the giant auto-written
+  // visualPrompt paragraph as the primary way to art-direct the image --
+  // a short free-text idea plus a handful of scene attributes, composed
+  // into the real technical prompt behind the scenes (buildScenePrompt
+  // below). The old paragraph (plan.visualPrompt, CAP-144's scene-only
+  // text) is intentionally NOT used to seed sceneIdea -- defaulting to a
+  // 60-100 word paragraph in what's supposed to read as a clean hero input
+  // would just reproduce the exact problem this redesign fixes. Defaults
+  // below match the reference mockup.
+  const [sceneIdea, setSceneIdea] = useState("");
+  const [sceneLocation, setSceneLocation] = useState("mediterranean_bay");
+  const [sceneVessel, setSceneVessel] = useState("anchored");
+  const [sceneTime, setSceneTime] = useState("sunrise");
+  const [sceneCamera, setSceneCamera] = useState("elevated_aerial");
+  const [sceneMood, setSceneMood] = useState("serene_exclusive");
+  const [sceneFormat, setSceneFormat] = useState("ig_4_5");
+  const [sceneDirection, setSceneDirection] = useState("editorial");
+  const [sceneExtra, setSceneExtra] = useState("");
+  // Advanced mode: null means "still auto-composed from the controls
+  // above"; once the user edits and saves the raw prompt directly, it's
+  // frozen here until they explicitly reset it back to auto.
+  const [showPromptDetails, setShowPromptDetails] = useState(false);
+  const [promptOverride, setPromptOverride] = useState<string | null>(null);
+  const [promptDraft, setPromptDraft] = useState("");
+
+  const catalog = sceneCatalog(lang);
+  const composedScenePrompt = buildScenePrompt(catalog, {
+    idea: sceneIdea,
+    location: sceneLocation,
+    vessel: sceneVessel,
+    time: sceneTime,
+    camera: sceneCamera,
+    mood: sceneMood,
+    direction: sceneDirection,
+    extra: sceneExtra,
+  });
+  const effectiveScenePrompt = promptOverride ?? composedScenePrompt;
+  const effectiveAspectRatio =
+    catalog.format.find((f) => f.id === sceneFormat)?.aspectRatio ?? "1:1";
+
   // Inline editing
   const [editingCaption, setEditingCaption] = useState<string | null>(null);
   const [captionDraft, setCaptionDraft] = useState("");
@@ -2130,8 +2445,6 @@ function PlanOutput({
   const [scriptDraft, setScriptDraft] = useState("");
   const [editingHashtags, setEditingHashtags] = useState(false);
   const [hashtagsDraft, setHashtagsDraft] = useState("");
-  const [editingVisual, setEditingVisual] = useState(false);
-  const [visualDraft, setVisualDraft] = useState("");
 
   // Sliding tab indicator (measured against real DOM positions, Apple tab-bar style)
   const tabsRowRef = useRef<HTMLDivElement>(null);
@@ -2157,6 +2470,11 @@ function PlanOutput({
   const updateCaption = (key: string, text: string) => {
     onPlanChange({ ...plan, platforms: { ...plan.platforms, [key]: text } });
   };
+
+  // CAP-147: the 3-slot reference row and its "at capacity" guard, shared
+  // by the slots themselves and the file/library picker below them.
+  const selectedReferencePhotosList = referencePhotos.filter((p) => selectedReferenceIds.has(p.id));
+  const atCap = selectedReferencePhotosList.length >= 3;
 
   return (
     <div className="space-y-4 animate-fade-up">
@@ -2372,580 +2690,693 @@ function PlanOutput({
         )}
       </div>
 
-      <div className="glass rounded-xl p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-[10px] tracking-[0.34em] text-primary/80 flex items-center gap-2">
-            <ImageIcon className="h-3 w-3" /> {t.stuVisualPrompt}
+      {/* CAP-147: Creative Brief redesign -- references first (with an
+          "Aurum understands" confirmation once at least one is picked),
+          then the scene brief below, replacing the old giant auto-written
+          visual-prompt paragraph as the primary way to art-direct the
+          image. Both cards hide once an image exists, same as before. */}
+      {!imageUrl && !imageLoading && (
+        <div className="glass rounded-xl p-5 space-y-4">
+          <div>
+            <div className="text-[10px] tracking-[0.34em] text-primary/80">
+              {t.stuYachtReferences}
+            </div>
+            <div className="text-[11px] text-muted-foreground mt-1">{t.stuUploadUpToThree}</div>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex flex-wrap items-start gap-3">
+            {[0, 1, 2].map((i) => {
+              const photo = selectedReferencePhotosList[i];
+              return photo ? (
+                <div key={photo.id} className="relative h-20 w-20 shrink-0">
+                  <img
+                    src={photo.image_url}
+                    alt={photo.label}
+                    title={photo.label}
+                    className="h-20 w-20 rounded-xl object-cover border-2 border-primary"
+                  />
+                  <button
+                    onClick={() => onToggleReferencePhoto(photo.id)}
+                    title={t.stuFlagClearPicture}
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-white flex items-center justify-center shadow hover:scale-110 transition-transform"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  key={`empty-${i}`}
+                  type="button"
+                  onClick={() => setShowReferenceUpload(true)}
+                  className="h-20 w-20 shrink-0 rounded-xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
+                >
+                  <Plus className="h-5 w-5" />
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedReferencePhotosList.length > 0 && (
+            <div className="text-[11px] text-muted-foreground/80">
+              {t.stuReferencesMaintainIdentity}
+            </div>
+          )}
+
+          {selectedReferencePhotosList.length > 0 && selectedReferencePhotosList.length < 3 && (
             <button
-              onClick={() => {
-                setEditingVisual(true);
-                setVisualDraft(plan.visualPrompt);
-              }}
-              className="flex items-center gap-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-primary transition-colors"
+              type="button"
+              onClick={() => setShowReferenceUpload((v) => !v)}
+              className="text-[11px] text-primary hover:underline"
             >
-              <Pencil className="h-3 w-3" /> {t.stuModify}
+              {t.stuAddAnotherPhoto}
             </button>
-            <CopyBtn
-              id="vis"
-              copied={copied}
-              onClick={() => onCopy("vis", plan.visualPrompt)}
-              t={t}
-            />
-          </div>
-        </div>
-        {editingVisual ? (
-          <div className="space-y-2 mb-4">
-            <textarea
-              value={visualDraft}
-              onChange={(e) => setVisualDraft(e.target.value)}
-              rows={4}
-              className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/50 resize-y transition-colors"
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  onPlanChange({ ...plan, visualPrompt: visualDraft });
-                  setEditingVisual(false);
-                }}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-primary-foreground text-xs"
-                style={{ background: "var(--gradient-gold)" }}
-              >
-                <Check className="h-3 w-3" /> {t.stuSave}
-              </button>
-              <button
-                onClick={() => setEditingVisual(false)}
-                className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {t.stuCancel}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="text-sm leading-relaxed text-foreground/90 italic mb-4">
-            {plan.visualPrompt}
-          </div>
-        )}
+          )}
 
-        {!imageUrl && !imageLoading && (
-          <div className="space-y-3 mb-3">
-            {/* CAP-133: saved reference photos -- select up to 6 real photos
-                of the actual boat/asset so generation composites around it
-                instead of hallucinating one from the text prompt alone. */}
-            <div className="flex items-center justify-between">
-              <div className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
-                {t.stuReferencePhotos}
+          {selectedReferencePhotosList.length > 0 && (
+            <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4">
+              <div className="text-[10px] tracking-[0.3em] uppercase text-emerald-400/90 mb-2.5 flex items-center gap-1.5">
+                <Check className="h-3 w-3" /> {t.stuAurumUnderstands}
               </div>
-              <button
-                onClick={() => setShowReferenceUpload((v) => !v)}
-                className="text-[10px] tracking-[0.2em] uppercase text-primary hover:underline"
-              >
-                {t.stuAddReferencePhoto}
-              </button>
-            </div>
-
-            {/* CAP-141: exactly what's being sent as reference for THIS
-                generation -- separate from "Choose from library" (which
-                browses everything you've ever saved), this only ever shows
-                what's currently selected, with its own "x" to drop a wrong
-                pick without touching the saved photo itself. */}
-            {selectedReferenceIds.size > 0 && (
-              <div className="space-y-1.5 p-2.5 rounded-lg border border-border/60 bg-secondary/10">
-                <div className="text-[10px] text-muted-foreground">
-                  {t.stuReferencePhotosSelected(selectedReferenceIds.size)}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {referencePhotos
-                    .filter((photo) => selectedReferenceIds.has(photo.id))
-                    .map((photo) => (
-                      <div key={photo.id} className="relative h-14 w-14 shrink-0">
-                        <img
-                          src={photo.image_url}
-                          alt={photo.label}
-                          title={photo.label}
-                          className="h-14 w-14 rounded-lg object-cover border-2 border-primary"
-                        />
-                        <button
-                          onClick={() => onToggleReferencePhoto(photo.id)}
-                          title={t.stuFlagClearPicture}
-                          className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-destructive text-white flex items-center justify-center shadow hover:scale-110 transition-transform"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12px] text-foreground/80">
+                {[
+                  t.stuUnderstandsIdentity,
+                  t.stuUnderstandsHull,
+                  t.stuUnderstandsSuperstructure,
+                  t.stuUnderstandsDetails,
+                  t.stuUnderstandsMaterials,
+                ].map((label) => (
+                  <div key={label} className="flex items-center gap-1.5">
+                    <Check className="h-3 w-3 text-emerald-400 shrink-0" /> {label}
+                  </div>
+                ))}
               </div>
-            )}
-            {/* CAP-140: accuracy tip -- Nano Banana Pro's own docs say
-                subject fidelity is "not always" perfect, and community
-                testing found too many reference photos dilutes it. Purely
-                informational, never blocks selection. */}
-            <div className="text-[10px] text-muted-foreground/70">{t.stuReferencePhotosTip}</div>
+            </div>
+          )}
 
-            {showReferenceUpload && (
-              <div className="space-y-2 p-3 rounded-lg border border-border">
-                {/* CAP-137: a fresh upload, or pull in a photo Studio
+          {referencePhotoError && (
+            <div className="text-[11px] text-destructive">{referencePhotoError}</div>
+          )}
+
+          {showReferenceUpload && (
+            <div className="space-y-2 p-3 rounded-lg border border-border">
+              {/* CAP-137: a fresh upload, or pull in a photo Studio
                     already generated -- either way it lands in the folder
                     picked below. */}
-                <div className="flex items-center gap-1 text-[10px]">
-                  <button
-                    type="button"
-                    onClick={() => setReferenceUploadMode("file")}
-                    className={`px-2 py-1 rounded-md border transition-colors ${referenceUploadMode === "file" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
-                  >
-                    {t.stuFlagChooseFile}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setReferenceUploadMode("library")}
-                    className={`px-2 py-1 rounded-md border transition-colors ${referenceUploadMode === "library" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
-                  >
-                    {t.stuFlagChooseFromLibrary}
-                  </button>
-                </div>
+              <div className="flex items-center gap-1 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => setReferenceUploadMode("file")}
+                  className={`px-2 py-1 rounded-md border transition-colors ${referenceUploadMode === "file" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                >
+                  {t.stuFlagChooseFile}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReferenceUploadMode("library")}
+                  className={`px-2 py-1 rounded-md border transition-colors ${referenceUploadMode === "library" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                >
+                  {t.stuFlagChooseFromLibrary}
+                </button>
+              </div>
 
-                {referenceUploadMode === "file" ? (
-                  <div className="space-y-2">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setReferenceUploadFile(e.target.files?.[0] ?? null)}
-                      className="w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-primary/10 file:text-primary"
-                    />
-                    {/* CAP-142: same box-with-x preview as the selected
+              {referenceUploadMode === "file" ? (
+                <div className="space-y-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setReferenceUploadFile(e.target.files?.[0] ?? null)}
+                    className="w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-primary/10 file:text-primary"
+                  />
+                  {/* CAP-142: same box-with-x preview as the selected
                         reference photos above -- a real thumbnail, not just
                         a filename, so a wrong pick is obvious before it's
                         even added. */}
-                    {referenceUploadFile && referenceUploadPreviewUrl && (
-                      <div className="relative h-14 w-14 shrink-0">
-                        <img
-                          src={referenceUploadPreviewUrl}
-                          alt={referenceUploadFile.name}
-                          title={referenceUploadFile.name}
-                          className="h-14 w-14 rounded-lg object-cover border-2 border-primary"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setReferenceUploadFile(null)}
-                          title={t.stuFlagClearPicture}
-                          className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-destructive text-white flex items-center justify-center shadow hover:scale-110 transition-transform"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  (() => {
-                    // CAP-143: once a folder is picked below, narrow the
-                    // library grid to just that folder's pictures -- with a
-                    // lot of boats saved, browsing everything at once made it
-                    // hard to find the right one.
-                    const visibleReferencePhotos = referenceUploadCollectionId
-                      ? referencePhotos.filter(
-                          (p) => p.collection_id === referenceUploadCollectionId,
-                        )
-                      : referencePhotos;
-                    const visibleGeneratedImages = referenceUploadCollectionId
-                      ? generatedImages.filter(
-                          (i) => i.collection_id === referenceUploadCollectionId,
-                        )
-                      : generatedImages;
-                    if (
-                      visibleReferencePhotos.length === 0 &&
-                      visibleGeneratedImages.length === 0
-                    ) {
-                      return (
-                        <div className="text-[11px] text-muted-foreground">
-                          {t.stuFlagLibraryEmpty}
-                        </div>
-                      );
-                    }
+                  {referenceUploadFile && referenceUploadPreviewUrl && (
+                    <div className="relative h-14 w-14 shrink-0">
+                      <img
+                        src={referenceUploadPreviewUrl}
+                        alt={referenceUploadFile.name}
+                        title={referenceUploadFile.name}
+                        className="h-14 w-14 rounded-lg object-cover border-2 border-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setReferenceUploadFile(null)}
+                        title={t.stuFlagClearPicture}
+                        className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-destructive text-white flex items-center justify-center shadow hover:scale-110 transition-transform"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                (() => {
+                  // CAP-143: once a folder is picked below, narrow the
+                  // library grid to just that folder's pictures -- with a
+                  // lot of boats saved, browsing everything at once made it
+                  // hard to find the right one.
+                  const visibleReferencePhotos = referenceUploadCollectionId
+                    ? referencePhotos.filter((p) => p.collection_id === referenceUploadCollectionId)
+                    : referencePhotos;
+                  const visibleGeneratedImages = referenceUploadCollectionId
+                    ? generatedImages.filter((i) => i.collection_id === referenceUploadCollectionId)
+                    : generatedImages;
+                  if (visibleReferencePhotos.length === 0 && visibleGeneratedImages.length === 0) {
                     return (
-                      <div className="space-y-1.5">
-                        {visibleReferencePhotos.length > 0 && (
-                          <div className="flex items-center justify-end gap-3 text-[10px]">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                visibleReferencePhotos.forEach((p) => {
-                                  if (!selectedReferenceIds.has(p.id)) onToggleReferencePhoto(p.id);
-                                })
-                              }
-                              className="text-primary hover:underline"
-                            >
-                              {t.stuLibrarySelectAll}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                visibleReferencePhotos.forEach((p) => {
-                                  if (selectedReferenceIds.has(p.id)) onToggleReferencePhoto(p.id);
-                                })
-                              }
-                              className="text-muted-foreground hover:text-foreground"
-                            >
-                              {t.stuLibraryDeselectAll}
-                            </button>
-                          </div>
-                        )}
-                        <div className="grid grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-1.5 max-h-56 overflow-y-auto pr-1">
-                          {/* CAP-139: an already-saved reference photo just gets
+                      <div className="text-[11px] text-muted-foreground">
+                        {t.stuFlagLibraryEmpty}
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="space-y-1.5">
+                      {visibleReferencePhotos.length > 0 && (
+                        <div className="flex items-center justify-end gap-3 text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              visibleReferencePhotos.forEach((p) => {
+                                if (!selectedReferenceIds.has(p.id)) onToggleReferencePhoto(p.id);
+                              })
+                            }
+                            className="text-primary hover:underline"
+                          >
+                            {t.stuLibrarySelectAll}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              visibleReferencePhotos.forEach((p) => {
+                                if (selectedReferenceIds.has(p.id)) onToggleReferencePhoto(p.id);
+                              })
+                            }
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            {t.stuLibraryDeselectAll}
+                          </button>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-1.5 max-h-56 overflow-y-auto pr-1">
+                        {/* CAP-139: an already-saved reference photo just gets
                             selected for this generation (no re-upload needed) --
                             a generated image gets copied in as a new reference
                             photo and selected right away. */}
-                          {visibleReferencePhotos.map((photo) => {
-                            const selected = selectedReferenceIds.has(photo.id);
-                            return (
-                              <button
-                                key={`ref-${photo.id}`}
-                                type="button"
-                                title={photo.label}
-                                onClick={() => onToggleReferencePhoto(photo.id)}
-                                className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${selected ? "border-primary" : "border-transparent hover:border-primary/40"}`}
-                              >
-                                <img
-                                  src={photo.image_url}
-                                  alt={photo.label}
-                                  className="h-full w-full object-cover"
-                                />
-                                {selected && (
-                                  <span className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                                    <Check className="h-4 w-4 text-white drop-shadow" />
-                                  </span>
-                                )}
-                              </button>
-                            );
-                          })}
-                          {visibleGeneratedImages.map((item) => (
+                        {visibleReferencePhotos.map((photo) => {
+                          const selected = selectedReferenceIds.has(photo.id);
+                          return (
                             <button
-                              key={`gen-${item.id}`}
+                              key={`ref-${photo.id}`}
                               type="button"
-                              disabled={referenceUploading}
-                              title={item.prompt ?? ""}
-                              onClick={async () => {
-                                setReferenceUploading(true);
-                                const result = await onImportGeneratedImage(
-                                  item,
-                                  referenceUploadCollectionId,
-                                );
-                                setReferenceUploading(false);
-                                if (result) {
-                                  onToggleReferencePhoto(result.id);
-                                  setShowReferenceUpload(false);
-                                  setReferenceUploadCollectionId(null);
-                                }
-                              }}
-                              className="aspect-square rounded-md overflow-hidden border border-transparent hover:border-primary/40 transition-all disabled:opacity-40"
+                              title={photo.label}
+                              disabled={!selected && atCap}
+                              onClick={() => onToggleReferencePhoto(photo.id)}
+                              className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${selected ? "border-primary" : "border-transparent hover:border-primary/40"} ${!selected && atCap ? "opacity-30 cursor-not-allowed" : ""}`}
                             >
                               <img
-                                src={item.media_url}
-                                alt={item.prompt ?? ""}
+                                src={photo.image_url}
+                                alt={photo.label}
                                 className="h-full w-full object-cover"
                               />
+                              {selected && (
+                                <span className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                  <Check className="h-4 w-4 text-white drop-shadow" />
+                                </span>
+                              )}
                             </button>
-                          ))}
-                        </div>
+                          );
+                        })}
+                        {visibleGeneratedImages.map((item) => (
+                          <button
+                            key={`gen-${item.id}`}
+                            type="button"
+                            disabled={referenceUploading || atCap}
+                            title={item.prompt ?? ""}
+                            onClick={async () => {
+                              setReferenceUploading(true);
+                              const result = await onImportGeneratedImage(
+                                item,
+                                referenceUploadCollectionId,
+                              );
+                              setReferenceUploading(false);
+                              if (result) {
+                                onToggleReferencePhoto(result.id);
+                                setShowReferenceUpload(false);
+                                setReferenceUploadCollectionId(null);
+                              }
+                            }}
+                            className="aspect-square rounded-md overflow-hidden border border-transparent hover:border-primary/40 transition-all disabled:opacity-40"
+                          >
+                            <img
+                              src={item.media_url}
+                              alt={item.prompt ?? ""}
+                              className="h-full w-full object-cover"
+                            />
+                          </button>
+                        ))}
                       </div>
-                    );
-                  })()
-                )}
+                    </div>
+                  );
+                })()
+              )}
 
-                {/* CAP-137: which folder this photo belongs to -- pick an
+              {/* CAP-137: which folder this photo belongs to -- pick an
                     existing one or create a new one, right where the photo
                     is added instead of only from the Library panel. */}
-                <select
-                  value={
-                    referenceUploadCreatingFolder ? "__new__" : (referenceUploadCollectionId ?? "")
+              <select
+                value={
+                  referenceUploadCreatingFolder ? "__new__" : (referenceUploadCollectionId ?? "")
+                }
+                onChange={(e) => {
+                  if (e.target.value === "__new__") {
+                    setReferenceUploadCreatingFolder(true);
+                  } else {
+                    setReferenceUploadCreatingFolder(false);
+                    setReferenceUploadCollectionId(e.target.value || null);
                   }
-                  onChange={(e) => {
-                    if (e.target.value === "__new__") {
-                      setReferenceUploadCreatingFolder(true);
-                    } else {
-                      setReferenceUploadCreatingFolder(false);
-                      setReferenceUploadCollectionId(e.target.value || null);
-                    }
-                  }}
-                  className="w-full bg-transparent border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary/50 transition-colors"
-                >
-                  <option value="">{t.stuLibraryNoFolder}</option>
-                  {mediaCollections.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                  <option value="__new__">+ {t.stuLibraryNewFolder}</option>
-                </select>
-                {referenceUploadCreatingFolder && (
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      autoFocus
-                      value={referenceUploadNewFolderName}
-                      onChange={(e) => setReferenceUploadNewFolderName(e.target.value)}
-                      onKeyDown={async (e) => {
-                        if (e.key === "Enter" && referenceUploadNewFolderName.trim()) {
-                          const created = await onCreateCollection(
-                            referenceUploadNewFolderName.trim(),
-                          );
-                          if (created) setReferenceUploadCollectionId(created.id);
-                          setReferenceUploadNewFolderName("");
-                          setReferenceUploadCreatingFolder(false);
-                        } else if (e.key === "Escape") {
-                          setReferenceUploadCreatingFolder(false);
-                          setReferenceUploadNewFolderName("");
-                        }
-                      }}
-                      placeholder={t.stuLibraryFolderNamePlaceholder}
-                      className="flex-1 h-7 bg-transparent border border-border rounded-lg px-2 text-xs outline-none focus:border-primary/50"
-                    />
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (referenceUploadNewFolderName.trim()) {
-                          const created = await onCreateCollection(
-                            referenceUploadNewFolderName.trim(),
-                          );
-                          if (created) setReferenceUploadCollectionId(created.id);
-                        }
+                }}
+                className="w-full bg-transparent border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary/50 transition-colors"
+              >
+                <option value="">{t.stuLibraryNoFolder}</option>
+                {mediaCollections.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+                <option value="__new__">+ {t.stuLibraryNewFolder}</option>
+              </select>
+              {referenceUploadCreatingFolder && (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    autoFocus
+                    value={referenceUploadNewFolderName}
+                    onChange={(e) => setReferenceUploadNewFolderName(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter" && referenceUploadNewFolderName.trim()) {
+                        const created = await onCreateCollection(
+                          referenceUploadNewFolderName.trim(),
+                        );
+                        if (created) setReferenceUploadCollectionId(created.id);
                         setReferenceUploadNewFolderName("");
                         setReferenceUploadCreatingFolder(false);
-                      }}
-                      className="text-[10px] text-primary hover:underline shrink-0"
-                    >
-                      {t.stuSave}
-                    </button>
-                  </div>
-                )}
-
-                {referenceUploadMode === "file" && (
-                  <>
-                    <label className="flex items-start gap-2 text-[11px] text-muted-foreground cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={referenceRightsChecked}
-                        onChange={(e) => setReferenceRightsChecked(e.target.checked)}
-                        className="mt-0.5"
-                      />
-                      {t.stuReferencePhotoRightsLabel}
-                    </label>
-                    {referencePhotoError && (
-                      <div className="text-[11px] text-destructive">{referencePhotoError}</div>
-                    )}
-                    <button
-                      disabled={!referenceUploadFile || referenceUploading}
-                      onClick={async () => {
-                        if (!referenceUploadFile) return;
-                        setReferenceUploading(true);
-                        const result = await onUploadReferencePhoto(
-                          referenceUploadFile,
-                          "",
-                          referenceRightsChecked,
+                      } else if (e.key === "Escape") {
+                        setReferenceUploadCreatingFolder(false);
+                        setReferenceUploadNewFolderName("");
+                      }
+                    }}
+                    placeholder={t.stuLibraryFolderNamePlaceholder}
+                    className="flex-1 h-7 bg-transparent border border-border rounded-lg px-2 text-xs outline-none focus:border-primary/50"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (referenceUploadNewFolderName.trim()) {
+                        const created = await onCreateCollection(
+                          referenceUploadNewFolderName.trim(),
                         );
-                        if (result && referenceUploadCollectionId) {
-                          await onSetReferencePhotoCollection(
-                            result.id,
-                            referenceUploadCollectionId,
-                          );
-                        }
-                        setReferenceUploading(false);
-                        if (result) {
-                          onToggleReferencePhoto(result.id);
-                          setShowReferenceUpload(false);
-                          setReferenceUploadFile(null);
-                          setReferenceRightsChecked(false);
-                          setReferenceUploadCollectionId(null);
-                        }
-                      }}
-                      className="w-full h-8 rounded-lg text-primary-foreground text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-40"
-                      style={{ background: "var(--gradient-gold)" }}
-                    >
-                      {referenceUploading ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Plus className="h-3.5 w-3.5" />
-                      )}
-                      {t.stuUploadReferencePhoto}
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
+                        if (created) setReferenceUploadCollectionId(created.id);
+                      }
+                      setReferenceUploadNewFolderName("");
+                      setReferenceUploadCreatingFolder(false);
+                    }}
+                    className="text-[10px] text-primary hover:underline shrink-0"
+                  >
+                    {t.stuSave}
+                  </button>
+                </div>
+              )}
 
-            <button
-              onClick={onGenerateImage}
-              className="w-full h-10 rounded-xl border border-primary/40 text-primary text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary/10 transition-all"
-            >
-              <ImageIcon className="h-4 w-4" /> {t.stuGenerateImage}
-            </button>
-          </div>
-        )}
-
-        {imageLoading && (
-          <div className="w-full h-64 rounded-xl border border-border/40 flex flex-col items-center justify-center gap-3 bg-secondary/10">
-            <Loader2 className="h-6 w-6 text-primary animate-spin" />
-            <div className="text-xs text-muted-foreground">{t.stuGeneratingVisual}</div>
-          </div>
-        )}
-
-        {imageError && !imageLoading && (
-          <div className="w-full rounded-xl border border-destructive/40 p-4 text-center">
-            <div className="text-xs text-destructive mb-2">{t.stuImageFailed}</div>
-            <button onClick={onGenerateImage} className="text-xs text-primary hover:underline">
-              {t.stuRetry}
-            </button>
-          </div>
-        )}
-
-        {imageUrl && !imageLoading && (
-          <div className="space-y-3">
-            <img src={imageUrl} alt="Generated visual" className="w-full rounded-xl" />
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={onDownloadImage}
-                className="h-10 rounded-xl text-primary-foreground text-sm font-medium flex items-center justify-center gap-2"
-                style={{ background: "var(--gradient-gold)" }}
-              >
-                <Download className="h-4 w-4" /> {t.stuDownload}
-              </button>
-              <button
-                onClick={onGenerateImage}
-                className="h-10 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 flex items-center justify-center gap-2 transition-all"
-              >
-                <ImageIcon className="h-4 w-4" /> {t.stuRegenerate}
-              </button>
+              {referenceUploadMode === "file" && (
+                <>
+                  <label className="flex items-start gap-2 text-[11px] text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={referenceRightsChecked}
+                      onChange={(e) => setReferenceRightsChecked(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    {t.stuReferencePhotoRightsLabel}
+                  </label>
+                  {atCap && (
+                    <div className="text-[11px] text-muted-foreground">
+                      {t.stuReferenceCapReached}
+                    </div>
+                  )}
+                  <button
+                    disabled={!referenceUploadFile || referenceUploading || atCap}
+                    onClick={async () => {
+                      if (!referenceUploadFile) return;
+                      setReferenceUploading(true);
+                      const result = await onUploadReferencePhoto(
+                        referenceUploadFile,
+                        "",
+                        referenceRightsChecked,
+                      );
+                      if (result && referenceUploadCollectionId) {
+                        await onSetReferencePhotoCollection(result.id, referenceUploadCollectionId);
+                      }
+                      setReferenceUploading(false);
+                      if (result) {
+                        onToggleReferencePhoto(result.id);
+                        setShowReferenceUpload(false);
+                        setReferenceUploadFile(null);
+                        setReferenceRightsChecked(false);
+                        setReferenceUploadCollectionId(null);
+                      }
+                    }}
+                    className="w-full h-8 rounded-lg text-primary-foreground text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-40"
+                    style={{ background: "var(--gradient-gold)" }}
+                  >
+                    {referenceUploading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Plus className="h-3.5 w-3.5" />
+                    )}
+                    {t.stuUploadReferencePhoto}
+                  </button>
+                </>
+              )}
             </div>
+          )}
+        </div>
+      )}
 
-            {/* CAP-133/134: even with a reference photo, the model can
-                still drift -- flagging gets a regenerate (free for the
-                first 10 flags/month, then it counts as a normal
-                generation), optionally with an attached photo to help get
-                it right, and logs what went wrong. */}
-            {!showFlagForm ? (
-              <button
-                onClick={() => setShowFlagForm(true)}
-                className="w-full flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground hover:text-destructive transition-colors"
-              >
-                <Flag className="h-3 w-3" /> {t.stuFlagInaccurate}
-              </button>
-            ) : (
-              <div className="space-y-2 p-3 rounded-lg border border-border">
+      {!imageUrl && !imageLoading && (
+        <div className="glass rounded-xl p-5 space-y-5">
+          <div className="text-[10px] tracking-[0.34em] text-primary/80 flex items-center gap-2">
+            <ImageIcon className="h-3 w-3" /> {t.stuCreateYourScene}
+          </div>
+
+          <div>
+            <Label>{t.stuWhatToCreate}</Label>
+            <textarea
+              value={sceneIdea}
+              onChange={(e) => setSceneIdea(e.target.value)}
+              placeholder={t.stuWhatToCreatePlaceholder}
+              rows={2}
+              className="w-full bg-transparent outline-none text-[15px] resize-none border border-border rounded-lg p-3 focus:border-primary/50 transition-colors"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <SceneField
+              label={t.stuSceneLocation}
+              value={sceneLocation}
+              onChange={setSceneLocation}
+              options={catalog.location}
+            />
+            <SceneField
+              label={t.stuSceneVessel}
+              value={sceneVessel}
+              onChange={setSceneVessel}
+              options={catalog.vessel}
+            />
+            <SceneField
+              label={t.stuSceneTime}
+              value={sceneTime}
+              onChange={setSceneTime}
+              options={catalog.time}
+            />
+            <SceneField
+              label={t.stuSceneCamera}
+              value={sceneCamera}
+              onChange={setSceneCamera}
+              options={catalog.camera}
+            />
+            <SceneField
+              label={t.stuSceneMood}
+              value={sceneMood}
+              onChange={setSceneMood}
+              options={catalog.mood}
+            />
+            <SceneField
+              label={t.stuSceneFormat}
+              value={sceneFormat}
+              onChange={setSceneFormat}
+              options={catalog.format}
+            />
+          </div>
+
+          <SceneField
+            label={t.stuCreativeDirection}
+            value={sceneDirection}
+            onChange={setSceneDirection}
+            options={catalog.direction}
+          />
+
+          <div>
+            <Label>
+              {t.stuAnythingElse}{" "}
+              <span className="text-muted-foreground/60 normal-case tracking-normal">
+                {t.stuOptional}
+              </span>
+            </Label>
+            <textarea
+              value={sceneExtra}
+              onChange={(e) => setSceneExtra(e.target.value)}
+              placeholder={t.stuAnythingElsePlaceholder}
+              rows={2}
+              className="w-full bg-transparent outline-none text-sm resize-none border border-border rounded-lg p-3 focus:border-primary/50 transition-colors"
+            />
+          </div>
+
+          <div className="pt-1 border-t border-border/40">
+            <button
+              type="button"
+              onClick={() => {
+                if (!showPromptDetails) setPromptDraft(effectiveScenePrompt);
+                setShowPromptDetails((v) => !v);
+              }}
+              className="mt-3 flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Sparkles className="h-3 w-3" /> {t.stuCreativeDirectionPrompt}
+              <span className="text-muted-foreground/60 normal-case tracking-normal ml-1">
+                {showPromptDetails ? t.stuHidePrompt : t.stuShowPrompt}
+              </span>
+            </button>
+            {showPromptDetails && (
+              <div className="mt-2 space-y-2">
                 <textarea
-                  value={flagReasonDraft}
-                  onChange={(e) => setFlagReasonDraft(e.target.value)}
-                  placeholder={t.stuFlagReasonPlaceholder}
-                  rows={2}
-                  className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-xs outline-none focus:border-primary/50 resize-y transition-colors"
+                  value={promptDraft}
+                  onChange={(e) => setPromptDraft(e.target.value)}
+                  rows={4}
+                  className="w-full bg-background/60 border border-border rounded-lg px-3 py-2 text-xs font-mono outline-none focus:border-primary/50 resize-y transition-colors"
                 />
-
-                {/* CAP-135: attach a photo from a fresh upload, or pick one
-                    already saved in the Library instead of re-uploading. */}
-                <div className="flex items-center gap-1 text-[10px]">
+                <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => setFlagAttachmentMode("file")}
-                    className={`px-2 py-1 rounded-md border transition-colors ${flagAttachmentMode === "file" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                    onClick={() => setPromptOverride(promptDraft)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-primary-foreground text-xs"
+                    style={{ background: "var(--gradient-gold)" }}
                   >
-                    {t.stuFlagChooseFile}
+                    <Check className="h-3 w-3" /> {t.stuSave}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setFlagAttachmentMode("library")}
-                    className={`px-2 py-1 rounded-md border transition-colors ${flagAttachmentMode === "library" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
-                  >
-                    {t.stuFlagChooseFromLibrary}
-                  </button>
-                  {flagAttachment && (
+                  {promptOverride !== null && (
                     <button
                       type="button"
-                      onClick={() => setFlagAttachment(null)}
-                      className="ml-auto flex items-center gap-1 text-muted-foreground hover:text-destructive transition-colors"
+                      onClick={() => {
+                        setPromptOverride(null);
+                        setPromptDraft(composedScenePrompt);
+                      }}
+                      className="text-[10px] text-primary hover:underline"
                     >
-                      <X className="h-3 w-3" /> {t.stuFlagClearPicture}
+                      {t.stuResetToAuto}
                     </button>
                   )}
                 </div>
-
-                {flagAttachmentMode === "file" ? (
-                  <label className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        setFlagAttachment(file ? { file } : null);
-                      }}
-                    />
-                    <Paperclip className="h-3 w-3 shrink-0" />
-                    {flagAttachment && "file" in flagAttachment
-                      ? flagAttachment.file.name
-                      : t.stuFlagAddPicture}
-                  </label>
-                ) : flagAttachmentChoices.length === 0 ? (
-                  <div className="text-[11px] text-muted-foreground">{t.stuFlagLibraryEmpty}</div>
-                ) : (
-                  <div className="grid grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-1.5 max-h-56 overflow-y-auto pr-1">
-                    {flagAttachmentChoices.map((choice) => {
-                      const selected =
-                        !!flagAttachment &&
-                        "url" in flagAttachment &&
-                        flagAttachment.url === choice.url;
-                      return (
-                        <button
-                          key={choice.id}
-                          type="button"
-                          title={choice.label}
-                          onClick={() => setFlagAttachment({ url: choice.url })}
-                          className={`aspect-square rounded-md overflow-hidden border-2 transition-all ${selected ? "border-primary" : "border-transparent hover:border-primary/40"}`}
-                        >
-                          <img
-                            src={choice.url}
-                            alt={choice.label}
-                            className="h-full w-full object-cover"
-                          />
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  <button
-                    disabled={!flagReasonDraft.trim() || flagSubmitting}
-                    onClick={async () => {
-                      setFlagSubmitting(true);
-                      onFlagInaccurate(flagReasonDraft.trim(), flagAttachment);
-                      setFlagSubmitting(false);
-                      setShowFlagForm(false);
-                      setFlagReasonDraft("");
-                      setFlagAttachment(null);
-                    }}
-                    className="flex-1 h-8 rounded-lg text-primary-foreground text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-40"
-                    style={{ background: "var(--gradient-gold)" }}
-                  >
-                    <Flag className="h-3.5 w-3.5" /> {t.stuFlagAndRegenerate}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowFlagForm(false);
-                      setFlagReasonDraft("");
-                      setFlagAttachment(null);
-                    }}
-                    className="px-3 h-8 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {t.stuCancel}
-                  </button>
-                </div>
               </div>
             )}
-            {flagNotice && (
-              <div className="text-[11px] text-muted-foreground text-center">{flagNotice}</div>
-            )}
           </div>
-        )}
-      </div>
+
+          <div>
+            <button
+              onClick={() => onGenerateImage(effectiveScenePrompt, effectiveAspectRatio)}
+              className="w-full h-11 rounded-xl border border-primary/40 text-primary text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary/10 transition-all"
+            >
+              <ImageIcon className="h-4 w-4" /> {t.stuGenerateImage}
+            </button>
+            <div className="text-center text-[10px] text-muted-foreground/70 mt-2">
+              {t.stuGenerateImageHint(selectedReferencePhotosList.length)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(imageLoading || imageError || imageUrl) && (
+        <div className="glass rounded-xl p-5">
+          {imageLoading && (
+            <div className="w-full h-64 rounded-xl border border-border/40 flex flex-col items-center justify-center gap-3 bg-secondary/10">
+              <Loader2 className="h-6 w-6 text-primary animate-spin" />
+              <div className="text-xs text-muted-foreground">{t.stuGeneratingVisual}</div>
+            </div>
+          )}
+
+          {imageError && !imageLoading && (
+            <div className="w-full rounded-xl border border-destructive/40 p-4 text-center">
+              <div className="text-xs text-destructive mb-2">{t.stuImageFailed}</div>
+              <button
+                onClick={() => onGenerateImage(effectiveScenePrompt, effectiveAspectRatio)}
+                className="text-xs text-primary hover:underline"
+              >
+                {t.stuRetry}
+              </button>
+            </div>
+          )}
+
+          {imageUrl && !imageLoading && (
+            <div className="space-y-3">
+              <img src={imageUrl} alt="Generated visual" className="w-full rounded-xl" />
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={onDownloadImage}
+                  className="h-10 rounded-xl text-primary-foreground text-sm font-medium flex items-center justify-center gap-2"
+                  style={{ background: "var(--gradient-gold)" }}
+                >
+                  <Download className="h-4 w-4" /> {t.stuDownload}
+                </button>
+                <button
+                  onClick={() => onGenerateImage(effectiveScenePrompt, effectiveAspectRatio)}
+                  className="h-10 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 flex items-center justify-center gap-2 transition-all"
+                >
+                  <ImageIcon className="h-4 w-4" /> {t.stuRegenerate}
+                </button>
+              </div>
+
+              {/* CAP-133/134: even with a reference photo, the model can
+                  still drift -- flagging gets a regenerate (free for the
+                  first 10 flags/month, then it counts as a normal
+                  generation), optionally with an attached photo to help get
+                  it right, and logs what went wrong. */}
+              {!showFlagForm ? (
+                <button
+                  onClick={() => setShowFlagForm(true)}
+                  className="w-full flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <Flag className="h-3 w-3" /> {t.stuFlagInaccurate}
+                </button>
+              ) : (
+                <div className="space-y-2 p-3 rounded-lg border border-border">
+                  <textarea
+                    value={flagReasonDraft}
+                    onChange={(e) => setFlagReasonDraft(e.target.value)}
+                    placeholder={t.stuFlagReasonPlaceholder}
+                    rows={2}
+                    className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-xs outline-none focus:border-primary/50 resize-y transition-colors"
+                  />
+
+                  {/* CAP-135: attach a photo from a fresh upload, or pick one
+                    already saved in the Library instead of re-uploading. */}
+                  <div className="flex items-center gap-1 text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => setFlagAttachmentMode("file")}
+                      className={`px-2 py-1 rounded-md border transition-colors ${flagAttachmentMode === "file" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {t.stuFlagChooseFile}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFlagAttachmentMode("library")}
+                      className={`px-2 py-1 rounded-md border transition-colors ${flagAttachmentMode === "library" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {t.stuFlagChooseFromLibrary}
+                    </button>
+                    {flagAttachment && (
+                      <button
+                        type="button"
+                        onClick={() => setFlagAttachment(null)}
+                        className="ml-auto flex items-center gap-1 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="h-3 w-3" /> {t.stuFlagClearPicture}
+                      </button>
+                    )}
+                  </div>
+
+                  {flagAttachmentMode === "file" ? (
+                    <label className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          setFlagAttachment(file ? { file } : null);
+                        }}
+                      />
+                      <Paperclip className="h-3 w-3 shrink-0" />
+                      {flagAttachment && "file" in flagAttachment
+                        ? flagAttachment.file.name
+                        : t.stuFlagAddPicture}
+                    </label>
+                  ) : flagAttachmentChoices.length === 0 ? (
+                    <div className="text-[11px] text-muted-foreground">{t.stuFlagLibraryEmpty}</div>
+                  ) : (
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-1.5 max-h-56 overflow-y-auto pr-1">
+                      {flagAttachmentChoices.map((choice) => {
+                        const selected =
+                          !!flagAttachment &&
+                          "url" in flagAttachment &&
+                          flagAttachment.url === choice.url;
+                        return (
+                          <button
+                            key={choice.id}
+                            type="button"
+                            title={choice.label}
+                            onClick={() => setFlagAttachment({ url: choice.url })}
+                            className={`aspect-square rounded-md overflow-hidden border-2 transition-all ${selected ? "border-primary" : "border-transparent hover:border-primary/40"}`}
+                          >
+                            <img
+                              src={choice.url}
+                              alt={choice.label}
+                              className="h-full w-full object-cover"
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <button
+                      disabled={!flagReasonDraft.trim() || flagSubmitting}
+                      onClick={async () => {
+                        setFlagSubmitting(true);
+                        onFlagInaccurate(
+                          effectiveScenePrompt,
+                          effectiveAspectRatio,
+                          flagReasonDraft.trim(),
+                          flagAttachment,
+                        );
+                        setFlagSubmitting(false);
+                        setShowFlagForm(false);
+                        setFlagReasonDraft("");
+                        setFlagAttachment(null);
+                      }}
+                      className="flex-1 h-8 rounded-lg text-primary-foreground text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-40"
+                      style={{ background: "var(--gradient-gold)" }}
+                    >
+                      <Flag className="h-3.5 w-3.5" /> {t.stuFlagAndRegenerate}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowFlagForm(false);
+                        setFlagReasonDraft("");
+                        setFlagAttachment(null);
+                      }}
+                      className="px-3 h-8 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {t.stuCancel}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {flagNotice && (
+                <div className="text-[11px] text-muted-foreground text-center">{flagNotice}</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {plan.script.length > 0 && (
         <div className="glass rounded-xl p-5">
