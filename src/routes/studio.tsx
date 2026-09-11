@@ -147,6 +147,16 @@ function useReveal<T extends HTMLElement>() {
   return { ref, visible };
 }
 
+// CAP-151: generate-video is a real, live, billed Veo 3.1 Fast integration
+// (~$1.20/clip, see that edge function) gated to admin accounts only -- not
+// a harmless stub. Captain asked to lock it in the UI for now so it can't
+// be triggered at all, admin account included, while the feature isn't
+// ready to launch. Locked client-side (generateVideo below returns before
+// ever calling the edge function) rather than relying only on the
+// server-side admin gate, so there's no network round-trip and no way to
+// rack up real cost by clicking it. Flip back to true when it's ready.
+const VIDEO_GENERATION_ENABLED = false;
+
 function Studio() {
   const { t, lang } = useLanguage();
   const dateLocale = lang === "fr" ? "fr-FR" : "en-GB";
@@ -778,11 +788,16 @@ function Studio() {
   };
 
   // Video generation bases itself on the content script (mirrors
-  // generateImage's shape/UX exactly). generate-video is currently a stub
-  // that returns { available: false } until an AI video provider is
-  // connected — see that function's source for the exact contract a real
-  // provider integration should return, which needs no frontend changes.
+  // generateImage's shape/UX exactly). generate-video is a real, live Veo
+  // 3.1 Fast integration now (see that function's source) -- it is NOT a
+  // stub, it actually bills ~$1.20/clip when it runs. CAP-151 locks it
+  // client-side below regardless of that backend's own admin gate.
   const generateVideo = async (script: string[]) => {
+    if (!VIDEO_GENERATION_ENABLED) {
+      setVideoComingSoon(true);
+      setVideoUnavailableMessage(null);
+      return;
+    }
     setVideoLoading(true);
     setVideoError(false);
     setVideoComingSoon(false);
@@ -3119,7 +3134,7 @@ function PlanOutput({
               1080p forces 8s regardless -- the 5/10/15/20s picker (CAP-129)
               never mapped to a real option, so it's gone. Every video is a
               fixed 8s clip at 1080p, matching what Veo already generates. */}
-          {!editingScript && !videoUrl && !videoLoading && !videoComingSoon && (
+          {!editingScript && !videoUrl && !videoLoading && !videoComingSoon && VIDEO_GENERATION_ENABLED && (
             <button
               onClick={onGenerateVideo}
               className="w-full h-10 rounded-xl border border-primary/40 text-primary text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary/10 transition-all"
@@ -3144,7 +3159,7 @@ function PlanOutput({
             </div>
           )}
 
-          {videoComingSoon && !videoLoading && (
+          {!editingScript && !videoUrl && (videoComingSoon || !VIDEO_GENERATION_ENABLED) && !videoLoading && (
             <div className="w-full rounded-xl border border-border/40 p-4 text-center bg-secondary/10">
               <Video className="h-4 w-4 text-muted-foreground mx-auto mb-2" />
               <div className="text-xs text-muted-foreground">
