@@ -1452,7 +1452,15 @@ function Studio() {
                         {t.stuLibraryAddedEmpty}
                       </div>
                     ) : (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-80 overflow-y-auto pr-1">
+                      // CAP-150: same overlap bug CAP-143 fixed in the smaller
+                      // "choose from library" pickers -- a fixed grid-cols
+                      // count stretched each aspect-square tile tall on wide
+                      // screens, then max-h-80 clipped the second row mid-
+                      // image, looking like overlapping pictures. Auto-fill
+                      // keeps tiles a sane fixed size regardless of screen
+                      // width, and a taller max-height fits several full rows
+                      // before it needs to scroll.
+                      <div className="grid grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] gap-2 max-h-96 overflow-y-auto pr-1">
                         {filtered.map((photo) => (
                           <div
                             key={photo.id}
@@ -1504,7 +1512,8 @@ function Studio() {
                         {t.stuGeneratedLibraryEmpty}
                       </div>
                     ) : (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-80 overflow-y-auto pr-1">
+                      // CAP-150: see matching comment in the "added" tab above.
+                      <div className="grid grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] gap-2 max-h-96 overflow-y-auto pr-1">
                         {filtered.map((m) => (
                           <div
                             key={m.id}
