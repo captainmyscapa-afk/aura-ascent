@@ -438,6 +438,8 @@ export type T = {
   stuContentTitle: string;
   stuViralHookLabel: string;
   stuModify: string;
+  stuRegenerating: string;
+  stuRegenerateIdeaPlaceholder: string;
   stuSave: string;
   stuCancel: string;
   stuOpening: string;
@@ -1420,6 +1422,8 @@ export const translations: Record<Lang, T> = {
     stuContentTitle: "CONTENT TITLE",
     stuViralHookLabel: "Viral Hook · First 2 Seconds",
     stuModify: "Modify",
+    stuRegenerating: "Regenerating…",
+    stuRegenerateIdeaPlaceholder: "An idea to help regeneration?",
     stuSave: "Save",
     stuCancel: "Cancel",
     stuOpening: "Opening…",
@@ -2536,6 +2540,8 @@ export const translations: Record<Lang, T> = {
     stuContentTitle: "TITRE DU CONTENU",
     stuViralHookLabel: "Accroche virale · Premières 2 secondes",
     stuModify: "Modifier",
+    stuRegenerating: "Régénération…",
+    stuRegenerateIdeaPlaceholder: "Une idée pour aider la régénération ?",
     stuSave: "Enregistrer",
     stuCancel: "Annuler",
     stuOpening: "Ouverture…",

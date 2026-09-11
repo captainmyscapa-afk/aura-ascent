@@ -23,6 +23,7 @@ import {
   Linkedin,
   ArrowUpRight,
   Pencil,
+  RefreshCw,
   Calendar,
   Clock,
   Twitter,
@@ -41,7 +42,11 @@ import { useProGate, UsageBar } from "@/components/aurum/ProGate";
 import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { generateStudioContent, type StudioContentPlan } from "@/lib/studio.functions";
+import {
+  generateStudioContent,
+  regenerateVisualPrompt,
+  type StudioContentPlan,
+} from "@/lib/studio.functions";
 import { useReferencePhotos, type ReferencePhoto } from "@/hooks/useReferencePhotos";
 import { useGeneratedLibrary } from "@/hooks/useGeneratedLibrary";
 import { useMediaCollections } from "@/hooks/useMediaCollections";
@@ -148,6 +153,7 @@ function Studio() {
   const { industry, industryId } = useIndustry();
   const { user } = useAuth();
   const generate = useServerFn(generateStudioContent);
+  const regeneratePrompt = useServerFn(regenerateVisualPrompt);
 
   const [mode, setMode] = useState<Mode>("assisted");
   const [idea, setIdea] = useState("");
@@ -162,6 +168,7 @@ function Studio() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [regeneratingPrompt, setRegeneratingPrompt] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoError, setVideoError] = useState(false);
@@ -635,6 +642,34 @@ function Studio() {
     await generateImage(visualPrompt, { referenceImages });
   };
 
+  // CAP-148: "Regenerate" on the Visual Prompt card -- asks the AI for a
+  // genuinely new scene (optionally steered by a typed idea), updates the
+  // visible prompt, then generates an image from it in one action. The new
+  // prompt is threaded straight into generateImageWithReferences instead of
+  // round-tripped through plan state first, so this can't read a stale,
+  // not-yet-committed value the way calling setEditablePlan and then
+  // immediately generating from `plan` could.
+  const regeneratePromptAndImage = async (currentVisualPrompt: string, idea: string) => {
+    setRegeneratingPrompt(true);
+    try {
+      const { visualPrompt: newPrompt } = await regeneratePrompt({
+        data: {
+          industryLabel: industry.label,
+          currentVisualPrompt,
+          userIdea: idea.trim() || undefined,
+          language: lang,
+        },
+      });
+      const basePlan = editablePlan ?? plan;
+      if (basePlan) setEditablePlan({ ...basePlan, visualPrompt: newPrompt });
+      await generateImageWithReferences(newPrompt);
+    } catch {
+      setImageError(true);
+    } finally {
+      setRegeneratingPrompt(false);
+    }
+  };
+
   // CAP-134/135: an optional attachment photo on the flag itself -- e.g. a
   // close-up of what's wrong, or a better angle of the real boat -- rides
   // along as just another reference image, on top of whatever's selected
@@ -919,6 +954,10 @@ function Studio() {
               onGenerateImage={() =>
                 generateImageWithReferences((editablePlan ?? plan!).visualPrompt)
               }
+              onRegeneratePrompt={(idea) =>
+                regeneratePromptAndImage((editablePlan ?? plan!).visualPrompt, idea)
+              }
+              regeneratingPrompt={regeneratingPrompt}
               onFlagInaccurate={(reason, attachment) =>
                 flagAndRegenerateImage((editablePlan ?? plan!).visualPrompt, reason, attachment)
               }
@@ -1998,6 +2037,8 @@ function PlanOutput({
   imageLoading,
   imageError,
   onGenerateImage,
+  onRegeneratePrompt,
+  regeneratingPrompt,
   onFlagInaccurate,
   flagNotice,
   flagAttachmentChoices,
@@ -2037,6 +2078,8 @@ function PlanOutput({
   imageLoading: boolean;
   imageError: boolean;
   onGenerateImage: () => void;
+  onRegeneratePrompt: (idea: string) => void;
+  regeneratingPrompt: boolean;
   onFlagInaccurate: (reason: string, attachment?: { file: File } | { url: string } | null) => void;
   flagNotice: string | null;
   flagAttachmentChoices: { id: string; url: string; label: string }[];
@@ -2132,6 +2175,8 @@ function PlanOutput({
   const [hashtagsDraft, setHashtagsDraft] = useState("");
   const [editingVisual, setEditingVisual] = useState(false);
   const [visualDraft, setVisualDraft] = useState("");
+  const [showRegenerateIdea, setShowRegenerateIdea] = useState(false);
+  const [regenerateIdeaDraft, setRegenerateIdeaDraft] = useState("");
 
   // Sliding tab indicator (measured against real DOM positions, Apple tab-bar style)
   const tabsRowRef = useRef<HTMLDivElement>(null);
@@ -2378,6 +2423,18 @@ function PlanOutput({
             <ImageIcon className="h-3 w-3" /> {t.stuVisualPrompt}
           </div>
           <div className="flex items-center gap-2">
+            {/* CAP-148: asks the AI for a fresh scene -- steered by an
+                optional typed idea, or a meaningfully different scene when
+                left blank -- then regenerates the image from it. Distinct
+                from "Modify" (which only edits the existing text by hand). */}
+            <button
+              onClick={() => setShowRegenerateIdea((v) => !v)}
+              disabled={regeneratingPrompt}
+              className="flex items-center gap-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-primary transition-colors disabled:opacity-40"
+            >
+              <RefreshCw className={`h-3 w-3 ${regeneratingPrompt ? "animate-spin" : ""}`} />{" "}
+              {regeneratingPrompt ? t.stuRegenerating : t.stuRegenerate}
+            </button>
             <button
               onClick={() => {
                 setEditingVisual(true);
@@ -2395,6 +2452,43 @@ function PlanOutput({
             />
           </div>
         </div>
+        {showRegenerateIdea && (
+          <div className="space-y-2 mb-4 p-3 rounded-lg border border-border">
+            <textarea
+              value={regenerateIdeaDraft}
+              onChange={(e) => setRegenerateIdeaDraft(e.target.value)}
+              rows={2}
+              placeholder={t.stuRegenerateIdeaPlaceholder}
+              disabled={regeneratingPrompt}
+              className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/50 resize-y transition-colors disabled:opacity-50"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  onRegeneratePrompt(regenerateIdeaDraft);
+                  setShowRegenerateIdea(false);
+                  setRegenerateIdeaDraft("");
+                }}
+                disabled={regeneratingPrompt}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-primary-foreground text-xs disabled:opacity-50"
+                style={{ background: "var(--gradient-gold)" }}
+              >
+                <RefreshCw className={`h-3 w-3 ${regeneratingPrompt ? "animate-spin" : ""}`} />{" "}
+                {regeneratingPrompt ? t.stuRegenerating : t.stuRegenerate}
+              </button>
+              <button
+                onClick={() => {
+                  setShowRegenerateIdea(false);
+                  setRegenerateIdeaDraft("");
+                }}
+                disabled={regeneratingPrompt}
+                className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              >
+                {t.stuCancel}
+              </button>
+            </div>
+          </div>
+        )}
         {editingVisual ? (
           <div className="space-y-2 mb-4">
             <textarea

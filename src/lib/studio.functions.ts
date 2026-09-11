@@ -167,3 +167,107 @@ CRITICAL RULE FOR visual_prompt: never invent or describe the subject's own iden
       } as StudioContentPlan,
     };
   });
+
+type RegenerateVisualPromptInput = {
+  industryLabel: string;
+  currentVisualPrompt: string;
+  userIdea?: string;
+  language?: "en" | "fr";
+};
+
+// CAP-148: regenerates ONLY the visual/scene prompt -- backs the
+// "Regenerate" control on the Visual Prompt card in Content Studio. Two
+// modes: if the user typed an idea in the little box, work it into a new
+// scene; if the box is left empty, produce a genuinely different scene
+// (different location/time/angle/mood) rather than a near-duplicate of the
+// current one, so clicking "Regenerate" with nothing typed still feels like
+// a fresh take instead of a no-op. Keeps the same CAP-144 rule as the main
+// generator: never invent the subject's own identity, since real reference
+// photos supply that separately at image-generation time.
+export const regenerateVisualPrompt = createServerFn({ method: "POST" })
+  .inputValidator((d: RegenerateVisualPromptInput) => d)
+  .handler(async ({ data }) => {
+    await requireServerAuth();
+    const isFrench = data.language === "fr";
+    const hasIdea = !!data.userIdea?.trim();
+
+    const systemPrompt = isFrench
+      ? `Vous êtes un directeur de création élite spécialisé dans les visuels de luxe pour réseaux sociaux — yachts, immobilier de prestige, jets privés et voitures de collection.
+
+Vous DEVEZ répondre UNIQUEMENT avec un objet JSON valide — pas de balises markdown, pas de texte supplémentaire, rien d'autre. Le JSON doit comporter exactement cette clé :
+{
+  "visual_prompt": "string — prompt d'image IA de SCÈNE cinématographique, 60-100 mots, qualité marque de luxe (peut rester en anglais pour le modèle d'image). Décrire UNIQUEMENT le cadre, l'heure, la météo, la lumière, l'angle de caméra/composition, l'ambiance et l'activité humaine autour du sujet."
+}
+
+RÈGLE CRITIQUE : n'inventez et ne décrivez jamais l'identité propre du sujet — aucune marque, modèle, nom, couleur de coque/carrosserie, matériau ou détail de design distinctif. Le vrai sujet est fourni séparément via des photos de référence au moment de la génération d'image. Décrivez uniquement la scène autour du sujet et désignez-le de manière générique ("le yacht", "le bien", "le jet", "la voiture").`
+      : `You are an elite luxury creative director for social media visuals — yachts, real estate, private jets, and exotic cars.
+
+You MUST respond with ONLY a valid JSON object — no markdown fences, no extra text, nothing else. The JSON must have exactly this key:
+{
+  "visual_prompt": "string — cinematic AI image SCENE prompt, 60-100 words, luxury brand quality. Describe ONLY the setting, time of day, weather, lighting, camera angle/composition, mood, and any human activity around the subject."
+}
+
+CRITICAL RULE: never invent or describe the subject's own identity — no specific make, model, name, hull/exterior color, materials, or distinguishing physical design detail. The real subject is supplied separately as reference photos at image-generation time. Describe only the scene around the subject and refer to it generically ("the yacht", "the property", "the jet", "the car").`;
+
+    const userParts = isFrench
+      ? [
+          `SECTEUR : ${data.industryLabel}`,
+          `SCÈNE ACTUELLE : ${data.currentVisualPrompt}`,
+          hasIdea
+            ? `IDÉE DE L'UTILISATEUR À INTÉGRER : ${data.userIdea!.trim()}
+
+Réécrivez une nouvelle scène complète qui intègre concrètement cette idée -- ne vous contentez pas de la coller à la fin.`
+            : `Aucune idée fournie -- proposez une scène NETTEMENT DIFFÉRENTE de la scène actuelle (lieu, moment de la journée, angle de caméra ou ambiance différents), pas une simple reformulation.`,
+          `Répondez UNIQUEMENT avec un JSON valide, entièrement en français (le texte lui-même peut rester en anglais s'il s'agit de termes techniques pour le modèle d'image). Pas de markdown. Pas d'explication.`,
+        ].join("\n\n")
+      : [
+          `MODE: ${data.industryLabel}`,
+          `CURRENT SCENE: ${data.currentVisualPrompt}`,
+          hasIdea
+            ? `USER'S IDEA TO INCORPORATE: ${data.userIdea!.trim()}
+
+Write a full new scene that concretely works this idea in -- don't just tack it on at the end.`
+            : `No idea was given -- come up with a MEANINGFULLY DIFFERENT scene from the current one (different location, time of day, camera angle, or mood), not a light rewording.`,
+          `Return ONLY valid JSON. No markdown. No explanation.`,
+        ].join("\n\n");
+
+    const { text } = await ai.chat(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userParts },
+      ],
+      { maxTokens: 400 },
+    );
+
+    let raw: Record<string, unknown>;
+    try {
+      const cleaned = text.replace(/```json|```/g, "").trim();
+      const start = cleaned.indexOf("{");
+      const end = cleaned.lastIndexOf("}");
+      if (start === -1 || end === -1) throw new Error("no JSON object found in AI response");
+      raw = JSON.parse(cleaned.slice(start, end + 1)) as Record<string, unknown>;
+    } catch (e) {
+      console.error(
+        "regenerateVisualPrompt: failed to parse AI response as JSON:",
+        e,
+        "\nraw text:",
+        text.slice(0, 500),
+      );
+      throw new Error(
+        isFrench
+          ? "La régénération du prompt a échoué — réponse invalide. Veuillez réessayer."
+          : "Prompt regeneration failed — invalid response. Please try again.",
+      );
+    }
+
+    const visualPrompt = String(raw.visual_prompt ?? "").trim();
+    if (!visualPrompt) {
+      throw new Error(
+        isFrench
+          ? "La régénération du prompt a échoué — réponse vide. Veuillez réessayer."
+          : "Prompt regeneration failed — empty response. Please try again.",
+      );
+    }
+
+    return { visualPrompt };
+  });
