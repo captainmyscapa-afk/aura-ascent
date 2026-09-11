@@ -448,35 +448,11 @@ export type T = {
   stuScriptPlaceholder: string;
   stuHashtags: string;
   stuHashtagsPlaceholder: string;
+  stuVisualPrompt: string;
+  stuReferencePhotos: string;
   stuAddReferencePhoto: string;
-  stuAddAnotherPhoto: string;
-  stuYachtReferences: string;
-  stuUploadUpToThree: string;
-  stuReferencesMaintainIdentity: string;
-  stuReferenceCapReached: string;
-  stuAurumUnderstands: string;
-  stuUnderstandsIdentity: string;
-  stuUnderstandsHull: string;
-  stuUnderstandsSuperstructure: string;
-  stuUnderstandsDetails: string;
-  stuUnderstandsMaterials: string;
-  stuCreateYourScene: string;
-  stuWhatToCreate: string;
-  stuWhatToCreatePlaceholder: string;
-  stuSceneLocation: string;
-  stuSceneVessel: string;
-  stuSceneTime: string;
-  stuSceneCamera: string;
-  stuSceneMood: string;
-  stuSceneFormat: string;
-  stuCreativeDirection: string;
-  stuAnythingElse: string;
-  stuAnythingElsePlaceholder: string;
-  stuCreativeDirectionPrompt: string;
-  stuShowPrompt: string;
-  stuHidePrompt: string;
-  stuResetToAuto: string;
-  stuGenerateImageHint: (n: number) => string;
+  stuReferencePhotosSelected: (n: number) => string;
+  stuReferencePhotosTip: string;
   stuReferencePhotoLabelPlaceholder: string;
   stuReferencePhotoRightsLabel: string;
   stuUploadReferencePhoto: string;
@@ -1454,39 +1430,12 @@ export const translations: Record<Lang, T> = {
     stuScriptPlaceholder: "One beat per line…",
     stuHashtags: "HASHTAGS",
     stuHashtagsPlaceholder: "#yacht #luxury …",
+    stuVisualPrompt: "VISUAL PROMPT",
+    stuReferencePhotos: "REFERENCE PHOTOS",
     stuAddReferencePhoto: "+ Add photo",
-    stuAddAnotherPhoto: "+ Add another photo",
-    stuYachtReferences: "Yacht References",
-    stuUploadUpToThree: "Upload up to 3 photos",
-    stuReferencesMaintainIdentity:
-      "Aurum uses your references to maintain the yacht's identity across generations.",
-    stuReferenceCapReached: "Remove a photo to add another.",
-    stuAurumUnderstands: "Aurum Understands",
-    stuUnderstandsIdentity: "Yacht identity",
-    stuUnderstandsHull: "Hull & proportions",
-    stuUnderstandsSuperstructure: "Superstructure",
-    stuUnderstandsDetails: "Exterior details",
-    stuUnderstandsMaterials: "Color & materials",
-    stuCreateYourScene: "Create Your Scene",
-    stuWhatToCreate: "What do you want to create?",
-    stuWhatToCreatePlaceholder: "Mediterranean bay at sunrise",
-    stuSceneLocation: "Location",
-    stuSceneVessel: "Scene",
-    stuSceneTime: "Time",
-    stuSceneCamera: "Camera",
-    stuSceneMood: "Mood",
-    stuSceneFormat: "Format",
-    stuCreativeDirection: "Creative Direction",
-    stuAnythingElse: "Anything else?",
-    stuAnythingElsePlaceholder: "Make the yacht feel monumental and completely isolated.",
-    stuCreativeDirectionPrompt: "Aurum's Creative Direction",
-    stuShowPrompt: "Show prompt",
-    stuHidePrompt: "Hide prompt",
-    stuResetToAuto: "Reset to auto",
-    stuGenerateImageHint: (n) =>
-      n > 0
-        ? `Nano Banana Pro \u00b7 uses ${n} reference photo${n === 1 ? "" : "s"}`
-        : "Nano Banana Pro",
+    stuReferencePhotosSelected: (n) => `${n} reference photo${n === 1 ? "" : "s"} selected`,
+    stuReferencePhotosTip:
+      "Tip: 2-4 clear, well-lit photos from different angles reproduce the boat more accurately than many photos at once.",
     stuReferencePhotoLabelPlaceholder: 'Label (e.g. "Sunseeker 88 - starboard")',
     stuReferencePhotoRightsLabel: "I own this photo or have rights to use it",
     stuUploadReferencePhoto: "Add to library",
@@ -2597,40 +2546,13 @@ export const translations: Record<Lang, T> = {
     stuScriptPlaceholder: "Une réplique par ligne…",
     stuHashtags: "HASHTAGS",
     stuHashtagsPlaceholder: "#yacht #luxe …",
+    stuVisualPrompt: "PROMPT VISUEL",
+    stuReferencePhotos: "PHOTOS DE RÉFÉRENCE",
     stuAddReferencePhoto: "+ Ajouter une photo",
-    stuAddAnotherPhoto: "+ Ajouter une autre photo",
-    stuYachtReferences: "Références du yacht",
-    stuUploadUpToThree: "Ajoutez jusqu'à 3 photos",
-    stuReferencesMaintainIdentity:
-      "Aurum utilise vos références pour préserver l'identité du yacht à chaque génération.",
-    stuReferenceCapReached: "Retirez une photo pour en ajouter une autre.",
-    stuAurumUnderstands: "Aurum comprend",
-    stuUnderstandsIdentity: "Identité du yacht",
-    stuUnderstandsHull: "Coque et proportions",
-    stuUnderstandsSuperstructure: "Superstructure",
-    stuUnderstandsDetails: "Détails extérieurs",
-    stuUnderstandsMaterials: "Couleurs et matériaux",
-    stuCreateYourScene: "Créez votre scène",
-    stuWhatToCreate: "Que voulez-vous créer ?",
-    stuWhatToCreatePlaceholder: "Baie méditerranéenne au lever du soleil",
-    stuSceneLocation: "Lieu",
-    stuSceneVessel: "Scène",
-    stuSceneTime: "Moment",
-    stuSceneCamera: "Caméra",
-    stuSceneMood: "Ambiance",
-    stuSceneFormat: "Format",
-    stuCreativeDirection: "Direction créative",
-    stuAnythingElse: "Autre chose ?",
-    stuAnythingElsePlaceholder:
-      "Faites en sorte que le yacht paraisse monumental et totalement isolé.",
-    stuCreativeDirectionPrompt: "Direction créative d'Aurum",
-    stuShowPrompt: "Afficher le prompt",
-    stuHidePrompt: "Masquer le prompt",
-    stuResetToAuto: "Revenir à l'automatique",
-    stuGenerateImageHint: (n) =>
-      n > 0
-        ? `Nano Banana Pro · utilise ${n} photo${n === 1 ? "" : "s"} de référence`
-        : "Nano Banana Pro",
+    stuReferencePhotosSelected: (n) =>
+      `${n} photo${n === 1 ? "" : "s"} de référence sélectionnée${n === 1 ? "" : "s"}`,
+    stuReferencePhotosTip:
+      "Astuce : 2 à 4 photos nettes et bien éclairées, sous des angles différents, reproduisent le bateau plus fidèlement qu'un grand nombre de photos à la fois.",
     stuReferencePhotoLabelPlaceholder: 'Nom (ex. "Sunseeker 88 - tribord")',
     stuReferencePhotoRightsLabel: "Je possède cette photo ou j'ai le droit de l'utiliser",
     stuUploadReferencePhoto: "Ajouter à la bibliothèque",
