@@ -262,7 +262,9 @@ function Studio() {
     (async () => {
       const { data } = await supabase
         .from("scheduled_posts")
-        .select("id, format, title, viral_hook, platforms, script, hashtags, visual_prompt, image_url")
+        .select(
+          "id, format, title, viral_hook, platforms, script, hashtags, visual_prompt, image_url",
+        )
         .eq("id", scheduledPostId)
         .eq("user_id", user.id)
         .maybeSingle();
@@ -429,8 +431,10 @@ function Studio() {
     setLastSavedId(null);
     setLoadStep(0);
     setPending(true);
-    const stepInterval = setInterval(() => setLoadStep((s) => Math.min(s + 1, LOAD_STEPS.length - 1)), 4000);
-
+    const stepInterval = setInterval(
+      () => setLoadStep((s) => Math.min(s + 1, LOAD_STEPS.length - 1)),
+      4000,
+    );
 
     try {
       const intelligenceContext =
@@ -528,7 +532,9 @@ function Studio() {
     setImageError(false);
     setImageUrl(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const res = await fetch(
         "https://ooliwsmmtpggejyjmone.supabase.co/functions/v1/generate-image",
         {
@@ -542,11 +548,11 @@ function Studio() {
             referenceImages: opts?.referenceImages?.length ? opts.referenceImages : undefined,
             flagReason: opts?.flagReason,
           }),
-        }
+        },
       );
 
       if (!res.ok) throw new Error("Image generation failed");
-      const data = await res.json() as {
+      const data = (await res.json()) as {
         type: "url" | "base64";
         url?: string;
         data?: string;
@@ -667,7 +673,9 @@ function Studio() {
     if (attachment) {
       try {
         referenceImages.push(
-          "file" in attachment ? await fileToReferenceImage(attachment.file) : await urlToReferenceImage(attachment.url),
+          "file" in attachment
+            ? await fileToReferenceImage(attachment.file)
+            : await urlToReferenceImage(attachment.url),
         );
       } catch {
         // A bad attachment shouldn't block the flagged regenerate itself.
@@ -689,9 +697,16 @@ function Studio() {
     const res = await fetch(item.media_url);
     const blob = await res.blob();
     const ext = (item.media_url.split("?")[0].split(".").pop() || "jpg").slice(0, 5);
-    const file = new File([blob], `generated-${item.id}.${ext}`, { type: blob.type || "image/jpeg" });
-    const created = await referencePhotoLibrary.upload(file, item.prompt?.slice(0, 60) || "Generated image", true);
-    if (created && collectionId) await referencePhotoLibrary.setCollection(created.id, collectionId);
+    const file = new File([blob], `generated-${item.id}.${ext}`, {
+      type: blob.type || "image/jpeg",
+    });
+    const created = await referencePhotoLibrary.upload(
+      file,
+      item.prompt?.slice(0, 60) || "Generated image",
+      true,
+    );
+    if (created && collectionId)
+      await referencePhotoLibrary.setCollection(created.id, collectionId);
     return created;
   };
 
@@ -700,7 +715,8 @@ function Studio() {
     if (!addPictureFile) return;
     setAddPictureUploading(true);
     const created = await referencePhotoLibrary.upload(addPictureFile, "", addPictureRightsChecked);
-    if (created && addPictureCollectionId) await referencePhotoLibrary.setCollection(created.id, addPictureCollectionId);
+    if (created && addPictureCollectionId)
+      await referencePhotoLibrary.setCollection(created.id, addPictureCollectionId);
     setAddPictureUploading(false);
     if (created) {
       setShowAddPicture(false);
@@ -737,7 +753,9 @@ function Studio() {
     setVideoUnavailableMessage(null);
     setVideoUrl(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const res = await fetch(
         "https://ooliwsmmtpggejyjmone.supabase.co/functions/v1/generate-video",
         {
@@ -747,11 +765,11 @@ function Studio() {
             Authorization: `Bearer ${session?.access_token ?? ""}`,
           },
           body: JSON.stringify({ script: script.join("\n") }),
-        }
+        },
       );
 
       if (!res.ok) throw new Error("Video generation failed");
-      const data = await res.json() as {
+      const data = (await res.json()) as {
         available: boolean;
         type?: "url" | "base64";
         url?: string;
@@ -839,12 +857,12 @@ function Studio() {
     try {
       await navigator.clipboard.writeText(text);
       const urls: Record<string, string> = {
-        twitter:   `https://twitter.com/intent/tweet?text=${encodeURIComponent(text.slice(0, 280))}`,
-        linkedin:  `https://www.linkedin.com/feed/?shareActive=true`,
+        twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text.slice(0, 280))}`,
+        linkedin: `https://www.linkedin.com/feed/?shareActive=true`,
         instagram: `https://www.instagram.com/`,
-        tiktok:    `https://www.tiktok.com/upload`,
-        youtube:   `https://studio.youtube.com/`,
-        substack:  `https://substack.com/publish/post/new`,
+        tiktok: `https://www.tiktok.com/upload`,
+        youtube: `https://studio.youtube.com/`,
+        substack: `https://substack.com/publish/post/new`,
       };
       const url = urls[platform];
       if (url) window.open(url, "_blank");
@@ -858,10 +876,13 @@ function Studio() {
   // Signals scoped to the active industry mode (yacht mode → yachting signals, etc.)
   // — falls back to un-categorized signals so nothing silently disappears.
   const modeIntel = intel.filter(
-    (e) => !e.category || e.category === INDUSTRY_TO_CATEGORY[industryId as keyof typeof INDUSTRY_TO_CATEGORY],
+    (e) =>
+      !e.category ||
+      e.category === INDUSTRY_TO_CATEGORY[industryId as keyof typeof INDUSTRY_TO_CATEGORY],
   );
 
-  const canRun = (mode === "intelligence" ? modeIntel.length > 0 : idea.trim().length > 2) && studioGate.canUse;
+  const canRun =
+    (mode === "intelligence" ? modeIntel.length > 0 : idea.trim().length > 2) && studioGate.canUse;
 
   return (
     <AppShell>
@@ -895,11 +916,19 @@ function Studio() {
               imageUrl={imageUrl}
               imageLoading={imageLoading}
               imageError={imageError}
-              onGenerateImage={() => generateImageWithReferences((editablePlan ?? plan!).visualPrompt)}
-              onFlagInaccurate={(reason, attachment) => flagAndRegenerateImage((editablePlan ?? plan!).visualPrompt, reason, attachment)}
+              onGenerateImage={() =>
+                generateImageWithReferences((editablePlan ?? plan!).visualPrompt)
+              }
+              onFlagInaccurate={(reason, attachment) =>
+                flagAndRegenerateImage((editablePlan ?? plan!).visualPrompt, reason, attachment)
+              }
               flagNotice={flagNotice}
               flagAttachmentChoices={[
-                ...referencePhotoLibrary.photos.map((p) => ({ id: `ref-${p.id}`, url: p.image_url, label: p.label })),
+                ...referencePhotoLibrary.photos.map((p) => ({
+                  id: `ref-${p.id}`,
+                  url: p.image_url,
+                  label: p.label,
+                })),
                 ...generatedLibrary.items
                   .filter((m) => m.type === "image")
                   .map((m) => ({ id: `gen-${m.id}`, url: m.media_url, label: m.prompt ?? "" })),
@@ -923,7 +952,12 @@ function Studio() {
               onSetReferencePhotoCollection={referencePhotoLibrary.setCollection}
               generatedImages={generatedLibrary.items
                 .filter((m) => m.type === "image")
-                .map((m) => ({ id: m.id, media_url: m.media_url, prompt: m.prompt, collection_id: m.collection_id }))}
+                .map((m) => ({
+                  id: m.id,
+                  media_url: m.media_url,
+                  prompt: m.prompt,
+                  collection_id: m.collection_id,
+                }))}
               onImportGeneratedImage={importGeneratedImageAsReference}
               videoUrl={videoUrl}
               videoLoading={videoLoading}
@@ -946,711 +980,867 @@ function Studio() {
       )}
 
       {!hasPlan && (
-      <>
-      {/* ── Header ── */}
-      <div
-        onMouseMove={(e) => {
-          const r = e.currentTarget.getBoundingClientRect();
-          e.currentTarget.style.setProperty("--px", `${(((e.clientX - r.left) / r.width) * 100).toFixed(1)}%`);
-          e.currentTarget.style.setProperty("--py", `${(((e.clientY - r.top) / r.height) * 100).toFixed(1)}%`);
-        }}
-        className="relative mb-10 animate-fade-up overflow-hidden rounded-3xl glass p-8 sm:p-14"
-        style={{ "--px": "70%", "--py": "20%" } as React.CSSProperties}
-      >
-        {/* Ambient glow — drifts on its own, and leans toward the cursor */}
-        <div
-          className="pointer-events-none absolute h-96 w-96 rounded-full opacity-[0.1] blur-3xl animate-orb-a transition-[left,top] duration-500 ease-out"
-          style={{ background: "var(--gradient-gold)", left: "var(--px)", top: "var(--py)", transform: "translate(-50%,-50%)" }}
-        />
-        <div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl animate-orb-b" />
-        <div className="pointer-events-none absolute top-1/4 right-1/4 h-32 w-32 rounded-full opacity-[0.06] blur-2xl animate-orb-b" style={{ background: "var(--gradient-gold)", animationDelay: "-9s" }} />
-        {/* faint constellation dots for depth */}
-        <div className="pointer-events-none absolute inset-0 opacity-[0.35]">
-          <span className="absolute h-[3px] w-[3px] rounded-full bg-primary/60 top-[18%] left-[62%]" />
-          <span className="absolute h-[2px] w-[2px] rounded-full bg-primary/50 top-[65%] left-[78%]" />
-          <span className="absolute h-[2px] w-[2px] rounded-full bg-primary/40 top-[40%] left-[88%]" />
-        </div>
-
-        <div className="relative flex items-start justify-between gap-6 flex-wrap">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-5">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-              </span>
-              <div className="text-[10px] tracking-[0.4em] text-primary/80 uppercase">
-                {t.stuEyebrow(industry.modeLabel)}
-              </div>
-              {!studioGate.isPro && (
-                <div className="ml-2">
-                  <UsageBar used={studioGate.limit - studioGate.remaining} limit={studioGate.limit} label={t.stuFreeDraftLabel} />
-                </div>
-              )}
-            </div>
-            <h1 className="font-serif text-5xl sm:text-[64px] leading-[1.02] tracking-tight">
-              {t.stuHeroPre}{" "}
-              <span className="italic text-gold-gradient">{t.stuHeroEm}</span>
-            </h1>
-            <div className="mt-3 h-px w-24 hairline" />
-            <p className="mt-5 text-muted-foreground max-w-xl text-[15px] leading-relaxed">
-              {t.stuSubtitle(industry.label.toLowerCase())}
-            </p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              {t.stuTags.map((tag) => (
-                <span key={tag} className="text-[10px] tracking-[0.2em] px-3 py-1.5 rounded-full border border-border/60 text-muted-foreground transition-all hover:border-primary/40 hover:text-primary hover:-translate-y-0.5">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="flex shrink-0 gap-2">
-            {history.length > 0 && (
-              <button
-                onClick={() => setShowHistory(!showHistory)}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs tracking-[0.2em] uppercase border transition-all hover:-translate-y-0.5 ${showHistory ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-primary hover:border-primary/40"}`}
-              >
-                <History className="h-4 w-4" />
-                {t.stuHistory(history.length)}
-              </button>
-            )}
-            {!generatedLibrary.loading && !referencePhotoLibrary.loading && (
-              <button
-                onClick={() => setShowGeneratedLibrary(!showGeneratedLibrary)}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs tracking-[0.2em] uppercase border transition-all hover:-translate-y-0.5 ${showGeneratedLibrary ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-primary hover:border-primary/40"}`}
-              >
-                <Library className="h-4 w-4" />
-                {t.stuGeneratedLibrary(generatedLibrary.items.length)}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {showHistory && (
-        <div className="glass rounded-xl p-5 mb-6 animate-fade-up">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-[10px] tracking-[0.34em] text-primary/80">
-              {t.stuContentHistory(industry.label.toUpperCase())}
-            </div>
-            <button
-              onClick={() => setShowHistory(false)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-            {history.map((entry) => (
-              <div key={entry.id} className="flex items-start gap-1 rounded-lg border border-border hover:border-primary/40 transition-all">
-                <button
-                  onClick={() => loadFromHistory(entry)}
-                  className="flex-1 text-left p-3 min-w-0"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-serif truncate">{entry.title || t.stuUntitled}</div>
-                      {entry.idea && (
-                        <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{entry.idea}</div>
-                      )}
-                    </div>
-                    <div className="shrink-0 text-[10px] text-muted-foreground font-mono">
-                      {new Date(entry.created_at).toLocaleDateString(dateLocale, { month: "short", day: "numeric" })}
-                    </div>
-                  </div>
-                  {entry.image_url && (
-                    <img src={entry.image_url} alt="" className="mt-2 h-12 w-20 object-cover rounded" />
-                  )}
-                </button>
-                <button
-                  onClick={(e) => void deleteFromHistory(entry.id, e)}
-                  className="shrink-0 p-2 mt-1.5 text-muted-foreground hover:text-destructive transition-colors"
-                  title={t.stuDeleteDraft}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {showGeneratedLibrary && (
-        <div className="glass rounded-xl p-5 mb-6 animate-fade-up">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-[10px] tracking-[0.34em] text-primary/80">
-              {t.stuGeneratedLibraryTitle}
-            </div>
-            <div className="flex items-center gap-3">
-              {/* CAP-138: add a picture right from the Library panel too --
-                  defaults into whichever folder is currently selected. */}
-              <button
-                onClick={() => {
-                  setAddPictureCollectionId(libraryCollectionFilter);
-                  setShowAddPicture((v) => !v);
-                }}
-                className={`flex items-center gap-1 text-[10px] tracking-[0.15em] uppercase transition-colors ${showAddPicture ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
-              >
-                <Plus className="h-3 w-3" /> {t.stuAddReferencePhoto}
-              </button>
-              <button
-                onClick={() => setShowGeneratedLibrary(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          {showAddPicture && (
-            <div className="space-y-2 p-3 rounded-lg border border-border mb-3">
-              <div className="flex items-center gap-1 text-[10px]">
-                <button
-                  type="button"
-                  onClick={() => setAddPictureMode("file")}
-                  className={`px-2 py-1 rounded-md border transition-colors ${addPictureMode === "file" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
-                >
-                  {t.stuFlagChooseFile}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAddPictureMode("library")}
-                  className={`px-2 py-1 rounded-md border transition-colors ${addPictureMode === "library" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
-                >
-                  {t.stuFlagChooseFromLibrary}
-                </button>
-              </div>
-
-              {addPictureMode === "file" ? (
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setAddPictureFile(e.target.files?.[0] ?? null)}
-                  className="w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-primary/10 file:text-primary"
-                />
-              ) : generatedLibrary.items.filter((i) => i.type === "image").length === 0 ? (
-                <div className="text-[11px] text-muted-foreground">{t.stuFlagLibraryEmpty}</div>
-              ) : (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-1.5 max-h-56 overflow-y-auto pr-1">
-                  {generatedLibrary.items
-                    .filter((i) => i.type === "image")
-                    .map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        disabled={addPictureUploading}
-                        title={item.prompt ?? ""}
-                        onClick={async () => {
-                          setAddPictureUploading(true);
-                          const created = await importGeneratedImageAsReference(item, addPictureCollectionId);
-                          setAddPictureUploading(false);
-                          if (created) {
-                            setShowAddPicture(false);
-                            setAddPictureCollectionId(null);
-                          }
-                        }}
-                        className="aspect-square rounded-md overflow-hidden border border-transparent hover:border-primary/40 transition-all disabled:opacity-40"
-                      >
-                        <img src={item.media_url} alt={item.prompt ?? ""} className="h-full w-full object-cover" />
-                      </button>
-                    ))}
-                </div>
-              )}
-
-              <select
-                value={addPictureCreatingFolder ? "__new__" : (addPictureCollectionId ?? "")}
-                onChange={(e) => {
-                  if (e.target.value === "__new__") {
-                    setAddPictureCreatingFolder(true);
-                  } else {
-                    setAddPictureCreatingFolder(false);
-                    setAddPictureCollectionId(e.target.value || null);
-                  }
-                }}
-                className="w-full bg-transparent border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary/50 transition-colors"
-              >
-                <option value="">{t.stuLibraryNoFolder}</option>
-                {mediaCollections.collections.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-                <option value="__new__">+ {t.stuLibraryNewFolder}</option>
-              </select>
-              {addPictureCreatingFolder && (
-                <div className="flex items-center gap-1.5">
-                  <input
-                    autoFocus
-                    value={addPictureNewFolderName}
-                    onChange={(e) => setAddPictureNewFolderName(e.target.value)}
-                    onKeyDown={async (e) => {
-                      if (e.key === "Enter" && addPictureNewFolderName.trim()) {
-                        const created = await mediaCollections.create(addPictureNewFolderName.trim());
-                        if (created) setAddPictureCollectionId(created.id);
-                        setAddPictureNewFolderName("");
-                        setAddPictureCreatingFolder(false);
-                      } else if (e.key === "Escape") {
-                        setAddPictureCreatingFolder(false);
-                        setAddPictureNewFolderName("");
-                      }
-                    }}
-                    placeholder={t.stuLibraryFolderNamePlaceholder}
-                    className="flex-1 h-7 bg-transparent border border-border rounded-lg px-2 text-xs outline-none focus:border-primary/50"
-                  />
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (addPictureNewFolderName.trim()) {
-                        const created = await mediaCollections.create(addPictureNewFolderName.trim());
-                        if (created) setAddPictureCollectionId(created.id);
-                      }
-                      setAddPictureNewFolderName("");
-                      setAddPictureCreatingFolder(false);
-                    }}
-                    className="text-[10px] text-primary hover:underline shrink-0"
-                  >
-                    {t.stuSave}
-                  </button>
-                </div>
-              )}
-
-              {addPictureMode === "file" && (
-                <>
-                  <label className="flex items-start gap-2 text-[11px] text-muted-foreground cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={addPictureRightsChecked}
-                      onChange={(e) => setAddPictureRightsChecked(e.target.checked)}
-                      className="mt-0.5"
-                    />
-                    {t.stuReferencePhotoRightsLabel}
-                  </label>
-                  <button
-                    disabled={!addPictureFile || addPictureUploading}
-                    onClick={submitAddPictureFile}
-                    className="w-full h-8 rounded-lg text-primary-foreground text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-40"
-                    style={{ background: "var(--gradient-gold)" }}
-                  >
-                    {addPictureUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                    {t.stuUploadReferencePhoto}
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* CAP-135: "Added to Library" (uploaded reference photos) and
-              "AI Generated" (everything Studio has generated) used to be
-              two unrelated concepts -- now one Library, two tabs. */}
-          <div className="flex gap-2 mb-3">
-            <button
-              onClick={() => setLibraryTab("added")}
-              className={`px-3 py-1.5 rounded-lg text-[11px] uppercase tracking-wide border transition-all ${libraryTab === "added" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
-            >
-              {t.stuLibraryAddedTab(referencePhotoLibrary.photos.length)}
-            </button>
-            <button
-              onClick={() => setLibraryTab("generated")}
-              className={`px-3 py-1.5 rounded-lg text-[11px] uppercase tracking-wide border transition-all ${libraryTab === "generated" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
-            >
-              {t.stuLibraryGeneratedTab(generatedLibrary.items.length)}
-            </button>
-          </div>
-
-          {/* Folders group a boat's reference photos and generated images
-              together across both tabs, so they're easy to find as a set
-              next time. */}
-          <div className="flex flex-wrap items-center gap-1.5 mb-3">
-            <button
-              onClick={() => setLibraryCollectionFilter(null)}
-              className={`px-2.5 py-1 rounded-full text-[10px] border transition-all ${libraryCollectionFilter === null ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
-            >
-              {t.stuLibraryAllFolders}
-            </button>
-            {mediaCollections.collections.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setLibraryCollectionFilter(c.id)}
-                className={`px-2.5 py-1 rounded-full text-[10px] border transition-all ${libraryCollectionFilter === c.id ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
-              >
-                {c.name}
-              </button>
-            ))}
-            {!showNewCollection ? (
-              <button
-                onClick={() => setShowNewCollection(true)}
-                className="px-2.5 py-1 rounded-full text-[10px] border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/40 transition-all flex items-center gap-1"
-              >
-                <Plus className="h-2.5 w-2.5" /> {t.stuLibraryNewFolder}
-              </button>
-            ) : (
-              <span className="flex items-center gap-1">
-                <input
-                  autoFocus
-                  value={newCollectionName}
-                  onChange={(e) => setNewCollectionName(e.target.value)}
-                  onKeyDown={async (e) => {
-                    if (e.key === "Enter" && newCollectionName.trim()) {
-                      await mediaCollections.create(newCollectionName.trim());
-                      setNewCollectionName("");
-                      setShowNewCollection(false);
-                    } else if (e.key === "Escape") {
-                      setShowNewCollection(false);
-                      setNewCollectionName("");
-                    }
-                  }}
-                  placeholder={t.stuLibraryFolderNamePlaceholder}
-                  className="h-6 w-28 bg-transparent border border-border rounded-full px-2 text-[10px] outline-none focus:border-primary/50"
-                />
-                <button
-                  onClick={async () => {
-                    if (newCollectionName.trim()) await mediaCollections.create(newCollectionName.trim());
-                    setNewCollectionName("");
-                    setShowNewCollection(false);
-                  }}
-                  className="text-[10px] text-primary hover:underline"
-                >
-                  {t.stuSave}
-                </button>
-              </span>
-            )}
-          </div>
-
-          {libraryTab === "added" ? (
-            (() => {
-              const filtered = referencePhotoLibrary.photos.filter(
-                (p) => libraryCollectionFilter === null || p.collection_id === libraryCollectionFilter,
+        <>
+          {/* ── Header ── */}
+          <div
+            onMouseMove={(e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              e.currentTarget.style.setProperty(
+                "--px",
+                `${(((e.clientX - r.left) / r.width) * 100).toFixed(1)}%`,
               );
-              return filtered.length === 0 ? (
-                <div className="text-[12px] text-muted-foreground text-center py-6">{t.stuLibraryAddedEmpty}</div>
-              ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-80 overflow-y-auto pr-1">
-                  {filtered.map((photo) => (
-                    <div key={photo.id} className="group relative aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/40 transition-all">
-                      <img src={photo.image_url} alt={photo.label} title={photo.label} className="h-full w-full object-cover" />
-                      <button
-                        onClick={() => referencePhotoLibrary.remove(photo)}
-                        title={t.stuDeleteDraft}
-                        className="absolute top-1 right-1 h-5 w-5 rounded-full bg-destructive/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                      <select
-                        value={photo.collection_id ?? ""}
-                        onChange={(e) => referencePhotoLibrary.setCollection(photo.id, e.target.value || null)}
-                        className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] px-1 py-0.5 outline-none opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <option value="">{t.stuLibraryNoFolder}</option>
-                        {mediaCollections.collections.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  ))}
-                </div>
+              e.currentTarget.style.setProperty(
+                "--py",
+                `${(((e.clientY - r.top) / r.height) * 100).toFixed(1)}%`,
               );
-            })()
-          ) : (
-            (() => {
-              const filtered = generatedLibrary.items.filter(
-                (m) => libraryCollectionFilter === null || m.collection_id === libraryCollectionFilter,
-              );
-              return filtered.length === 0 ? (
-                <div className="text-[12px] text-muted-foreground text-center py-6">{t.stuGeneratedLibraryEmpty}</div>
-              ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-80 overflow-y-auto pr-1">
-                  {filtered.map((m) => (
-                    <div key={m.id} className="group relative aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/40 transition-all" title={m.prompt ?? ""}>
-                      <a href={m.media_url} target="_blank" rel="noreferrer" className="block h-full w-full">
-                        {m.type === "video" ? (
-                          <video src={m.media_url} className="h-full w-full object-cover" muted />
-                        ) : (
-                          <img src={m.media_url} alt="" className="h-full w-full object-cover" />
-                        )}
-                      </a>
-                      {m.type === "video" && (
-                        <div className="absolute top-1 left-1 rounded bg-black/60 p-0.5 pointer-events-none">
-                          <Film className="h-3 w-3 text-white" />
-                        </div>
-                      )}
-                      {m.flagged && (
-                        <div className="absolute top-1 right-1 rounded bg-destructive/80 p-0.5 pointer-events-none" title={m.flag_reason ?? t.stuFlagInaccurate}>
-                          <Flag className="h-3 w-3 text-white" />
-                        </div>
-                      )}
-                      <select
-                        value={m.collection_id ?? ""}
-                        onChange={(e) => generatedLibrary.setCollection(m.id, e.target.value || null)}
-                        className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] px-1 py-0.5 outline-none opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <option value="">{t.stuLibraryNoFolder}</option>
-                        {mediaCollections.collections.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()
-          )}
-        </div>
-      )}
-
-      <div className="grid lg:grid-cols-[1fr_1fr] gap-6">
-        <div className="space-y-5">
-          <div className="grid grid-cols-2 gap-3">
-            <ModeTab
-              active={mode === "assisted"}
-              onClick={() => setMode("assisted")}
-              icon={Wand2}
-              label={t.stuModeAssisted}
-              sub={t.stuModeAssistedSub}
-              color="gold"
+            }}
+            className="relative mb-10 animate-fade-up overflow-hidden rounded-3xl glass p-8 sm:p-14"
+            style={{ "--px": "70%", "--py": "20%" } as React.CSSProperties}
+          >
+            {/* Ambient glow — drifts on its own, and leans toward the cursor */}
+            <div
+              className="pointer-events-none absolute h-96 w-96 rounded-full opacity-[0.1] blur-3xl animate-orb-a transition-[left,top] duration-500 ease-out"
+              style={{
+                background: "var(--gradient-gold)",
+                left: "var(--px)",
+                top: "var(--py)",
+                transform: "translate(-50%,-50%)",
+              }}
             />
-            <ModeTab
-              active={mode === "intelligence"}
-              onClick={() => setMode("intelligence")}
-              icon={Radio}
-              label={t.stuModeIntel}
-              sub={t.stuModeIntelSub}
-              color="violet"
+            <div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl animate-orb-b" />
+            <div
+              className="pointer-events-none absolute top-1/4 right-1/4 h-32 w-32 rounded-full opacity-[0.06] blur-2xl animate-orb-b"
+              style={{ background: "var(--gradient-gold)", animationDelay: "-9s" }}
             />
-          </div>
+            {/* faint constellation dots for depth */}
+            <div className="pointer-events-none absolute inset-0 opacity-[0.35]">
+              <span className="absolute h-[3px] w-[3px] rounded-full bg-primary/60 top-[18%] left-[62%]" />
+              <span className="absolute h-[2px] w-[2px] rounded-full bg-primary/50 top-[65%] left-[78%]" />
+              <span className="absolute h-[2px] w-[2px] rounded-full bg-primary/40 top-[40%] left-[88%]" />
+            </div>
 
-          <div className="glass rounded-xl p-5">
-            {mode === "assisted" ? (
-              <>
-                <Label>{t.stuYourIdea}</Label>
-                <textarea
-                  value={idea}
-                  onChange={(e) => setIdea(e.target.value)}
-                  placeholder={t.stuIdeaPlaceholder}
-                  rows={4}
-                  className="w-full bg-transparent outline-none text-sm resize-none border border-border rounded-lg p-3 focus:border-primary/50 transition-colors"
-                />
-              </>
-            ) : (
-              <>
-                <div className="flex items-center justify-between mb-3">
-                  <Label>{t.stuSignalsLabel}</Label>
-                  <span className="text-[9px] tracking-[0.25em] text-muted-foreground/70 uppercase -mt-3">
-                    {industry.modeLabel}
+            <div className="relative flex items-start justify-between gap-6 flex-wrap">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
                   </span>
-                </div>
-
-                {/* Selected signals — always visible as removable chips, so unselecting never
-                    requires scrolling/searching through the full list below. */}
-                {selectedIntel.size > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-3">
-                    {intel
-                      .filter((e) => selectedIntel.has(e.id))
-                      .map((e) => (
-                        <button
-                          key={e.id}
-                          onClick={() => toggleIntel(e.id)}
-                          className="group flex items-center gap-1.5 max-w-full rounded-full border border-primary/50 bg-primary/10 py-1 pl-2.5 pr-1.5 text-[11px] text-foreground transition-all hover:border-destructive/50 hover:bg-destructive/10"
-                          title={e.title}
-                        >
-                          <span className="max-w-[180px] truncate">{e.title}</span>
-                          <X className="h-3 w-3 shrink-0 text-primary/70 transition-colors group-hover:text-destructive" />
-                        </button>
-                      ))}
+                  <div className="text-[10px] tracking-[0.4em] text-primary/80 uppercase">
+                    {t.stuEyebrow(industry.modeLabel)}
                   </div>
-                )}
-
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                  {modeIntel.length === 0 && (
-                    <div className="text-xs text-muted-foreground italic py-4">
-                      {t.stuNoSignals}
+                  {!studioGate.isPro && (
+                    <div className="ml-2">
+                      <UsageBar
+                        used={studioGate.limit - studioGate.remaining}
+                        limit={studioGate.limit}
+                        label={t.stuFreeDraftLabel}
+                      />
                     </div>
                   )}
-                  {modeIntel.map((e) => {
-                    const on = selectedIntel.has(e.id);
-                    return (
-                      <button
-                        key={e.id}
-                        onClick={() => toggleIntel(e.id)}
-                        className={`w-full text-left p-3 rounded-lg border transition-all ${on ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/30"}`}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[9px] tracking-[0.3em] text-primary/80 px-1.5 py-0.5 border border-primary/30 rounded uppercase">
-                            {e.source}
-                          </span>
-                          {e.category && (
-                            <span className="text-[9px] tracking-[0.3em] text-muted-foreground uppercase">
-                              {e.category}
-                            </span>
+                </div>
+                <h1 className="font-serif text-5xl sm:text-[64px] leading-[1.02] tracking-tight">
+                  {t.stuHeroPre} <span className="italic text-gold-gradient">{t.stuHeroEm}</span>
+                </h1>
+                <div className="mt-3 h-px w-24 hairline" />
+                <p className="mt-5 text-muted-foreground max-w-xl text-[15px] leading-relaxed">
+                  {t.stuSubtitle(industry.label.toLowerCase())}
+                </p>
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {t.stuTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-[10px] tracking-[0.2em] px-3 py-1.5 rounded-full border border-border/60 text-muted-foreground transition-all hover:border-primary/40 hover:text-primary hover:-translate-y-0.5"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                {history.length > 0 && (
+                  <button
+                    onClick={() => setShowHistory(!showHistory)}
+                    className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs tracking-[0.2em] uppercase border transition-all hover:-translate-y-0.5 ${showHistory ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-primary hover:border-primary/40"}`}
+                  >
+                    <History className="h-4 w-4" />
+                    {t.stuHistory(history.length)}
+                  </button>
+                )}
+                {!generatedLibrary.loading && !referencePhotoLibrary.loading && (
+                  <button
+                    onClick={() => setShowGeneratedLibrary(!showGeneratedLibrary)}
+                    className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs tracking-[0.2em] uppercase border transition-all hover:-translate-y-0.5 ${showGeneratedLibrary ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-primary hover:border-primary/40"}`}
+                  >
+                    <Library className="h-4 w-4" />
+                    {t.stuGeneratedLibrary(generatedLibrary.items.length)}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {showHistory && (
+            <div className="glass rounded-xl p-5 mb-6 animate-fade-up">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-[10px] tracking-[0.34em] text-primary/80">
+                  {t.stuContentHistory(industry.label.toUpperCase())}
+                </div>
+                <button
+                  onClick={() => setShowHistory(false)}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                {history.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-start gap-1 rounded-lg border border-border hover:border-primary/40 transition-all"
+                  >
+                    <button
+                      onClick={() => loadFromHistory(entry)}
+                      className="flex-1 text-left p-3 min-w-0"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-serif truncate">
+                            {entry.title || t.stuUntitled}
+                          </div>
+                          {entry.idea && (
+                            <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                              {entry.idea}
+                            </div>
                           )}
                         </div>
-                        <div className="text-sm leading-snug">{e.title}</div>
+                        <div className="shrink-0 text-[10px] text-muted-foreground font-mono">
+                          {new Date(entry.created_at).toLocaleDateString(dateLocale, {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </div>
+                      </div>
+                      {entry.image_url && (
+                        <img
+                          src={entry.image_url}
+                          alt=""
+                          className="mt-2 h-12 w-20 object-cover rounded"
+                        />
+                      )}
+                    </button>
+                    <button
+                      onClick={(e) => void deleteFromHistory(entry.id, e)}
+                      className="shrink-0 p-2 mt-1.5 text-muted-foreground hover:text-destructive transition-colors"
+                      title={t.stuDeleteDraft}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {showGeneratedLibrary && (
+            <div className="glass rounded-xl p-5 mb-6 animate-fade-up">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-[10px] tracking-[0.34em] text-primary/80">
+                  {t.stuGeneratedLibraryTitle}
+                </div>
+                <div className="flex items-center gap-3">
+                  {/* CAP-138: add a picture right from the Library panel too --
+                  defaults into whichever folder is currently selected. */}
+                  <button
+                    onClick={() => {
+                      setAddPictureCollectionId(libraryCollectionFilter);
+                      setShowAddPicture((v) => !v);
+                    }}
+                    className={`flex items-center gap-1 text-[10px] tracking-[0.15em] uppercase transition-colors ${showAddPicture ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+                  >
+                    <Plus className="h-3 w-3" /> {t.stuAddReferencePhoto}
+                  </button>
+                  <button
+                    onClick={() => setShowGeneratedLibrary(false)}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {showAddPicture && (
+                <div className="space-y-2 p-3 rounded-lg border border-border mb-3">
+                  <div className="flex items-center gap-1 text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => setAddPictureMode("file")}
+                      className={`px-2 py-1 rounded-md border transition-colors ${addPictureMode === "file" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {t.stuFlagChooseFile}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAddPictureMode("library")}
+                      className={`px-2 py-1 rounded-md border transition-colors ${addPictureMode === "library" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {t.stuFlagChooseFromLibrary}
+                    </button>
+                  </div>
+
+                  {addPictureMode === "file" ? (
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setAddPictureFile(e.target.files?.[0] ?? null)}
+                      className="w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-primary/10 file:text-primary"
+                    />
+                  ) : generatedLibrary.items.filter((i) => i.type === "image").length === 0 ? (
+                    <div className="text-[11px] text-muted-foreground">{t.stuFlagLibraryEmpty}</div>
+                  ) : (
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-1.5 max-h-56 overflow-y-auto pr-1">
+                      {generatedLibrary.items
+                        .filter((i) => i.type === "image")
+                        .map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            disabled={addPictureUploading}
+                            title={item.prompt ?? ""}
+                            onClick={async () => {
+                              setAddPictureUploading(true);
+                              const created = await importGeneratedImageAsReference(
+                                item,
+                                addPictureCollectionId,
+                              );
+                              setAddPictureUploading(false);
+                              if (created) {
+                                setShowAddPicture(false);
+                                setAddPictureCollectionId(null);
+                              }
+                            }}
+                            className="aspect-square rounded-md overflow-hidden border border-transparent hover:border-primary/40 transition-all disabled:opacity-40"
+                          >
+                            <img
+                              src={item.media_url}
+                              alt={item.prompt ?? ""}
+                              className="h-full w-full object-cover"
+                            />
+                          </button>
+                        ))}
+                    </div>
+                  )}
+
+                  <select
+                    value={addPictureCreatingFolder ? "__new__" : (addPictureCollectionId ?? "")}
+                    onChange={(e) => {
+                      if (e.target.value === "__new__") {
+                        setAddPictureCreatingFolder(true);
+                      } else {
+                        setAddPictureCreatingFolder(false);
+                        setAddPictureCollectionId(e.target.value || null);
+                      }
+                    }}
+                    className="w-full bg-transparent border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary/50 transition-colors"
+                  >
+                    <option value="">{t.stuLibraryNoFolder}</option>
+                    {mediaCollections.collections.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                    <option value="__new__">+ {t.stuLibraryNewFolder}</option>
+                  </select>
+                  {addPictureCreatingFolder && (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        autoFocus
+                        value={addPictureNewFolderName}
+                        onChange={(e) => setAddPictureNewFolderName(e.target.value)}
+                        onKeyDown={async (e) => {
+                          if (e.key === "Enter" && addPictureNewFolderName.trim()) {
+                            const created = await mediaCollections.create(
+                              addPictureNewFolderName.trim(),
+                            );
+                            if (created) setAddPictureCollectionId(created.id);
+                            setAddPictureNewFolderName("");
+                            setAddPictureCreatingFolder(false);
+                          } else if (e.key === "Escape") {
+                            setAddPictureCreatingFolder(false);
+                            setAddPictureNewFolderName("");
+                          }
+                        }}
+                        placeholder={t.stuLibraryFolderNamePlaceholder}
+                        className="flex-1 h-7 bg-transparent border border-border rounded-lg px-2 text-xs outline-none focus:border-primary/50"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (addPictureNewFolderName.trim()) {
+                            const created = await mediaCollections.create(
+                              addPictureNewFolderName.trim(),
+                            );
+                            if (created) setAddPictureCollectionId(created.id);
+                          }
+                          setAddPictureNewFolderName("");
+                          setAddPictureCreatingFolder(false);
+                        }}
+                        className="text-[10px] text-primary hover:underline shrink-0"
+                      >
+                        {t.stuSave}
                       </button>
+                    </div>
+                  )}
+
+                  {addPictureMode === "file" && (
+                    <>
+                      <label className="flex items-start gap-2 text-[11px] text-muted-foreground cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={addPictureRightsChecked}
+                          onChange={(e) => setAddPictureRightsChecked(e.target.checked)}
+                          className="mt-0.5"
+                        />
+                        {t.stuReferencePhotoRightsLabel}
+                      </label>
+                      <button
+                        disabled={!addPictureFile || addPictureUploading}
+                        onClick={submitAddPictureFile}
+                        className="w-full h-8 rounded-lg text-primary-foreground text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-40"
+                        style={{ background: "var(--gradient-gold)" }}
+                      >
+                        {addPictureUploading ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Plus className="h-3.5 w-3.5" />
+                        )}
+                        {t.stuUploadReferencePhoto}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* CAP-135: "Added to Library" (uploaded reference photos) and
+              "AI Generated" (everything Studio has generated) used to be
+              two unrelated concepts -- now one Library, two tabs. */}
+              <div className="flex gap-2 mb-3">
+                <button
+                  onClick={() => setLibraryTab("added")}
+                  className={`px-3 py-1.5 rounded-lg text-[11px] uppercase tracking-wide border transition-all ${libraryTab === "added" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                >
+                  {t.stuLibraryAddedTab(referencePhotoLibrary.photos.length)}
+                </button>
+                <button
+                  onClick={() => setLibraryTab("generated")}
+                  className={`px-3 py-1.5 rounded-lg text-[11px] uppercase tracking-wide border transition-all ${libraryTab === "generated" ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                >
+                  {t.stuLibraryGeneratedTab(generatedLibrary.items.length)}
+                </button>
+              </div>
+
+              {/* Folders group a boat's reference photos and generated images
+              together across both tabs, so they're easy to find as a set
+              next time. */}
+              <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                <button
+                  onClick={() => setLibraryCollectionFilter(null)}
+                  className={`px-2.5 py-1 rounded-full text-[10px] border transition-all ${libraryCollectionFilter === null ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                >
+                  {t.stuLibraryAllFolders}
+                </button>
+                {mediaCollections.collections.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setLibraryCollectionFilter(c.id)}
+                    className={`px-2.5 py-1 rounded-full text-[10px] border transition-all ${libraryCollectionFilter === c.id ? "border-primary/60 text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+                {!showNewCollection ? (
+                  <button
+                    onClick={() => setShowNewCollection(true)}
+                    className="px-2.5 py-1 rounded-full text-[10px] border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/40 transition-all flex items-center gap-1"
+                  >
+                    <Plus className="h-2.5 w-2.5" /> {t.stuLibraryNewFolder}
+                  </button>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <input
+                      autoFocus
+                      value={newCollectionName}
+                      onChange={(e) => setNewCollectionName(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key === "Enter" && newCollectionName.trim()) {
+                          await mediaCollections.create(newCollectionName.trim());
+                          setNewCollectionName("");
+                          setShowNewCollection(false);
+                        } else if (e.key === "Escape") {
+                          setShowNewCollection(false);
+                          setNewCollectionName("");
+                        }
+                      }}
+                      placeholder={t.stuLibraryFolderNamePlaceholder}
+                      className="h-6 w-28 bg-transparent border border-border rounded-full px-2 text-[10px] outline-none focus:border-primary/50"
+                    />
+                    <button
+                      onClick={async () => {
+                        if (newCollectionName.trim())
+                          await mediaCollections.create(newCollectionName.trim());
+                        setNewCollectionName("");
+                        setShowNewCollection(false);
+                      }}
+                      className="text-[10px] text-primary hover:underline"
+                    >
+                      {t.stuSave}
+                    </button>
+                  </span>
+                )}
+              </div>
+
+              {libraryTab === "added"
+                ? (() => {
+                    const filtered = referencePhotoLibrary.photos.filter(
+                      (p) =>
+                        libraryCollectionFilter === null ||
+                        p.collection_id === libraryCollectionFilter,
                     );
-                  })}
-                </div>
-                <div className="text-[11px] text-muted-foreground mt-2">
-                  {selectedIntel.size === 0
-                    ? t.stuNoneSelected
-                    : t.stuSignalsSelected(selectedIntel.size)}
-                </div>
-              </>
-            )}
-          </div>
+                    return filtered.length === 0 ? (
+                      <div className="text-[12px] text-muted-foreground text-center py-6">
+                        {t.stuLibraryAddedEmpty}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-80 overflow-y-auto pr-1">
+                        {filtered.map((photo) => (
+                          <div
+                            key={photo.id}
+                            className="group relative aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/40 transition-all"
+                          >
+                            <img
+                              src={photo.image_url}
+                              alt={photo.label}
+                              title={photo.label}
+                              className="h-full w-full object-cover"
+                            />
+                            <button
+                              onClick={() => referencePhotoLibrary.remove(photo)}
+                              title={t.stuDeleteDraft}
+                              className="absolute top-1 right-1 h-5 w-5 rounded-full bg-destructive/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                            <select
+                              value={photo.collection_id ?? ""}
+                              onChange={(e) =>
+                                referencePhotoLibrary.setCollection(
+                                  photo.id,
+                                  e.target.value || null,
+                                )
+                              }
+                              className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] px-1 py-0.5 outline-none opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <option value="">{t.stuLibraryNoFolder}</option>
+                              {mediaCollections.collections.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()
+                : (() => {
+                    const filtered = generatedLibrary.items.filter(
+                      (m) =>
+                        libraryCollectionFilter === null ||
+                        m.collection_id === libraryCollectionFilter,
+                    );
+                    return filtered.length === 0 ? (
+                      <div className="text-[12px] text-muted-foreground text-center py-6">
+                        {t.stuGeneratedLibraryEmpty}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-80 overflow-y-auto pr-1">
+                        {filtered.map((m) => (
+                          <div
+                            key={m.id}
+                            className="group relative aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/40 transition-all"
+                            title={m.prompt ?? ""}
+                          >
+                            <a
+                              href={m.media_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block h-full w-full"
+                            >
+                              {m.type === "video" ? (
+                                <video
+                                  src={m.media_url}
+                                  className="h-full w-full object-cover"
+                                  muted
+                                />
+                              ) : (
+                                <img
+                                  src={m.media_url}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                />
+                              )}
+                            </a>
+                            {m.type === "video" && (
+                              <div className="absolute top-1 left-1 rounded bg-black/60 p-0.5 pointer-events-none">
+                                <Film className="h-3 w-3 text-white" />
+                              </div>
+                            )}
+                            {m.flagged && (
+                              <div
+                                className="absolute top-1 right-1 rounded bg-destructive/80 p-0.5 pointer-events-none"
+                                title={m.flag_reason ?? t.stuFlagInaccurate}
+                              >
+                                <Flag className="h-3 w-3 text-white" />
+                              </div>
+                            )}
+                            <select
+                              value={m.collection_id ?? ""}
+                              onChange={(e) =>
+                                generatedLibrary.setCollection(m.id, e.target.value || null)
+                              }
+                              className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] px-1 py-0.5 outline-none opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <option value="">{t.stuLibraryNoFolder}</option>
+                              {mediaCollections.collections.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+            </div>
+          )}
 
-          <div className="glass rounded-xl p-5">
-            <Label>
-              {t.stuGoalLabel} <span className="text-muted-foreground/60 normal-case tracking-normal">{t.stuOptional}</span>
-            </Label>
-            <input
-              value={goal}
-              onChange={(e) => setGoal(e.target.value)}
-              placeholder={t.stuGoalPlaceholder}
-              className="w-full bg-transparent outline-none text-sm border border-border rounded-lg p-3 focus:border-primary/50 transition-colors"
-            />
-          </div>
+          <div className="grid lg:grid-cols-[1fr_1fr] gap-6">
+            <div className="space-y-5">
+              <div className="grid grid-cols-2 gap-3">
+                <ModeTab
+                  active={mode === "assisted"}
+                  onClick={() => setMode("assisted")}
+                  icon={Wand2}
+                  label={t.stuModeAssisted}
+                  sub={t.stuModeAssistedSub}
+                  color="gold"
+                />
+                <ModeTab
+                  active={mode === "intelligence"}
+                  onClick={() => setMode("intelligence")}
+                  icon={Radio}
+                  label={t.stuModeIntel}
+                  sub={t.stuModeIntelSub}
+                  color="violet"
+                />
+              </div>
 
-          {/* CAP-128: the format/orientation picker is gone -- every
+              <div className="glass rounded-xl p-5">
+                {mode === "assisted" ? (
+                  <>
+                    <Label>{t.stuYourIdea}</Label>
+                    <textarea
+                      value={idea}
+                      onChange={(e) => setIdea(e.target.value)}
+                      placeholder={t.stuIdeaPlaceholder}
+                      rows={4}
+                      className="w-full bg-transparent outline-none text-sm resize-none border border-border rounded-lg p-3 focus:border-primary/50 transition-colors"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between mb-3">
+                      <Label>{t.stuSignalsLabel}</Label>
+                      <span className="text-[9px] tracking-[0.25em] text-muted-foreground/70 uppercase -mt-3">
+                        {industry.modeLabel}
+                      </span>
+                    </div>
+
+                    {/* Selected signals — always visible as removable chips, so unselecting never
+                    requires scrolling/searching through the full list below. */}
+                    {selectedIntel.size > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        {intel
+                          .filter((e) => selectedIntel.has(e.id))
+                          .map((e) => (
+                            <button
+                              key={e.id}
+                              onClick={() => toggleIntel(e.id)}
+                              className="group flex items-center gap-1.5 max-w-full rounded-full border border-primary/50 bg-primary/10 py-1 pl-2.5 pr-1.5 text-[11px] text-foreground transition-all hover:border-destructive/50 hover:bg-destructive/10"
+                              title={e.title}
+                            >
+                              <span className="max-w-[180px] truncate">{e.title}</span>
+                              <X className="h-3 w-3 shrink-0 text-primary/70 transition-colors group-hover:text-destructive" />
+                            </button>
+                          ))}
+                      </div>
+                    )}
+
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                      {modeIntel.length === 0 && (
+                        <div className="text-xs text-muted-foreground italic py-4">
+                          {t.stuNoSignals}
+                        </div>
+                      )}
+                      {modeIntel.map((e) => {
+                        const on = selectedIntel.has(e.id);
+                        return (
+                          <button
+                            key={e.id}
+                            onClick={() => toggleIntel(e.id)}
+                            className={`w-full text-left p-3 rounded-lg border transition-all ${on ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/30"}`}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[9px] tracking-[0.3em] text-primary/80 px-1.5 py-0.5 border border-primary/30 rounded uppercase">
+                                {e.source}
+                              </span>
+                              {e.category && (
+                                <span className="text-[9px] tracking-[0.3em] text-muted-foreground uppercase">
+                                  {e.category}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm leading-snug">{e.title}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-2">
+                      {selectedIntel.size === 0
+                        ? t.stuNoneSelected
+                        : t.stuSignalsSelected(selectedIntel.size)}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="glass rounded-xl p-5">
+                <Label>
+                  {t.stuGoalLabel}{" "}
+                  <span className="text-muted-foreground/60 normal-case tracking-normal">
+                    {t.stuOptional}
+                  </span>
+                </Label>
+                <input
+                  value={goal}
+                  onChange={(e) => setGoal(e.target.value)}
+                  placeholder={t.stuGoalPlaceholder}
+                  className="w-full bg-transparent outline-none text-sm border border-border rounded-lg p-3 focus:border-primary/50 transition-colors"
+                />
+              </div>
+
+              {/* CAP-128: the format/orientation picker is gone -- every
               generation now targets all 6 platforms at once. Video length
               moved under the Generate Video box itself (CAP-129) since it
               only matters once you're about to generate a video. */}
 
-          <button
-            onClick={() => void run()}
-            onMouseMove={(e) => {
-              const r = e.currentTarget.getBoundingClientRect();
-              e.currentTarget.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`);
-              e.currentTarget.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`);
-            }}
-            disabled={!canRun || pending}
-            className="relative w-full h-16 rounded-2xl text-primary-foreground font-medium flex items-center justify-center gap-2.5 disabled:opacity-50 transition-all overflow-hidden group active:scale-[0.98] shadow-[var(--shadow-gold)]"
-            style={{ background: "var(--gradient-gold)" }}
-          >
-            {/* cursor-tracked magnetic glow */}
-            <span className="pointer-events-none absolute inset-0 magnetic-glow opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            {/* shimmer sweep on hover */}
-            <span className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            {pending ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm tracking-wide">{LOAD_STEPS[loadStep]}</span>
-              </>
-            ) : (
-              <>
-                <Zap className="h-4 w-4" />
-                <span className="text-sm tracking-[0.08em] font-semibold">{t.stuGenerateButton}</span>
-                {canRun && <span className="text-[10px] opacity-70 ml-1">{t.stuApprox30s}</span>}
-              </>
-            )}
-          </button>
+              <button
+                onClick={() => void run()}
+                onMouseMove={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect();
+                  e.currentTarget.style.setProperty(
+                    "--mx",
+                    `${((e.clientX - r.left) / r.width) * 100}%`,
+                  );
+                  e.currentTarget.style.setProperty(
+                    "--my",
+                    `${((e.clientY - r.top) / r.height) * 100}%`,
+                  );
+                }}
+                disabled={!canRun || pending}
+                className="relative w-full h-16 rounded-2xl text-primary-foreground font-medium flex items-center justify-center gap-2.5 disabled:opacity-50 transition-all overflow-hidden group active:scale-[0.98] shadow-[var(--shadow-gold)]"
+                style={{ background: "var(--gradient-gold)" }}
+              >
+                {/* cursor-tracked magnetic glow */}
+                <span className="pointer-events-none absolute inset-0 magnetic-glow opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                {/* shimmer sweep on hover */}
+                <span className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                {pending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm tracking-wide">{LOAD_STEPS[loadStep]}</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-4 w-4" />
+                    <span className="text-sm tracking-[0.08em] font-semibold">
+                      {t.stuGenerateButton}
+                    </span>
+                    {canRun && (
+                      <span className="text-[10px] opacity-70 ml-1">{t.stuApprox30s}</span>
+                    )}
+                  </>
+                )}
+              </button>
 
-          {error && <div className="text-xs text-destructive border border-destructive/40 rounded-lg p-3">{error}</div>}
-        </div>
+              {error && (
+                <div className="text-xs text-destructive border border-destructive/40 rounded-lg p-3">
+                  {error}
+                </div>
+              )}
+            </div>
 
-        <div className="lg:sticky lg:top-6 lg:self-start space-y-4">
-          {!plan && !pending && (
-            <div className="relative glass rounded-2xl p-10 text-center overflow-hidden">
-              <div className="pointer-events-none absolute -top-20 -right-20 h-60 w-60 rounded-full opacity-[0.06] blur-3xl animate-orb-a" style={{ background: "var(--gradient-gold)" }} />
-              <div className="relative">
-                <div className="relative h-16 w-16 mx-auto mb-6">
-                  <div className="absolute inset-0 rounded-full border border-primary/20 animate-ping" />
-                  <div className="absolute inset-0 rounded-full border border-primary/10" />
-                  <div className="absolute -inset-2 rounded-full border border-primary/10 [animation:spin_12s_linear_infinite]" />
-                  <div className="absolute inset-3 rounded-full flex items-center justify-center" style={{ background: "var(--gradient-gold)" }}>
-                    <Sparkles className="h-5 w-5 text-primary-foreground" />
+            <div className="lg:sticky lg:top-6 lg:self-start space-y-4">
+              {!plan && !pending && (
+                <div className="relative glass rounded-2xl p-10 text-center overflow-hidden">
+                  <div
+                    className="pointer-events-none absolute -top-20 -right-20 h-60 w-60 rounded-full opacity-[0.06] blur-3xl animate-orb-a"
+                    style={{ background: "var(--gradient-gold)" }}
+                  />
+                  <div className="relative">
+                    <div className="relative h-16 w-16 mx-auto mb-6">
+                      <div className="absolute inset-0 rounded-full border border-primary/20 animate-ping" />
+                      <div className="absolute inset-0 rounded-full border border-primary/10" />
+                      <div className="absolute -inset-2 rounded-full border border-primary/10 [animation:spin_12s_linear_infinite]" />
+                      <div
+                        className="absolute inset-3 rounded-full flex items-center justify-center"
+                        style={{ background: "var(--gradient-gold)" }}
+                      >
+                        <Sparkles className="h-5 w-5 text-primary-foreground" />
+                      </div>
+                    </div>
+                    <div className="font-serif text-2xl mb-2">{t.stuReadyTitle}</div>
+                    <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                      {t.stuReadyDesc(industry.label.toLowerCase())}
+                    </p>
+                    <div className="mt-6 flex justify-center gap-4 text-[10px] tracking-[0.2em] text-muted-foreground/60 uppercase">
+                      <span className="flex items-center gap-1">
+                        <Instagram className="h-3 w-3" /> Instagram
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Send className="h-3 w-3" /> TikTok
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Linkedin className="h-3 w-3" /> LinkedIn
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="font-serif text-2xl mb-2">{t.stuReadyTitle}</div>
-                <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                  {t.stuReadyDesc(industry.label.toLowerCase())}
-                </p>
-                <div className="mt-6 flex justify-center gap-4 text-[10px] tracking-[0.2em] text-muted-foreground/60 uppercase">
-                  <span className="flex items-center gap-1"><Instagram className="h-3 w-3" /> Instagram</span>
-                  <span className="flex items-center gap-1"><Send className="h-3 w-3" /> TikTok</span>
-                  <span className="flex items-center gap-1"><Linkedin className="h-3 w-3" /> LinkedIn</span>
-                </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          {pending && !plan && (
-            <div className="relative glass rounded-2xl overflow-hidden">
-              <div className="pointer-events-none absolute inset-0 opacity-[0.04]" style={{ background: "var(--gradient-gold)" }} />
-              {/* rising sparkle particles for a live, "something is happening" feel */}
-              <div className="pointer-events-none absolute inset-0">
-                {[10, 24, 40, 58, 74, 88].map((left, i) => (
-                  <span
-                    key={left}
-                    className="absolute bottom-8 h-1 w-1 rounded-full bg-primary animate-sparkle"
-                    style={{ left: `${left}%`, animationDelay: `${i * 0.4}s`, animationDuration: `${2.2 + (i % 3) * 0.5}s` }}
+              {pending && !plan && (
+                <div className="relative glass rounded-2xl overflow-hidden">
+                  <div
+                    className="pointer-events-none absolute inset-0 opacity-[0.04]"
+                    style={{ background: "var(--gradient-gold)" }}
+                  />
+                  {/* rising sparkle particles for a live, "something is happening" feel */}
+                  <div className="pointer-events-none absolute inset-0">
+                    {[10, 24, 40, 58, 74, 88].map((left, i) => (
+                      <span
+                        key={left}
+                        className="absolute bottom-8 h-1 w-1 rounded-full bg-primary animate-sparkle"
+                        style={{
+                          left: `${left}%`,
+                          animationDelay: `${i * 0.4}s`,
+                          animationDuration: `${2.2 + (i % 3) * 0.5}s`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="relative p-10 text-center">
+                    <div className="relative h-14 w-14 mx-auto mb-6">
+                      <div
+                        className="absolute inset-0 rounded-full border border-primary/30 animate-spin"
+                        style={{ borderTopColor: "transparent" }}
+                      />
+                      <div className="absolute inset-0 rounded-full border border-primary/10 [animation:spin_10s_linear_infinite]" />
+                      <div
+                        className="absolute inset-3 rounded-full flex items-center justify-center"
+                        style={{ background: "var(--gradient-gold)" }}
+                      >
+                        <Sparkles className="h-4 w-4 text-primary-foreground" />
+                      </div>
+                    </div>
+                    <div className="font-serif text-xl mb-3">{t.stuComposing}</div>
+                    <div className="space-y-2 max-w-xs mx-auto">
+                      {LOAD_STEPS.map((step, i) => (
+                        <div
+                          key={step}
+                          className={`flex items-center gap-2 text-xs transition-all ${i <= loadStep ? "text-foreground" : "text-muted-foreground/30"}`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full shrink-0 transition-all ${i < loadStep ? "bg-primary" : i === loadStep ? "bg-emerald-400 animate-pulse" : "bg-border"}`}
+                          />
+                          {step}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-14">
+            <SectionHeading eyebrow={t.stuLiveSignalsEyebrow} title={t.stuIdeasToExpand} />
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Live intelligence articles as content ideas */}
+              {intel
+                .filter(
+                  (e) =>
+                    e.category ===
+                      INDUSTRY_TO_CATEGORY[industryId as keyof typeof INDUSTRY_TO_CATEGORY] ||
+                    !e.category,
+                )
+                .slice(0, 8)
+                .map((e, i) => (
+                  <IdeaCard
+                    key={e.id}
+                    index={i}
+                    onClick={() => {
+                      setMode("intelligence");
+                      setSelectedIntel(new Set([e.id]));
+                      setIdea("");
+                    }}
+                    eyebrow={e.source ?? t.stuLiveSignalFallback}
+                    title={e.title}
+                    live
                   />
                 ))}
-              </div>
-              <div className="relative p-10 text-center">
-                <div className="relative h-14 w-14 mx-auto mb-6">
-                  <div className="absolute inset-0 rounded-full border border-primary/30 animate-spin" style={{ borderTopColor: "transparent" }} />
-                  <div className="absolute inset-0 rounded-full border border-primary/10 [animation:spin_10s_linear_infinite]" />
-                  <div className="absolute inset-3 rounded-full flex items-center justify-center" style={{ background: "var(--gradient-gold)" }}>
-                    <Sparkles className="h-4 w-4 text-primary-foreground" />
-                  </div>
-                </div>
-                <div className="font-serif text-xl mb-3">{t.stuComposing}</div>
-                <div className="space-y-2 max-w-xs mx-auto">
-                  {LOAD_STEPS.map((step, i) => (
-                    <div key={step} className={`flex items-center gap-2 text-xs transition-all ${i <= loadStep ? "text-foreground" : "text-muted-foreground/30"}`}>
-                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 transition-all ${i < loadStep ? "bg-primary" : i === loadStep ? "bg-emerald-400 animate-pulse" : "bg-border"}`} />
-                      {step}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* Fallback to config prompts if no intelligence yet */}
+              {intel.filter(
+                (e) =>
+                  e.category ===
+                  INDUSTRY_TO_CATEGORY[industryId as keyof typeof INDUSTRY_TO_CATEGORY],
+              ).length === 0 &&
+                industry.contentPrompts.map((p, i) => (
+                  <IdeaCard
+                    key={p.t}
+                    index={i}
+                    onClick={() => {
+                      setMode("assisted");
+                      setIdea(p.t);
+                    }}
+                    eyebrow={p.type}
+                    title={p.t}
+                  />
+                ))}
             </div>
-          )}
-
-        </div>
-      </div>
-
-      <div className="mt-14">
-        <SectionHeading eyebrow={t.stuLiveSignalsEyebrow} title={t.stuIdeasToExpand} />
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Live intelligence articles as content ideas */}
-          {intel
-            .filter(e => e.category === INDUSTRY_TO_CATEGORY[industryId as keyof typeof INDUSTRY_TO_CATEGORY] || !e.category)
-            .slice(0, 8)
-            .map((e, i) => (
-              <IdeaCard
-                key={e.id}
-                index={i}
-                onClick={() => {
-                  setMode("intelligence");
-                  setSelectedIntel(new Set([e.id]));
-                  setIdea("");
-                }}
-                eyebrow={e.source ?? t.stuLiveSignalFallback}
-                title={e.title}
-                live
-              />
-            ))}
-          {/* Fallback to config prompts if no intelligence yet */}
-          {intel.filter(e => e.category === INDUSTRY_TO_CATEGORY[industryId as keyof typeof INDUSTRY_TO_CATEGORY]).length === 0 &&
-            industry.contentPrompts.map((p, i) => (
-              <IdeaCard
-                key={p.t}
-                index={i}
-                onClick={() => { setMode("assisted"); setIdea(p.t); }}
-                eyebrow={p.type}
-                title={p.t}
-              />
-            ))
-          }
-        </div>
-      </div>
-      </>
+          </div>
+        </>
       )}
     </AppShell>
   );
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3 uppercase">{children}</div>;
+  return (
+    <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3 uppercase">
+      {children}
+    </div>
+  );
 }
 
 function ModeTab({
@@ -1680,18 +1870,29 @@ function ModeTab({
       }`}
     >
       {active && (
-        <div className={`pointer-events-none absolute inset-0 opacity-[0.06] ${color === "gold" ? "" : "bg-violet-500"}`}
-          style={color === "gold" ? { background: "var(--gradient-gold)" } : {}} />
+        <div
+          className={`pointer-events-none absolute inset-0 opacity-[0.06] ${color === "gold" ? "" : "bg-violet-500"}`}
+          style={color === "gold" ? { background: "var(--gradient-gold)" } : {}}
+        />
       )}
       <div className="relative">
-        <div className={`h-9 w-9 rounded-lg flex items-center justify-center mb-3 transition-all ${
-          active
-            ? color === "gold" ? "text-primary-foreground" : "bg-violet-500/20 text-violet-400"
-            : "bg-secondary text-muted-foreground"
-        }`} style={active && color === "gold" ? { background: "var(--gradient-gold)" } : {}}>
+        <div
+          className={`h-9 w-9 rounded-lg flex items-center justify-center mb-3 transition-all ${
+            active
+              ? color === "gold"
+                ? "text-primary-foreground"
+                : "bg-violet-500/20 text-violet-400"
+              : "bg-secondary text-muted-foreground"
+          }`}
+          style={active && color === "gold" ? { background: "var(--gradient-gold)" } : {}}
+        >
           <Icon className="h-4 w-4" />
         </div>
-        <div className={`text-sm font-semibold mb-0.5 ${active ? "text-foreground" : "text-foreground/70"}`}>{label}</div>
+        <div
+          className={`text-sm font-semibold mb-0.5 ${active ? "text-foreground" : "text-foreground/70"}`}
+        >
+          {label}
+        </div>
         <div className="text-[11px] text-muted-foreground leading-snug">{sub}</div>
       </div>
     </button>
@@ -1733,18 +1934,59 @@ function IdeaCard({
         {live && <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />}
         {eyebrow}
       </div>
-      <div className="text-sm font-serif leading-snug group-hover:text-primary transition-colors">{title}</div>
+      <div className="text-sm font-serif leading-snug group-hover:text-primary transition-colors">
+        {title}
+      </div>
     </button>
   );
 }
 
-const PLATFORM_META: Record<string, { label: string; icon: typeof Send; color: string; badge: string; shareKey: string }> = {
-  facebook:      { label: "Facebook",       icon: ArrowUpRight, color: "from-blue-600/20 to-blue-500/10",   badge: "bg-blue-600/20 text-blue-300",   shareKey: "facebook" },
-  twitter:       { label: "X / Twitter",    icon: Send,         color: "from-foreground/10 to-foreground/5", badge: "bg-foreground/10 text-foreground/70", shareKey: "twitter" },
-  linkedin:      { label: "LinkedIn",       icon: Linkedin,     color: "from-blue-500/20 to-blue-400/10",   badge: "bg-blue-500/20 text-blue-300",   shareKey: "linkedin" },
-  tiktok:        { label: "TikTok",         icon: Film,         color: "from-foreground/10 to-foreground/5", badge: "bg-foreground/10 text-foreground/70", shareKey: "tiktok" },
-  instagram:     { label: "Instagram",      icon: Instagram,    color: "from-pink-500/20 to-violet-500/20", badge: "bg-pink-500/20 text-pink-300",    shareKey: "instagram" },
-  youtube_shorts:{ label: "YouTube Shorts", icon: Video,        color: "from-red-500/20 to-red-400/10",     badge: "bg-red-500/20 text-red-300",      shareKey: "youtube" },
+const PLATFORM_META: Record<
+  string,
+  { label: string; icon: typeof Send; color: string; badge: string; shareKey: string }
+> = {
+  facebook: {
+    label: "Facebook",
+    icon: ArrowUpRight,
+    color: "from-blue-600/20 to-blue-500/10",
+    badge: "bg-blue-600/20 text-blue-300",
+    shareKey: "facebook",
+  },
+  twitter: {
+    label: "X / Twitter",
+    icon: Send,
+    color: "from-foreground/10 to-foreground/5",
+    badge: "bg-foreground/10 text-foreground/70",
+    shareKey: "twitter",
+  },
+  linkedin: {
+    label: "LinkedIn",
+    icon: Linkedin,
+    color: "from-blue-500/20 to-blue-400/10",
+    badge: "bg-blue-500/20 text-blue-300",
+    shareKey: "linkedin",
+  },
+  tiktok: {
+    label: "TikTok",
+    icon: Film,
+    color: "from-foreground/10 to-foreground/5",
+    badge: "bg-foreground/10 text-foreground/70",
+    shareKey: "tiktok",
+  },
+  instagram: {
+    label: "Instagram",
+    icon: Instagram,
+    color: "from-pink-500/20 to-violet-500/20",
+    badge: "bg-pink-500/20 text-pink-300",
+    shareKey: "instagram",
+  },
+  youtube_shorts: {
+    label: "YouTube Shorts",
+    icon: Video,
+    color: "from-red-500/20 to-red-400/10",
+    badge: "bg-red-500/20 text-red-300",
+    shareKey: "youtube",
+  },
 };
 
 function PlanOutput({
@@ -1804,11 +2046,20 @@ function PlanOutput({
   referencePhotoError: string | null;
   selectedReferenceIds: Set<string>;
   onToggleReferencePhoto: (id: string) => void;
-  onUploadReferencePhoto: (file: File, label: string, rightsAcknowledged: boolean) => Promise<ReferencePhoto | null>;
+  onUploadReferencePhoto: (
+    file: File,
+    label: string,
+    rightsAcknowledged: boolean,
+  ) => Promise<ReferencePhoto | null>;
   mediaCollections: { id: string; name: string }[];
   onCreateCollection: (name: string) => Promise<{ id: string; name: string } | null>;
   onSetReferencePhotoCollection: (photoId: string, collectionId: string | null) => Promise<void>;
-  generatedImages: { id: string; media_url: string; prompt: string | null; collection_id: string | null }[];
+  generatedImages: {
+    id: string;
+    media_url: string;
+    prompt: string | null;
+    collection_id: string | null;
+  }[];
   onImportGeneratedImage: (
     item: { id: string; media_url: string; prompt: string | null },
     collectionId: string | null,
@@ -1855,7 +2106,9 @@ function PlanOutput({
   const [referenceUploading, setReferenceUploading] = useState(false);
   // CAP-137: which folder (if any) a newly added photo should land in --
   // picked from existing folders, or a brand new one created inline.
-  const [referenceUploadCollectionId, setReferenceUploadCollectionId] = useState<string | null>(null);
+  const [referenceUploadCollectionId, setReferenceUploadCollectionId] = useState<string | null>(
+    null,
+  );
   const [referenceUploadCreatingFolder, setReferenceUploadCreatingFolder] = useState(false);
   const [referenceUploadNewFolderName, setReferenceUploadNewFolderName] = useState("");
   const [showFlagForm, setShowFlagForm] = useState(false);
@@ -1865,7 +2118,9 @@ function PlanOutput({
   // close-up of what's wrong, or a clearer angle of the real boat -- to
   // help the regenerate get it right. Either a fresh upload or a picture
   // already saved to the library.
-  const [flagAttachment, setFlagAttachment] = useState<{ file: File } | { url: string } | null>(null);
+  const [flagAttachment, setFlagAttachment] = useState<{ file: File } | { url: string } | null>(
+    null,
+  );
   const [flagAttachmentMode, setFlagAttachmentMode] = useState<"file" | "library">("file");
 
   // Inline editing
@@ -1907,14 +2162,21 @@ function PlanOutput({
     <div className="space-y-4 animate-fade-up">
       {/* Title + Hook */}
       <div className="relative glass tilt-card rounded-2xl p-6 overflow-hidden ring-gold animate-pop">
-        <div className="pointer-events-none absolute inset-0 opacity-[0.035]" style={{ background: "var(--gradient-gold)" }} />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.035]"
+          style={{ background: "var(--gradient-gold)" }}
+        />
         <div className="relative">
-          <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">{t.stuContentTitle}</div>
+          <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">
+            {t.stuContentTitle}
+          </div>
           <div className="font-serif text-2xl leading-tight mb-5">{plan.title}</div>
           <div className="border-t border-border/40 pt-4">
             <div className="flex items-center gap-2 mb-3">
               <Zap className="h-3.5 w-3.5 text-primary" />
-              <span className="text-[10px] tracking-[0.3em] text-primary/80 uppercase">{t.stuViralHookLabel}</span>
+              <span className="text-[10px] tracking-[0.3em] text-primary/80 uppercase">
+                {t.stuViralHookLabel}
+              </span>
             </div>
             <div className="text-[17px] italic leading-snug text-foreground/90 font-serif">
               "{plan.viralHook}"
@@ -1928,7 +2190,11 @@ function PlanOutput({
         <div ref={tabsRowRef} className="relative flex border-b border-border/60 overflow-x-auto">
           <div
             className="pointer-events-none absolute bottom-0 h-0.5 rounded-full transition-all duration-300 ease-out"
-            style={{ left: indicator.left, width: indicator.width, background: "var(--gradient-gold)" }}
+            style={{
+              left: indicator.left,
+              width: indicator.width,
+              background: "var(--gradient-gold)",
+            }}
           />
           {platformKeys.map((key) => {
             const meta = PLATFORM_META[key];
@@ -1937,7 +2203,9 @@ function PlanOutput({
             return (
               <button
                 key={key}
-                ref={(el) => { tabBtnRefs.current[key] = el; }}
+                ref={(el) => {
+                  tabBtnRefs.current[key] = el;
+                }}
                 onClick={() => setActiveTab(key)}
                 className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-3 px-2 text-[10px] tracking-[0.15em] uppercase whitespace-nowrap transition-all ${
                   activeTab === key
@@ -1945,7 +2213,9 @@ function PlanOutput({
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <Icon className={`h-3 w-3 shrink-0 transition-transform ${activeTab === key ? "scale-110" : ""}`} />
+                <Icon
+                  className={`h-3 w-3 shrink-0 transition-transform ${activeTab === key ? "scale-110" : ""}`}
+                />
                 <span className="truncate">{meta.label}</span>
               </button>
             );
@@ -1954,12 +2224,17 @@ function PlanOutput({
 
         <div className={`p-5 bg-gradient-to-br ${activePlatform.color}`}>
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <span className={`text-[9px] tracking-[0.3em] uppercase px-2 py-1 rounded-full ${activePlatform.badge}`}>
+            <span
+              className={`text-[9px] tracking-[0.3em] uppercase px-2 py-1 rounded-full ${activePlatform.badge}`}
+            >
               {activePlatform.label}
             </span>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => { setEditingCaption(activeTab); setCaptionDraft(activePlatform.text); }}
+                onClick={() => {
+                  setEditingCaption(activeTab);
+                  setCaptionDraft(activePlatform.text);
+                }}
                 className="flex items-center gap-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-primary transition-colors"
               >
                 <Pencil className="h-3 w-3" /> {t.stuModify}
@@ -1970,10 +2245,23 @@ function PlanOutput({
                   disabled={sharing === activeTab}
                   className="flex items-center gap-1 text-[10px] tracking-[0.2em] uppercase text-primary/80 hover:text-primary transition-colors disabled:opacity-50"
                 >
-                  {sharing === activeTab ? <><Loader2 className="h-3 w-3 animate-spin" /> {t.stuOpening}</> : <><ArrowUpRight className="h-3 w-3" /> {t.stuOpen}</>}
+                  {sharing === activeTab ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" /> {t.stuOpening}
+                    </>
+                  ) : (
+                    <>
+                      <ArrowUpRight className="h-3 w-3" /> {t.stuOpen}
+                    </>
+                  )}
                 </button>
               )}
-              <CopyBtn id={activeTab} copied={copied} onClick={() => onCopy(activeTab, activePlatform.text)} t={t} />
+              <CopyBtn
+                id={activeTab}
+                copied={copied}
+                onClick={() => onCopy(activeTab, activePlatform.text)}
+                t={t}
+              />
             </div>
           </div>
           {editingCaption === activeTab ? (
@@ -1985,10 +2273,20 @@ function PlanOutput({
                 className="w-full bg-background/60 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/50 resize-y transition-colors"
               />
               <div className="flex gap-2">
-                <button onClick={() => { updateCaption(activeTab, captionDraft); setEditingCaption(null); }} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-primary-foreground text-xs" style={{ background: "var(--gradient-gold)" }}>
+                <button
+                  onClick={() => {
+                    updateCaption(activeTab, captionDraft);
+                    setEditingCaption(null);
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-primary-foreground text-xs"
+                  style={{ background: "var(--gradient-gold)" }}
+                >
                   <Check className="h-3 w-3" /> {t.stuSave}
                 </button>
-                <button onClick={() => setEditingCaption(null)} className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">
+                <button
+                  onClick={() => setEditingCaption(null)}
+                  className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
                   {t.stuCancel}
                 </button>
               </div>
@@ -2005,30 +2303,68 @@ function PlanOutput({
             <Hash className="h-3 w-3" /> {t.stuHashtags}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => { setEditingHashtags(true); setHashtagsDraft(plan.hashtags.join(" ")); }} className="flex items-center gap-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-primary transition-colors">
+            <button
+              onClick={() => {
+                setEditingHashtags(true);
+                setHashtagsDraft(plan.hashtags.join(" "));
+              }}
+              className="flex items-center gap-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-primary transition-colors"
+            >
               <Pencil className="h-3 w-3" /> {t.stuModify}
             </button>
-            <CopyBtn id="tags" copied={copied} onClick={() => onCopy("tags", plan.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" "))} t={t} />
+            <CopyBtn
+              id="tags"
+              copied={copied}
+              onClick={() =>
+                onCopy(
+                  "tags",
+                  plan.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" "),
+                )
+              }
+              t={t}
+            />
           </div>
         </div>
         {editingHashtags ? (
           <div className="space-y-2">
-            <input value={hashtagsDraft} onChange={(e) => setHashtagsDraft(e.target.value)} className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/50 transition-colors" placeholder={t.stuHashtagsPlaceholder} />
+            <input
+              value={hashtagsDraft}
+              onChange={(e) => setHashtagsDraft(e.target.value)}
+              className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/50 transition-colors"
+              placeholder={t.stuHashtagsPlaceholder}
+            />
             <div className="flex gap-2">
-              <button onClick={() => { onPlanChange({ ...plan, hashtags: hashtagsDraft.split(/\s+/).filter(Boolean) }); setEditingHashtags(false); }} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-primary-foreground text-xs" style={{ background: "var(--gradient-gold)" }}>
+              <button
+                onClick={() => {
+                  onPlanChange({ ...plan, hashtags: hashtagsDraft.split(/\s+/).filter(Boolean) });
+                  setEditingHashtags(false);
+                }}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-primary-foreground text-xs"
+                style={{ background: "var(--gradient-gold)" }}
+              >
                 <Check className="h-3 w-3" /> {t.stuSave}
               </button>
-              <button onClick={() => setEditingHashtags(false)} className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">{t.stuCancel}</button>
+              <button
+                onClick={() => setEditingHashtags(false)}
+                className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {t.stuCancel}
+              </button>
             </div>
           </div>
         ) : (
           <div className="flex flex-wrap gap-1.5">
             {plan.hashtags.map((h, i) => (
-              <span key={h} className={`text-[11px] px-2.5 py-1 rounded-full border cursor-default ${
-                i % 3 === 0 ? "border-primary/30 text-primary/80 bg-primary/5"
-                : i % 3 === 1 ? "border-violet-400/30 text-violet-400/80 bg-violet-400/5"
-                : "border-border text-muted-foreground"
-              }`}>
+              <span
+                key={h}
+                className={`text-[11px] px-2.5 py-1 rounded-full border cursor-default ${
+                  i % 3 === 0
+                    ? "border-primary/30 text-primary/80 bg-primary/5"
+                    : i % 3 === 1
+                      ? "border-violet-400/30 text-violet-400/80 bg-violet-400/5"
+                      : "border-border text-muted-foreground"
+                }`}
+              >
                 {h.startsWith("#") ? h : `#${h}`}
               </span>
             ))}
@@ -2042,24 +2378,54 @@ function PlanOutput({
             <ImageIcon className="h-3 w-3" /> {t.stuVisualPrompt}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => { setEditingVisual(true); setVisualDraft(plan.visualPrompt); }} className="flex items-center gap-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-primary transition-colors">
+            <button
+              onClick={() => {
+                setEditingVisual(true);
+                setVisualDraft(plan.visualPrompt);
+              }}
+              className="flex items-center gap-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-primary transition-colors"
+            >
               <Pencil className="h-3 w-3" /> {t.stuModify}
             </button>
-            <CopyBtn id="vis" copied={copied} onClick={() => onCopy("vis", plan.visualPrompt)} t={t} />
+            <CopyBtn
+              id="vis"
+              copied={copied}
+              onClick={() => onCopy("vis", plan.visualPrompt)}
+              t={t}
+            />
           </div>
         </div>
         {editingVisual ? (
           <div className="space-y-2 mb-4">
-            <textarea value={visualDraft} onChange={(e) => setVisualDraft(e.target.value)} rows={4} className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/50 resize-y transition-colors" />
+            <textarea
+              value={visualDraft}
+              onChange={(e) => setVisualDraft(e.target.value)}
+              rows={4}
+              className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/50 resize-y transition-colors"
+            />
             <div className="flex gap-2">
-              <button onClick={() => { onPlanChange({ ...plan, visualPrompt: visualDraft }); setEditingVisual(false); }} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-primary-foreground text-xs" style={{ background: "var(--gradient-gold)" }}>
+              <button
+                onClick={() => {
+                  onPlanChange({ ...plan, visualPrompt: visualDraft });
+                  setEditingVisual(false);
+                }}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-primary-foreground text-xs"
+                style={{ background: "var(--gradient-gold)" }}
+              >
                 <Check className="h-3 w-3" /> {t.stuSave}
               </button>
-              <button onClick={() => setEditingVisual(false)} className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">{t.stuCancel}</button>
+              <button
+                onClick={() => setEditingVisual(false)}
+                className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {t.stuCancel}
+              </button>
             </div>
           </div>
         ) : (
-          <div className="text-sm leading-relaxed text-foreground/90 italic mb-4">{plan.visualPrompt}</div>
+          <div className="text-sm leading-relaxed text-foreground/90 italic mb-4">
+            {plan.visualPrompt}
+          </div>
         )}
 
         {!imageUrl && !imageLoading && (
@@ -2068,7 +2434,9 @@ function PlanOutput({
                 of the actual boat/asset so generation composites around it
                 instead of hallucinating one from the text prompt alone. */}
             <div className="flex items-center justify-between">
-              <div className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">{t.stuReferencePhotos}</div>
+              <div className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
+                {t.stuReferencePhotos}
+              </div>
               <button
                 onClick={() => setShowReferenceUpload((v) => !v)}
                 className="text-[10px] tracking-[0.2em] uppercase text-primary hover:underline"
@@ -2084,7 +2452,9 @@ function PlanOutput({
                 pick without touching the saved photo itself. */}
             {selectedReferenceIds.size > 0 && (
               <div className="space-y-1.5 p-2.5 rounded-lg border border-border/60 bg-secondary/10">
-                <div className="text-[10px] text-muted-foreground">{t.stuReferencePhotosSelected(selectedReferenceIds.size)}</div>
+                <div className="text-[10px] text-muted-foreground">
+                  {t.stuReferencePhotosSelected(selectedReferenceIds.size)}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {referencePhotos
                     .filter((photo) => selectedReferenceIds.has(photo.id))
@@ -2167,103 +2537,129 @@ function PlanOutput({
                       </div>
                     )}
                   </div>
-                ) : (() => {
-                  // CAP-143: once a folder is picked below, narrow the
-                  // library grid to just that folder's pictures -- with a
-                  // lot of boats saved, browsing everything at once made it
-                  // hard to find the right one.
-                  const visibleReferencePhotos = referenceUploadCollectionId
-                    ? referencePhotos.filter((p) => p.collection_id === referenceUploadCollectionId)
-                    : referencePhotos;
-                  const visibleGeneratedImages = referenceUploadCollectionId
-                    ? generatedImages.filter((i) => i.collection_id === referenceUploadCollectionId)
-                    : generatedImages;
-                  if (visibleReferencePhotos.length === 0 && visibleGeneratedImages.length === 0) {
-                    return <div className="text-[11px] text-muted-foreground">{t.stuFlagLibraryEmpty}</div>;
-                  }
-                  return (
-                    <div className="space-y-1.5">
-                      {visibleReferencePhotos.length > 0 && (
-                        <div className="flex items-center justify-end gap-3 text-[10px]">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              visibleReferencePhotos.forEach((p) => {
-                                if (!selectedReferenceIds.has(p.id)) onToggleReferencePhoto(p.id);
-                              })
-                            }
-                            className="text-primary hover:underline"
-                          >
-                            {t.stuLibrarySelectAll}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              visibleReferencePhotos.forEach((p) => {
-                                if (selectedReferenceIds.has(p.id)) onToggleReferencePhoto(p.id);
-                              })
-                            }
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            {t.stuLibraryDeselectAll}
-                          </button>
+                ) : (
+                  (() => {
+                    // CAP-143: once a folder is picked below, narrow the
+                    // library grid to just that folder's pictures -- with a
+                    // lot of boats saved, browsing everything at once made it
+                    // hard to find the right one.
+                    const visibleReferencePhotos = referenceUploadCollectionId
+                      ? referencePhotos.filter(
+                          (p) => p.collection_id === referenceUploadCollectionId,
+                        )
+                      : referencePhotos;
+                    const visibleGeneratedImages = referenceUploadCollectionId
+                      ? generatedImages.filter(
+                          (i) => i.collection_id === referenceUploadCollectionId,
+                        )
+                      : generatedImages;
+                    if (
+                      visibleReferencePhotos.length === 0 &&
+                      visibleGeneratedImages.length === 0
+                    ) {
+                      return (
+                        <div className="text-[11px] text-muted-foreground">
+                          {t.stuFlagLibraryEmpty}
                         </div>
-                      )}
-                      <div className="grid grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-1.5 max-h-56 overflow-y-auto pr-1">
-                        {/* CAP-139: an already-saved reference photo just gets
+                      );
+                    }
+                    return (
+                      <div className="space-y-1.5">
+                        {visibleReferencePhotos.length > 0 && (
+                          <div className="flex items-center justify-end gap-3 text-[10px]">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                visibleReferencePhotos.forEach((p) => {
+                                  if (!selectedReferenceIds.has(p.id)) onToggleReferencePhoto(p.id);
+                                })
+                              }
+                              className="text-primary hover:underline"
+                            >
+                              {t.stuLibrarySelectAll}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                visibleReferencePhotos.forEach((p) => {
+                                  if (selectedReferenceIds.has(p.id)) onToggleReferencePhoto(p.id);
+                                })
+                              }
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              {t.stuLibraryDeselectAll}
+                            </button>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-1.5 max-h-56 overflow-y-auto pr-1">
+                          {/* CAP-139: an already-saved reference photo just gets
                             selected for this generation (no re-upload needed) --
                             a generated image gets copied in as a new reference
                             photo and selected right away. */}
-                        {visibleReferencePhotos.map((photo) => {
-                          const selected = selectedReferenceIds.has(photo.id);
-                          return (
+                          {visibleReferencePhotos.map((photo) => {
+                            const selected = selectedReferenceIds.has(photo.id);
+                            return (
+                              <button
+                                key={`ref-${photo.id}`}
+                                type="button"
+                                title={photo.label}
+                                onClick={() => onToggleReferencePhoto(photo.id)}
+                                className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${selected ? "border-primary" : "border-transparent hover:border-primary/40"}`}
+                              >
+                                <img
+                                  src={photo.image_url}
+                                  alt={photo.label}
+                                  className="h-full w-full object-cover"
+                                />
+                                {selected && (
+                                  <span className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                    <Check className="h-4 w-4 text-white drop-shadow" />
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                          {visibleGeneratedImages.map((item) => (
                             <button
-                              key={`ref-${photo.id}`}
+                              key={`gen-${item.id}`}
                               type="button"
-                              title={photo.label}
-                              onClick={() => onToggleReferencePhoto(photo.id)}
-                              className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${selected ? "border-primary" : "border-transparent hover:border-primary/40"}`}
+                              disabled={referenceUploading}
+                              title={item.prompt ?? ""}
+                              onClick={async () => {
+                                setReferenceUploading(true);
+                                const result = await onImportGeneratedImage(
+                                  item,
+                                  referenceUploadCollectionId,
+                                );
+                                setReferenceUploading(false);
+                                if (result) {
+                                  onToggleReferencePhoto(result.id);
+                                  setShowReferenceUpload(false);
+                                  setReferenceUploadCollectionId(null);
+                                }
+                              }}
+                              className="aspect-square rounded-md overflow-hidden border border-transparent hover:border-primary/40 transition-all disabled:opacity-40"
                             >
-                              <img src={photo.image_url} alt={photo.label} className="h-full w-full object-cover" />
-                              {selected && (
-                                <span className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                                  <Check className="h-4 w-4 text-white drop-shadow" />
-                                </span>
-                              )}
+                              <img
+                                src={item.media_url}
+                                alt={item.prompt ?? ""}
+                                className="h-full w-full object-cover"
+                              />
                             </button>
-                          );
-                        })}
-                        {visibleGeneratedImages.map((item) => (
-                          <button
-                            key={`gen-${item.id}`}
-                            type="button"
-                            disabled={referenceUploading}
-                            title={item.prompt ?? ""}
-                            onClick={async () => {
-                              setReferenceUploading(true);
-                              const result = await onImportGeneratedImage(item, referenceUploadCollectionId);
-                              setReferenceUploading(false);
-                              if (result) {
-                                onToggleReferencePhoto(result.id);
-                                setShowReferenceUpload(false);
-                                setReferenceUploadCollectionId(null);
-                              }
-                            }}
-                            className="aspect-square rounded-md overflow-hidden border border-transparent hover:border-primary/40 transition-all disabled:opacity-40"
-                          >
-                            <img src={item.media_url} alt={item.prompt ?? ""} className="h-full w-full object-cover" />
-                          </button>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })()}
+                    );
+                  })()
+                )}
 
                 {/* CAP-137: which folder this photo belongs to -- pick an
                     existing one or create a new one, right where the photo
                     is added instead of only from the Library panel. */}
                 <select
-                  value={referenceUploadCreatingFolder ? "__new__" : (referenceUploadCollectionId ?? "")}
+                  value={
+                    referenceUploadCreatingFolder ? "__new__" : (referenceUploadCollectionId ?? "")
+                  }
                   onChange={(e) => {
                     if (e.target.value === "__new__") {
                       setReferenceUploadCreatingFolder(true);
@@ -2290,7 +2686,9 @@ function PlanOutput({
                       onChange={(e) => setReferenceUploadNewFolderName(e.target.value)}
                       onKeyDown={async (e) => {
                         if (e.key === "Enter" && referenceUploadNewFolderName.trim()) {
-                          const created = await onCreateCollection(referenceUploadNewFolderName.trim());
+                          const created = await onCreateCollection(
+                            referenceUploadNewFolderName.trim(),
+                          );
                           if (created) setReferenceUploadCollectionId(created.id);
                           setReferenceUploadNewFolderName("");
                           setReferenceUploadCreatingFolder(false);
@@ -2306,7 +2704,9 @@ function PlanOutput({
                       type="button"
                       onClick={async () => {
                         if (referenceUploadNewFolderName.trim()) {
-                          const created = await onCreateCollection(referenceUploadNewFolderName.trim());
+                          const created = await onCreateCollection(
+                            referenceUploadNewFolderName.trim(),
+                          );
                           if (created) setReferenceUploadCollectionId(created.id);
                         }
                         setReferenceUploadNewFolderName("");
@@ -2330,15 +2730,24 @@ function PlanOutput({
                       />
                       {t.stuReferencePhotoRightsLabel}
                     </label>
-                    {referencePhotoError && <div className="text-[11px] text-destructive">{referencePhotoError}</div>}
+                    {referencePhotoError && (
+                      <div className="text-[11px] text-destructive">{referencePhotoError}</div>
+                    )}
                     <button
                       disabled={!referenceUploadFile || referenceUploading}
                       onClick={async () => {
                         if (!referenceUploadFile) return;
                         setReferenceUploading(true);
-                        const result = await onUploadReferencePhoto(referenceUploadFile, "", referenceRightsChecked);
+                        const result = await onUploadReferencePhoto(
+                          referenceUploadFile,
+                          "",
+                          referenceRightsChecked,
+                        );
                         if (result && referenceUploadCollectionId) {
-                          await onSetReferencePhotoCollection(result.id, referenceUploadCollectionId);
+                          await onSetReferencePhotoCollection(
+                            result.id,
+                            referenceUploadCollectionId,
+                          );
                         }
                         setReferenceUploading(false);
                         if (result) {
@@ -2352,7 +2761,11 @@ function PlanOutput({
                       className="w-full h-8 rounded-lg text-primary-foreground text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-40"
                       style={{ background: "var(--gradient-gold)" }}
                     >
-                      {referenceUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                      {referenceUploading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Plus className="h-3.5 w-3.5" />
+                      )}
                       {t.stuUploadReferencePhoto}
                     </button>
                   </>
@@ -2466,14 +2879,19 @@ function PlanOutput({
                       }}
                     />
                     <Paperclip className="h-3 w-3 shrink-0" />
-                    {flagAttachment && "file" in flagAttachment ? flagAttachment.file.name : t.stuFlagAddPicture}
+                    {flagAttachment && "file" in flagAttachment
+                      ? flagAttachment.file.name
+                      : t.stuFlagAddPicture}
                   </label>
                 ) : flagAttachmentChoices.length === 0 ? (
                   <div className="text-[11px] text-muted-foreground">{t.stuFlagLibraryEmpty}</div>
                 ) : (
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-1.5 max-h-56 overflow-y-auto pr-1">
                     {flagAttachmentChoices.map((choice) => {
-                      const selected = !!flagAttachment && "url" in flagAttachment && flagAttachment.url === choice.url;
+                      const selected =
+                        !!flagAttachment &&
+                        "url" in flagAttachment &&
+                        flagAttachment.url === choice.url;
                       return (
                         <button
                           key={choice.id}
@@ -2482,7 +2900,11 @@ function PlanOutput({
                           onClick={() => setFlagAttachment({ url: choice.url })}
                           className={`aspect-square rounded-md overflow-hidden border-2 transition-all ${selected ? "border-primary" : "border-transparent hover:border-primary/40"}`}
                         >
-                          <img src={choice.url} alt={choice.label} className="h-full w-full object-cover" />
+                          <img
+                            src={choice.url}
+                            alt={choice.label}
+                            className="h-full w-full object-cover"
+                          />
                         </button>
                       );
                     })}
@@ -2506,7 +2928,11 @@ function PlanOutput({
                     <Flag className="h-3.5 w-3.5" /> {t.stuFlagAndRegenerate}
                   </button>
                   <button
-                    onClick={() => { setShowFlagForm(false); setFlagReasonDraft(""); setFlagAttachment(null); }}
+                    onClick={() => {
+                      setShowFlagForm(false);
+                      setFlagReasonDraft("");
+                      setFlagAttachment(null);
+                    }}
                     className="px-3 h-8 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {t.stuCancel}
@@ -2524,26 +2950,54 @@ function PlanOutput({
       {plan.script.length > 0 && (
         <div className="glass rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-[10px] tracking-[0.34em] text-primary/80">{t.stuContentScript}</div>
-            <button onClick={() => { setEditingScript(true); setScriptDraft(plan.script.join("\n")); }} className="flex items-center gap-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-primary transition-colors">
+            <div className="text-[10px] tracking-[0.34em] text-primary/80">
+              {t.stuContentScript}
+            </div>
+            <button
+              onClick={() => {
+                setEditingScript(true);
+                setScriptDraft(plan.script.join("\n"));
+              }}
+              className="flex items-center gap-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-primary transition-colors"
+            >
               <Pencil className="h-3 w-3" /> {t.stuModify}
             </button>
           </div>
           {editingScript ? (
             <div className="space-y-2">
-              <textarea value={scriptDraft} onChange={(e) => setScriptDraft(e.target.value)} rows={8} className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/50 resize-y transition-colors" placeholder={t.stuScriptPlaceholder} />
+              <textarea
+                value={scriptDraft}
+                onChange={(e) => setScriptDraft(e.target.value)}
+                rows={8}
+                className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/50 resize-y transition-colors"
+                placeholder={t.stuScriptPlaceholder}
+              />
               <div className="flex gap-2">
-                <button onClick={() => { onPlanChange({ ...plan, script: scriptDraft.split("\n").filter(Boolean) }); setEditingScript(false); }} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-primary-foreground text-xs" style={{ background: "var(--gradient-gold)" }}>
+                <button
+                  onClick={() => {
+                    onPlanChange({ ...plan, script: scriptDraft.split("\n").filter(Boolean) });
+                    setEditingScript(false);
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-primary-foreground text-xs"
+                  style={{ background: "var(--gradient-gold)" }}
+                >
                   <Check className="h-3 w-3" /> {t.stuSave}
                 </button>
-                <button onClick={() => setEditingScript(false)} className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">{t.stuCancel}</button>
+                <button
+                  onClick={() => setEditingScript(false)}
+                  className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {t.stuCancel}
+                </button>
               </div>
             </div>
           ) : (
             <ol className="space-y-2 mb-4">
               {plan.script.map((s, i) => (
                 <li key={i} className="flex gap-3 text-sm">
-                  <span className="text-primary/80 font-mono text-xs pt-0.5 shrink-0">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="text-primary/80 font-mono text-xs pt-0.5 shrink-0">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
                   <span className="leading-relaxed">{s}</span>
                 </li>
               ))}
@@ -2582,7 +3036,9 @@ function PlanOutput({
           {videoComingSoon && !videoLoading && (
             <div className="w-full rounded-xl border border-border/40 p-4 text-center bg-secondary/10">
               <Video className="h-4 w-4 text-muted-foreground mx-auto mb-2" />
-              <div className="text-xs text-muted-foreground">{videoUnavailableMessage ?? t.stuVideoComingSoon}</div>
+              <div className="text-xs text-muted-foreground">
+                {videoUnavailableMessage ?? t.stuVideoComingSoon}
+              </div>
             </div>
           )}
 
@@ -2627,16 +3083,23 @@ function PlanOutput({
 // ─── Publish Panel ────────────────────────────────────────────────────────────
 
 const ALL_PUBLISH_PLATFORMS = [
-  { key: "instagram",      label: "Instagram",       icon: Instagram,    shareKey: "instagram" },
-  { key: "tiktok",         label: "TikTok",           icon: Film,         shareKey: "tiktok" },
-  { key: "youtube_shorts", label: "YouTube Shorts",  icon: Youtube,      shareKey: "youtube" },
-  { key: "facebook",       label: "Facebook",         icon: Facebook,     shareKey: "facebook" },
-  { key: "linkedin",       label: "LinkedIn",         icon: Linkedin,     shareKey: "linkedin" },
-  { key: "twitter",        label: "X / Twitter",      icon: Twitter,      shareKey: "twitter" },
+  { key: "instagram", label: "Instagram", icon: Instagram, shareKey: "instagram" },
+  { key: "tiktok", label: "TikTok", icon: Film, shareKey: "tiktok" },
+  { key: "youtube_shorts", label: "YouTube Shorts", icon: Youtube, shareKey: "youtube" },
+  { key: "facebook", label: "Facebook", icon: Facebook, shareKey: "facebook" },
+  { key: "linkedin", label: "LinkedIn", icon: Linkedin, shareKey: "linkedin" },
+  { key: "twitter", label: "X / Twitter", icon: Twitter, shareKey: "twitter" },
 ];
 
 function PublishPanel({
-  plan, connectedPlatforms, supabaseClient, userId, industryId, imageUrl, lastSavedId, t,
+  plan,
+  connectedPlatforms,
+  supabaseClient,
+  userId,
+  industryId,
+  imageUrl,
+  lastSavedId,
+  t,
 }: {
   plan: StudioContentPlan;
   connectedPlatforms: Set<string>;
@@ -2648,8 +3111,12 @@ function PublishPanel({
   t: T;
 }) {
   const availablePlatforms = ALL_PUBLISH_PLATFORMS.filter((p) => plan.platforms[p.key]);
-  const [selected, setSelected] = useState<Set<string>>(new Set(availablePlatforms.map((p) => p.key)));
-  const [postStatus, setPostStatus] = useState<Record<string, "idle" | "posting" | "done" | "error">>({});
+  const [selected, setSelected] = useState<Set<string>>(
+    new Set(availablePlatforms.map((p) => p.key)),
+  );
+  const [postStatus, setPostStatus] = useState<
+    Record<string, "idle" | "posting" | "done" | "error">
+  >({});
   const [showScheduler, setShowScheduler] = useState(false);
   const [schedDate, setSchedDate] = useState("");
   const [schedTime, setSchedTime] = useState("09:00");
@@ -2661,13 +3128,16 @@ function PublishPanel({
   const togglePlatform = (key: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   };
 
   const postNow = async () => {
-    const { data: { session } } = await supabaseClient.auth.getSession();
+    const {
+      data: { session },
+    } = await supabaseClient.auth.getSession();
     const token = session?.access_token ?? "";
 
     for (const key of selected) {
@@ -2676,18 +3146,36 @@ function PublishPanel({
 
       if (connectedPlatforms.has(key)) {
         try {
-          const res = await fetch("https://ooliwsmmtpggejyjmone.supabase.co/functions/v1/post-content", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ platform: key, text: plan.platforms[key], imageUrl: imageUrl ?? undefined }),
-          });
-          const data = await res.json() as { success?: boolean; manualPost?: boolean; error?: string };
+          const res = await fetch(
+            "https://ooliwsmmtpggejyjmone.supabase.co/functions/v1/post-content",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({
+                platform: key,
+                text: plan.platforms[key],
+                imageUrl: imageUrl ?? undefined,
+              }),
+            },
+          );
+          const data = (await res.json()) as {
+            success?: boolean;
+            manualPost?: boolean;
+            error?: string;
+          };
           if (data.success || data.manualPost) {
             setPostStatus((s) => ({ ...s, [key]: "done" }));
             // Fallback: open platform if manual
             if (data.manualPost) {
               await navigator.clipboard.writeText(plan.platforms[key] ?? "");
-              const urls: Record<string, string> = { instagram: "https://www.instagram.com/", tiktok: "https://www.tiktok.com/upload", youtube_shorts: "https://studio.youtube.com/", facebook: "https://www.facebook.com/", linkedin: "https://www.linkedin.com/feed/?shareActive=true", twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent((plan.platforms[key] ?? "").slice(0, 280))}` };
+              const urls: Record<string, string> = {
+                instagram: "https://www.instagram.com/",
+                tiktok: "https://www.tiktok.com/upload",
+                youtube_shorts: "https://studio.youtube.com/",
+                facebook: "https://www.facebook.com/",
+                linkedin: "https://www.linkedin.com/feed/?shareActive=true",
+                twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent((plan.platforms[key] ?? "").slice(0, 280))}`,
+              };
               if (urls[key]) window.open(urls[key], "_blank");
             }
           } else {
@@ -2699,7 +3187,14 @@ function PublishPanel({
       } else {
         // Not connected — copy + open
         await navigator.clipboard.writeText(plan.platforms[key] ?? "");
-        const urls: Record<string, string> = { instagram: "https://www.instagram.com/", tiktok: "https://www.tiktok.com/upload", youtube_shorts: "https://studio.youtube.com/", facebook: "https://www.facebook.com/", linkedin: "https://www.linkedin.com/feed/?shareActive=true", twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent((plan.platforms[key] ?? "").slice(0, 280))}` };
+        const urls: Record<string, string> = {
+          instagram: "https://www.instagram.com/",
+          tiktok: "https://www.tiktok.com/upload",
+          youtube_shorts: "https://studio.youtube.com/",
+          facebook: "https://www.facebook.com/",
+          linkedin: "https://www.linkedin.com/feed/?shareActive=true",
+          twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent((plan.platforms[key] ?? "").slice(0, 280))}`,
+        };
         if (urls[key]) window.open(urls[key], "_blank");
         setPostStatus((s) => ({ ...s, [key]: "done" }));
       }
@@ -2772,20 +3267,34 @@ function PublishPanel({
               key={p.key}
               onClick={() => togglePlatform(p.key)}
               className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
-                isSelected ? "border-primary/50 bg-primary/5" : "border-border hover:border-primary/30"
+                isSelected
+                  ? "border-primary/50 bg-primary/5"
+                  : "border-border hover:border-primary/30"
               }`}
             >
-              {isSelected ? <CheckSquare className="h-4 w-4 text-primary shrink-0" /> : <Square className="h-4 w-4 text-muted-foreground shrink-0" />}
+              {isSelected ? (
+                <CheckSquare className="h-4 w-4 text-primary shrink-0" />
+              ) : (
+                <Square className="h-4 w-4 text-muted-foreground shrink-0" />
+              )}
               <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="flex-1 text-sm">{p.label}</span>
               {isConnected ? (
-                <span className="text-[9px] tracking-[0.2em] text-emerald-400 uppercase">{t.stuConnected}</span>
+                <span className="text-[9px] tracking-[0.2em] text-emerald-400 uppercase">
+                  {t.stuConnected}
+                </span>
               ) : (
-                <Link to="/profile" className="text-[9px] tracking-[0.2em] text-muted-foreground hover:text-primary uppercase transition-colors" onClick={(e) => e.stopPropagation()}>
+                <Link
+                  to="/profile"
+                  className="text-[9px] tracking-[0.2em] text-muted-foreground hover:text-primary uppercase transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {t.stuConnectArrow}
                 </Link>
               )}
-              {status === "posting" && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />}
+              {status === "posting" && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />
+              )}
               {status === "done" && <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />}
               {status === "error" && <X className="h-3.5 w-3.5 text-destructive shrink-0" />}
             </button>
@@ -2796,10 +3305,15 @@ function PublishPanel({
       {/* Caption preview for selected platforms */}
       {selected.size > 0 && (
         <div className="text-[11px] text-muted-foreground">
-          {t.stuCaptionLinked(Array.from(selected).filter((k) => plan.platforms[k]).map((k) => {
-            const p = ALL_PUBLISH_PLATFORMS.find((x) => x.key === k);
-            return p?.label;
-          }).join(", "))}
+          {t.stuCaptionLinked(
+            Array.from(selected)
+              .filter((k) => plan.platforms[k])
+              .map((k) => {
+                const p = ALL_PUBLISH_PLATFORMS.find((x) => x.key === k);
+                return p?.label;
+              })
+              .join(", "),
+          )}
         </div>
       )}
 
@@ -2822,7 +3336,17 @@ function PublishPanel({
             disabled={saving}
             className="h-10 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 flex items-center justify-center gap-2 transition-all"
           >
-            {saved ? <><Check className="h-3.5 w-3.5 text-emerald-400" /> {t.stuSavedExcl}</> : saving ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {t.stuSaving}</> : t.stuSave}
+            {saved ? (
+              <>
+                <Check className="h-3.5 w-3.5 text-emerald-400" /> {t.stuSavedExcl}
+              </>
+            ) : saving ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t.stuSaving}
+              </>
+            ) : (
+              t.stuSave
+            )}
           </button>
           <button
             onClick={() => setShowScheduler(!showScheduler)}
@@ -2841,7 +3365,9 @@ function PublishPanel({
         {/* Scheduler */}
         {showScheduler && (
           <div className="border border-primary/20 rounded-xl p-4 space-y-3 bg-secondary/10 animate-fade-up">
-            <div className="text-[10px] tracking-[0.3em] text-primary/80">{t.stuScheduleHeader}</div>
+            <div className="text-[10px] tracking-[0.3em] text-primary/80">
+              {t.stuScheduleHeader}
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <div className="text-[10px] text-muted-foreground mb-1">{t.stuDate}</div>
@@ -2872,7 +3398,15 @@ function PublishPanel({
               className="w-full h-10 rounded-xl text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
               style={{ background: "var(--gradient-gold)" }}
             >
-              {scheduling ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {t.stuScheduling}</> : <><Calendar className="h-3.5 w-3.5" /> {t.stuConfirmSchedule}</>}
+              {scheduling ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t.stuScheduling}
+                </>
+              ) : (
+                <>
+                  <Calendar className="h-3.5 w-3.5" /> {t.stuConfirmSchedule}
+                </>
+              )}
             </button>
           </div>
         )}
@@ -2881,7 +3415,17 @@ function PublishPanel({
   );
 }
 
-function CopyBtn({ id, copied, onClick, t }: { id: string; copied: string | null; onClick: () => void; t: T }) {
+function CopyBtn({
+  id,
+  copied,
+  onClick,
+  t,
+}: {
+  id: string;
+  copied: string | null;
+  onClick: () => void;
+  t: T;
+}) {
   const isCopied = copied === id;
   return (
     <button

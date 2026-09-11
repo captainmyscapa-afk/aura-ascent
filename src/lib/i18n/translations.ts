@@ -219,7 +219,11 @@ export type T = {
   mentorGateMessage: string;
   mentorGateMessageModal: string;
   mentorErrorPrefix: string;
-  mentorContent: (industryId: "yachts" | "villas" | "jets" | "cars") => { persona: string; specialty: string; prompts: string[] };
+  mentorContent: (industryId: "yachts" | "villas" | "jets" | "cars") => {
+    persona: string;
+    specialty: string;
+    prompts: string[];
+  };
   // Academy
   acadEyebrow: (mode: string) => string;
   acadHeroPre: string;
@@ -779,9 +783,15 @@ export const translations: Record<Lang, T> = {
     dashDemoMessage: "Sign in to unlock the full experience — memory, persistence, unlimited AI.",
     dashSignIn: "Sign in",
     dashFreePlan: "Free plan",
-    dashUpgradeMessage: "Upgrade to Pro — unlock your 30-day Roadmap, Tutor, full Academy & unlimited mentor.",
+    dashUpgradeMessage:
+      "Upgrade to Pro — unlock your 30-day Roadmap, Tutor, full Academy & unlimited mentor.",
     dashUpgradeCta: "Upgrade · £29/mo",
-    greeting: (period) => period === "morning" ? "Good morning" : period === "afternoon" ? "Good afternoon" : "Good evening",
+    greeting: (period) =>
+      period === "morning"
+        ? "Good morning"
+        : period === "afternoon"
+          ? "Good afternoon"
+          : "Good evening",
     dashSpeakWithAurum: "Speak with AURUM",
     dashOpenIntelligence: "Open Intelligence",
     dashTodayEyebrow: (mode) => `TODAY · ${mode.toUpperCase()}`,
@@ -796,13 +806,16 @@ export const translations: Record<Lang, T> = {
     dashAskMentorHelp: "Ask Mentor for help",
     dashAllIndustries: "All industries",
     dashSelectEvent: "Select an event",
-    dashSelectEventDesc: "Click any event on the calendar to see details, content prep timing and create posts.",
+    dashSelectEventDesc:
+      "Click any event on the calendar to see details, content prep timing and create posts.",
     dashDaysAway: (n) => `${n} day${n === 1 ? "" : "s"} away`,
     dashHappeningToday: "Happening today",
     dashEventPassed: "Event has passed",
     dashContentPrepWindow: "CONTENT PREP WINDOW",
-    dashStartPosting: (weeks) => `Start posting ${weeks} week${weeks === 1 ? "" : "s"} before the event.`,
-    dashContentWindowOpensIn: (days, date) => `Content window opens in ${days} day${days === 1 ? "" : "s"} — ${date}`,
+    dashStartPosting: (weeks) =>
+      `Start posting ${weeks} week${weeks === 1 ? "" : "s"} before the event.`,
+    dashContentWindowOpensIn: (days, date) =>
+      `Content window opens in ${days} day${days === 1 ? "" : "s"} — ${date}`,
     dashContentWindowOpenNow: "Content window is open right now. Start posting today.",
     dashEventHasPassed: "This event has passed.",
     dashCreateContentForEvent: "Create content for this event",
@@ -859,13 +872,27 @@ export const translations: Record<Lang, T> = {
       "🏔️ Great achievements are built one day at a time. Today's work is done. Come back tomorrow.",
       "👑 Another day conquered. Five rituals complete. Return tomorrow and continue your ascent.",
     ],
-    monthShort: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
-    weekdayLetters: ["M","T","W","T","F","S","S"],
+    monthShort: [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ],
+    weekdayLetters: ["M", "T", "W", "T", "F", "S", "S"],
     // Calendar
     calEyebrow: "YOUR PROGRESS, MAPPED",
     calHeroPre: "Every day you",
     calHeroEm: "show up",
-    calSubtitle: "A living record of your daily rituals and a place to plan what's next — completions, streaks, and tasks with reminders, all in one grid.",
+    calSubtitle:
+      "A living record of your daily rituals and a place to plan what's next — completions, streaks, and tasks with reminders, all in one grid.",
     calAddTask: "Add task",
     calToday: "Today",
     calRitualLabel: "Daily ritual",
@@ -934,12 +961,14 @@ export const translations: Record<Lang, T> = {
     roadmapEyebrow: (mode) => `ROADMAP · ${mode.toUpperCase()}`,
     roadmapBuilding: "Building your roadmap…",
     roadmapDefaultHeadline: "Your 30-Day Plan",
-    roadmapDescription: "A personalized 30-day entry plan built around your industry, level, and goals. Specific daily actions — check them off as you go.",
+    roadmapDescription:
+      "A personalized 30-day entry plan built around your industry, level, and goals. Specific daily actions — check them off as you go.",
     roadmapRegenerate: "Regenerate",
     roadmapGenerating: "Generating…",
     roadmapOverallProgress: "Overall progress",
     roadmapArchitecting: "Architecting your roadmap…",
-    roadmapArchitectingDesc: (industry) => `AURUM is building 30 days of precision execution for ${industry}. This takes about 15 seconds.`,
+    roadmapArchitectingDesc: (industry) =>
+      `AURUM is building 30 days of precision execution for ${industry}. This takes about 15 seconds.`,
     roadmapWeekLabel: (n) => `Week ${n} · `,
     roadmapWeekHeader: (n) => `WEEK ${n}`,
     roadmapMilestone: "MILESTONE",
@@ -953,14 +982,16 @@ export const translations: Record<Lang, T> = {
     roadmapSwapping: "Swapping…",
     roadmapSwapFailed: "Couldn't swap this task — try again.",
     roadmapContinueInMentor: "Continue in Mentor",
-    roadmapHelpGateMessage: "You've used your free task help sessions. Upgrade to Pro for unlimited help on every task.",
+    roadmapHelpGateMessage:
+      "You've used your free task help sessions. Upgrade to Pro for unlimited help on every task.",
     roadmapMarkComplete: "Mark complete",
     roadmapMarkIncomplete: "Mark incomplete",
     roadmapLockTitle: "Your 30-Day Roadmap",
-    roadmapLockDesc: "A day-by-day execution plan built for your goal — four weeks of networking, content, and outreach tasks, mapped out and synced to your calendar.",
+    roadmapLockDesc:
+      "A day-by-day execution plan built for your goal — four weeks of networking, content, and outreach tasks, mapped out and synced to your calendar.",
     roadmapLockFeatures: [
       "Full 30-day, week-by-week plan",
-      "AI \"Get help\" guidance on every task",
+      'AI "Get help" guidance on every task',
       "Auto-synced to your Calendar",
       "Regenerate anytime as your goal evolves",
     ],
@@ -990,14 +1021,22 @@ export const translations: Record<Lang, T> = {
     intelSignalsOf: (category) => `Signals · ${category}`,
     intelReadBrief: "Read brief",
     intelGenerateContent: "Generate content",
-    categoryLabel: (category) => ({ yachting: "Yachting", property: "Property", aviation: "Aviation", automotive: "Automotive" }[category] ?? category),
+    categoryLabel: (category) =>
+      ({
+        yachting: "Yachting",
+        property: "Property",
+        aviation: "Aviation",
+        automotive: "Automotive",
+      })[category] ?? category,
     // Mentor
     mentorMinAgo: (n) => `${n}m ago`,
     mentorHourAgo: (n) => `${n}h ago`,
     mentorYesterday: "Yesterday",
-    mentorOpener: (greeting, userName, persona, industry) => `${greeting}, ${userName}. I am your AURUM ${persona} — here to help you break into ${industry.toLowerCase()} at the highest level. What is your most pressing challenge right now?`,
+    mentorOpener: (greeting, userName, persona, industry) =>
+      `${greeting}, ${userName}. I am your AURUM ${persona} — here to help you break into ${industry.toLowerCase()} at the highest level. What is your most pressing challenge right now?`,
     mentorThinking: "AURUM is thinking...",
-    mentorPlaceholder: (industry) => `Ask AURUM about ${industry.toLowerCase()} — strategy, outreach, the market...`,
+    mentorPlaceholder: (industry) =>
+      `Ask AURUM about ${industry.toLowerCase()} — strategy, outreach, the market...`,
     mentorFreeMessages: "free messages",
     mentorOnline: "ONLINE",
     mentorNewConversation: "New conversation",
@@ -1008,51 +1047,54 @@ export const translations: Record<Lang, T> = {
     mentorContextLoaded: "CONTEXT LOADED",
     mentorExecutionStreak: (n) => `${n}-day execution streak`,
     mentorTasksCompletedToday: (n) => `${n} tasks completed today`,
-    mentorGateMessage: "You've used your 5 free mentor messages. Upgrade to Pro for unlimited access.",
-    mentorGateMessageModal: "You've used your 5 free mentor messages. Upgrade to Pro for unlimited mentorship.",
+    mentorGateMessage:
+      "You've used your 5 free mentor messages. Upgrade to Pro for unlimited access.",
+    mentorGateMessageModal:
+      "You've used your 5 free mentor messages. Upgrade to Pro for unlimited mentorship.",
     mentorErrorPrefix: "Error: ",
-    mentorContent: (industryId) => ({
-      yachts: {
-        persona: "AURUM · Yachting Counsel",
-        specialty: "Brokerage, charter, owner psychology · Monaco-rooted",
-        prompts: [
-          "Plan my Monaco Yacht Show week",
-          "Review my brokerage LinkedIn positioning",
-          "Draft a charter inquiry to a UHNW prospect",
-          "Coach me through a senior broker conversation",
-        ],
-      },
-      villas: {
-        persona: "AURUM · Ultra-Prime Counsel",
-        specialty: "Trophy real estate, UHNW investors, developers · Dubai/Miami/Monaco",
-        prompts: [
-          "Plan my Dubai trophy market week",
-          "Review my luxury real estate positioning",
-          "Draft outreach to a UHNW investor",
-          "Coach me through a developer pitch",
-        ],
-      },
-      jets: {
-        persona: "AURUM · Aviation Counsel",
-        specialty: "Aircraft brokerage, charter, fractional, UHNW travel",
-        prompts: [
-          "Plan my EBACE / NBAA week",
-          "Review my aviation LinkedIn positioning",
-          "Draft outreach to a Global 7500 owner",
-          "Coach me through a charter pricing call",
-        ],
-      },
-      cars: {
-        persona: "AURUM · Collector Counsel",
-        specialty: "Hypercars, collector auctions, dealer relationships, allocation politics",
-        prompts: [
-          "Plan my Monterey Car Week",
-          "Review my collector LinkedIn positioning",
-          "Draft outreach to a hypercar allocation contact",
-          "Coach me through a private-treaty negotiation",
-        ],
-      },
-    })[industryId],
+    mentorContent: (industryId) =>
+      ({
+        yachts: {
+          persona: "AURUM · Yachting Counsel",
+          specialty: "Brokerage, charter, owner psychology · Monaco-rooted",
+          prompts: [
+            "Plan my Monaco Yacht Show week",
+            "Review my brokerage LinkedIn positioning",
+            "Draft a charter inquiry to a UHNW prospect",
+            "Coach me through a senior broker conversation",
+          ],
+        },
+        villas: {
+          persona: "AURUM · Ultra-Prime Counsel",
+          specialty: "Trophy real estate, UHNW investors, developers · Dubai/Miami/Monaco",
+          prompts: [
+            "Plan my Dubai trophy market week",
+            "Review my luxury real estate positioning",
+            "Draft outreach to a UHNW investor",
+            "Coach me through a developer pitch",
+          ],
+        },
+        jets: {
+          persona: "AURUM · Aviation Counsel",
+          specialty: "Aircraft brokerage, charter, fractional, UHNW travel",
+          prompts: [
+            "Plan my EBACE / NBAA week",
+            "Review my aviation LinkedIn positioning",
+            "Draft outreach to a Global 7500 owner",
+            "Coach me through a charter pricing call",
+          ],
+        },
+        cars: {
+          persona: "AURUM · Collector Counsel",
+          specialty: "Hypercars, collector auctions, dealer relationships, allocation politics",
+          prompts: [
+            "Plan my Monterey Car Week",
+            "Review my collector LinkedIn positioning",
+            "Draft outreach to a hypercar allocation contact",
+            "Coach me through a private-treaty negotiation",
+          ],
+        },
+      })[industryId],
     // Academy
     acadEyebrow: (mode) => `ACADEMY · ${mode}`,
     acadHeroPre: "Become an insider —",
@@ -1063,12 +1105,15 @@ export const translations: Record<Lang, T> = {
     acadComingSoon: "Coming soon",
     acadComplete: (done, total) => `${done}/${total} complete`,
     acadComingSoonTitle: (trackName) => `${trackName} — Coming Soon`,
-    acadComingSoonDesc: "This curriculum is being crafted by industry insiders. Switch to the Yacht Brokerage track to start learning now.",
+    acadComingSoonDesc:
+      "This curriculum is being crafted by industry insiders. Switch to the Yacht Brokerage track to start learning now.",
     acadAiTutorTitle: "Tutor for this module",
     acadBeginRolePlay: "Begin role-play →",
     acadCourseComingSoon: "Course coming soon",
-    acadCourseComingSoonDesc: "This curriculum is being built. Switch to Yacht Brokerage to start learning now.",
-    acadAdminViewNotice: "⚠ Admin view — this track is locked for users. Add content and quizzes here to prepare for launch.",
+    acadCourseComingSoonDesc:
+      "This curriculum is being built. Switch to Yacht Brokerage to start learning now.",
+    acadAdminViewNotice:
+      "⚠ Admin view — this track is locked for users. Add content and quizzes here to prepare for launch.",
     acadActiveTrack: (track) => `ACTIVE TRACK · ${track}`,
     acadYachtBrokerage: "YACHT BROKERAGE",
     acadYourProgramme: "Your 10-module programme",
@@ -1103,30 +1148,35 @@ export const translations: Record<Lang, T> = {
     acadScoredUnlocked: (score) => `You scored ${score}/5 — next module is now unlocked.`,
     acadContinue: "Continue →",
     acadNotQuite: "Not quite",
-    acadScoredRetry: (score, pass) => `You scored ${score}/5 — you need ${pass} correct to pass. Review the module and try again.`,
+    acadScoredRetry: (score, pass) =>
+      `You scored ${score}/5 — you need ${pass} correct to pass. Review the module and try again.`,
     acadTryAgain: "Try again",
     acadSubmitAnswers: "Submit answers",
     acadSubmitting: "Submitting…",
     acadSubmitFailed: "Couldn't submit your answers — check your connection and try again.",
     acadPhaseTitle: (_phaseNumber, fallback) => fallback,
     acadModuleTitle: (_track, _moduleNumber, fallback) => fallback,
-    acadTutorBlurb: (industryId) => ({
-      yachts: "Drill 'restraint as leverage' through a live role-play with AURUM — playing the part of a skeptical 80m-yacht owner.",
-      villas: "Role-play sourcing a pocket-listing for an UHNW principal — AURUM plays the part of a discreet Monaco seller's broker.",
-      jets: "Role-play a buyer call for a Global 7500 mandate — AURUM plays a skeptical principal weighing whole vs program.",
-      cars: "Role-play building your collector narrative for a Pagani Utopia allocation — AURUM plays Lorenzo's client-relations lead.",
-    })[industryId],
+    acadTutorBlurb: (industryId) =>
+      ({
+        yachts:
+          "Drill 'restraint as leverage' through a live role-play with AURUM — playing the part of a skeptical 80m-yacht owner.",
+        villas:
+          "Role-play sourcing a pocket-listing for an UHNW principal — AURUM plays the part of a discreet Monaco seller's broker.",
+        jets: "Role-play a buyer call for a Global 7500 mandate — AURUM plays a skeptical principal weighing whole vs program.",
+        cars: "Role-play building your collector narrative for a Pagani Utopia allocation — AURUM plays Lorenzo's client-relations lead.",
+      })[industryId],
     // Tutor
     tutTitle: "AURUM Tutor",
     tutSubtitle: (trackName) => `${trackName} · step-by-step learning`,
     tutOnline: "ONLINE",
     tutComposing: "Tutor is composing...",
-    tutPlaceholder: (industryId) => ({
-      yachts: "Ask the tutor to explain a yachts concept...",
-      villas: "Ask the tutor to explain a villas concept...",
-      jets: "Ask the tutor to explain a jets concept...",
-      cars: "Ask the tutor to explain a cars concept...",
-    })[industryId],
+    tutPlaceholder: (industryId) =>
+      ({
+        yachts: "Ask the tutor to explain a yachts concept...",
+        villas: "Ask the tutor to explain a villas concept...",
+        jets: "Ask the tutor to explain a jets concept...",
+        cars: "Ask the tutor to explain a cars concept...",
+      })[industryId],
     tutNewLesson: "New lesson",
     tutRecentLessons: "RECENT LESSONS",
     tutDeleteLesson: "Delete lesson",
@@ -1141,35 +1191,38 @@ export const translations: Record<Lang, T> = {
     tutPhaseLine: (phase) => `Phase · ${phase}`,
     tutOpener: (trackName) =>
       `Welcome to the ${trackName} track. I am your Tutor — ask me to explain any module, term, or concept and I will break it down step-by-step. Where would you like to start?`,
-    tutSuggestions: (industryId) => ({
-      yachts: [
-        "Explain the fundamentals of the yachts charter market",
-        "Walk me through module 1 of the Yacht Brokerage step-by-step",
-        "What insider terminology should I master first?",
-        "Quiz me on a key concept from this track",
-      ],
-      villas: [
-        "Explain the fundamentals of the villas prime market",
-        "Walk me through module 1 of the Ultra-Prime Real Estate step-by-step",
-        "What insider terminology should I master first?",
-        "Quiz me on a key concept from this track",
-      ],
-      jets: [
-        "Explain the fundamentals of the jets pre-owned market",
-        "Walk me through module 1 of the Private Aviation step-by-step",
-        "What insider terminology should I master first?",
-        "Quiz me on a key concept from this track",
-      ],
-      cars: [
-        "Explain the fundamentals of the cars collector market",
-        "Walk me through module 1 of the Exotic Automotive step-by-step",
-        "What insider terminology should I master first?",
-        "Quiz me on a key concept from this track",
-      ],
-    })[industryId],
-    tutGateMessage: "You've used your 5 free tutor messages. Upgrade to Pro for unlimited tutoring.",
+    tutSuggestions: (industryId) =>
+      ({
+        yachts: [
+          "Explain the fundamentals of the yachts charter market",
+          "Walk me through module 1 of the Yacht Brokerage step-by-step",
+          "What insider terminology should I master first?",
+          "Quiz me on a key concept from this track",
+        ],
+        villas: [
+          "Explain the fundamentals of the villas prime market",
+          "Walk me through module 1 of the Ultra-Prime Real Estate step-by-step",
+          "What insider terminology should I master first?",
+          "Quiz me on a key concept from this track",
+        ],
+        jets: [
+          "Explain the fundamentals of the jets pre-owned market",
+          "Walk me through module 1 of the Private Aviation step-by-step",
+          "What insider terminology should I master first?",
+          "Quiz me on a key concept from this track",
+        ],
+        cars: [
+          "Explain the fundamentals of the cars collector market",
+          "Walk me through module 1 of the Exotic Automotive step-by-step",
+          "What insider terminology should I master first?",
+          "Quiz me on a key concept from this track",
+        ],
+      })[industryId],
+    tutGateMessage:
+      "You've used your 5 free tutor messages. Upgrade to Pro for unlimited tutoring.",
     tutLockTitle: "Tutor",
-    tutLockDesc: "Step-by-step lessons matched to your exact curriculum, with unlimited follow-up questions whenever you're stuck.",
+    tutLockDesc:
+      "Step-by-step lessons matched to your exact curriculum, with unlimited follow-up questions whenever you're stuck.",
     tutLockFeatures: [
       "Unlimited tutor conversations",
       "Structured, curriculum-matched lessons",
@@ -1180,7 +1233,8 @@ export const translations: Record<Lang, T> = {
     netEyebrow: (mode) => `NETWORK · ${mode}`,
     netHeroPre: "The room you're",
     netHeroEm: "already in.",
-    netSubtitle: "Manage your contacts, draft tailored outreach for every category, and track every message sent.",
+    netSubtitle:
+      "Manage your contacts, draft tailored outreach for every category, and track every message sent.",
     netTabContacts: (n) => `Contacts (${n})`,
     netTabDrafts: (n) => `Drafts (${n})`,
     netTabCompose: "Compose",
@@ -1201,19 +1255,62 @@ export const translations: Record<Lang, T> = {
     netAddContactFirst: "Add a contact first →",
     netPlatform: "PLATFORM",
     netRoleCategory: "THEIR ROLE / CATEGORY",
-    netCategories: (industryId) => ({
-      yachts: ["Charter Broker", "Sales Broker", "Captain / Crew", "Shipyard", "Marina", "Charter Management", "Insurance", "Survey / Refit"],
-      villas: ["Developer", "Prime Agent", "Property Manager", "Interior Designer", "Insurance", "Legal / Tax", "Private Bank"],
-      jets: ["Broker", "Charter Operator", "Maintenance (MRO)", "FBO", "Insurance", "Family Office", "Management Co."],
-      cars: ["Dealer", "Auction House", "Collector", "Specialist / Restorer", "Insurance", "Transport", "Concours Organiser"],
-    })[industryId],
-    netDefaultCategories: ["Management", "Broker", "Insurance", "Agency", "Owner", "Investor", "Media"],
+    netCategories: (industryId) =>
+      ({
+        yachts: [
+          "Charter Broker",
+          "Sales Broker",
+          "Captain / Crew",
+          "Shipyard",
+          "Marina",
+          "Charter Management",
+          "Insurance",
+          "Survey / Refit",
+        ],
+        villas: [
+          "Developer",
+          "Prime Agent",
+          "Property Manager",
+          "Interior Designer",
+          "Insurance",
+          "Legal / Tax",
+          "Private Bank",
+        ],
+        jets: [
+          "Broker",
+          "Charter Operator",
+          "Maintenance (MRO)",
+          "FBO",
+          "Insurance",
+          "Family Office",
+          "Management Co.",
+        ],
+        cars: [
+          "Dealer",
+          "Auction House",
+          "Collector",
+          "Specialist / Restorer",
+          "Insurance",
+          "Transport",
+          "Concours Organiser",
+        ],
+      })[industryId],
+    netDefaultCategories: [
+      "Management",
+      "Broker",
+      "Insurance",
+      "Agency",
+      "Owner",
+      "Investor",
+      "Media",
+    ],
     netSubject: "SUBJECT",
     netSubjectPlaceholder: "Introduction — Your Name",
     netSelectContactHint: "↑ Select a contact above to generate a tailored message",
     netSelectContactFirstError: "Select a contact first.",
     netDraftFailed: "Draft generation failed. Try again.",
-    netGateMessage: "You've used your 2 free message drafts. Upgrade to Pro for unlimited outreach.",
+    netGateMessage:
+      "You've used your 2 free message drafts. Upgrade to Pro for unlimited outreach.",
     netDrafting: "Drafting…",
     netDraftMessageTo: (name) => `Draft message to ${name}`,
     netSelectContactFirstBtn: "Select a contact first",
@@ -1240,7 +1337,8 @@ export const translations: Record<Lang, T> = {
     comTab: "Community",
     comSectionEyebrow: "DISCUSSION",
     comBoardTitle: "Community Board",
-    comBoardDesc: "Ask questions, share knowledge, and connect with others building in this industry.",
+    comBoardDesc:
+      "Ask questions, share knowledge, and connect with others building in this industry.",
     comNewPost: "New post",
     comPostTitlePlaceholder: "Give it a clear headline…",
     comPostBodyPlaceholder: "Share knowledge, ask a question, start a discussion…",
@@ -1271,19 +1369,22 @@ export const translations: Record<Lang, T> = {
     comUpvote: "Upvote",
     // Studio
     stuGateMessage: "You've used your free content draft. Upgrade to Pro for unlimited generation.",
-    stuUpgradeReason: "You've used your free content draft. Upgrade to Pro for unlimited AI content generation.",
+    stuUpgradeReason:
+      "You've used your free content draft. Upgrade to Pro for unlimited AI content generation.",
     stuGenerationFailed: "Generation failed",
     stuEyebrow: (mode) => `Content Studio · ${mode}`,
     stuFreeDraftLabel: "free draft",
     stuHeroPre: "Viral content,",
     stuHeroEm: "on demand.",
-    stuSubtitle: (label) => `AURUM's AI creative director crafts post-ready content for the ${label} world — hooks, captions, scripts, hashtags, visuals. Ready in under 30 seconds.`,
+    stuSubtitle: (label) =>
+      `AURUM's AI creative director crafts post-ready content for the ${label} world — hooks, captions, scripts, hashtags, visuals. Ready in under 30 seconds.`,
     stuTags: ["Viral hooks", "Platform captions", "Hashtags", "AI visuals"],
     stuHistory: (n) => `History (${n})`,
     stuContentHistory: (label) => `CONTENT HISTORY · ${label}`,
     stuGeneratedLibrary: (n) => `Library (${n})`,
     stuGeneratedLibraryTitle: "GENERATED LIBRARY · EVERY IMAGE & VIDEO YOU'VE MADE",
-    stuGeneratedLibraryEmpty: "Nothing generated yet — every image and video you create in Studio will be saved here, even ones you flag or don't end up using.",
+    stuGeneratedLibraryEmpty:
+      "Nothing generated yet — every image and video you create in Studio will be saved here, even ones you flag or don't end up using.",
     stuUntitled: "Untitled",
     stuDeleteDraft: "Delete draft",
     stuModeAssisted: "AI Assisted",
@@ -1304,7 +1405,8 @@ export const translations: Record<Lang, T> = {
     stuGenerateButton: "Generate viral content",
     stuApprox30s: "~30s",
     stuReadyTitle: "Your content, ready in 30s",
-    stuReadyDesc: (label) => `Hook · Captions · Script · Hashtags · Visual — all in one shot, tuned for ${label}.`,
+    stuReadyDesc: (label) =>
+      `Hook · Captions · Script · Hashtags · Visual — all in one shot, tuned for ${label}.`,
     stuComposing: "Composing your content…",
     stuLoadSteps: [
       "Scanning today's signals...",
@@ -1332,8 +1434,9 @@ export const translations: Record<Lang, T> = {
     stuReferencePhotos: "REFERENCE PHOTOS",
     stuAddReferencePhoto: "+ Add photo",
     stuReferencePhotosSelected: (n) => `${n} reference photo${n === 1 ? "" : "s"} selected`,
-    stuReferencePhotosTip: "Tip: 2-4 clear, well-lit photos from different angles reproduce the boat more accurately than many photos at once.",
-    stuReferencePhotoLabelPlaceholder: "Label (e.g. \"Sunseeker 88 - starboard\")",
+    stuReferencePhotosTip:
+      "Tip: 2-4 clear, well-lit photos from different angles reproduce the boat more accurately than many photos at once.",
+    stuReferencePhotoLabelPlaceholder: 'Label (e.g. "Sunseeker 88 - starboard")',
     stuReferencePhotoRightsLabel: "I own this photo or have rights to use it",
     stuUploadReferencePhoto: "Add to library",
     stuFlagInaccurate: "Not accurate? Flag & regenerate free",
@@ -1341,11 +1444,13 @@ export const translations: Record<Lang, T> = {
     stuFlagAndRegenerate: "Flag & regenerate",
     stuFlagAddPicture: "Add a picture to help it regenerate better (optional)",
     stuFlagFreeRemaining: (n) => `Free regenerate used — ${n} left this month.`,
-    stuFlagBilledNotice: "You've used your 10 free monthly regenerates — this one counted as a normal generation.",
+    stuFlagBilledNotice:
+      "You've used your 10 free monthly regenerates — this one counted as a normal generation.",
     stuFlagChooseFile: "Choose file",
     stuFlagChooseFromLibrary: "Choose from library",
     stuFlagClearPicture: "Remove",
-    stuFlagLibraryEmpty: "Your library is empty — upload a reference photo or generate an image first.",
+    stuFlagLibraryEmpty:
+      "Your library is empty — upload a reference photo or generate an image first.",
     stuLibraryAddedTab: (n) => `Added to Library (${n})`,
     stuLibraryGeneratedTab: (n) => `AI Generated (${n})`,
     stuLibraryAllFolders: "All",
@@ -1364,7 +1469,8 @@ export const translations: Record<Lang, T> = {
     stuGenerateVideo: "Generate video",
     stuGeneratingVideo: "Generating your video…",
     stuVideoFailed: "Video generation failed. Try again.",
-    stuVideoComingSoon: "Video generation is launching soon — this button is ready to go live the moment it's connected.",
+    stuVideoComingSoon:
+      "Video generation is launching soon — this button is ready to go live the moment it's connected.",
     stuPostOn: "POST YOUR CONTENT ON",
     stuConnected: "Connected",
     stuConnectArrow: "Connect →",
@@ -1544,17 +1650,21 @@ export const translations: Record<Lang, T> = {
     setViewTerms: "Terms of Service",
     setViewPrivacyPolicy: "Privacy Policy",
     setExportDataTitle: "Export your data",
-    setExportDataDesc: "Download everything AURUM OS has on your account — profile, roadmap, content history, tasks and more — as a JSON file.",
+    setExportDataDesc:
+      "Download everything AURUM OS has on your account — profile, roadmap, content history, tasks and more — as a JSON file.",
     setExportDataButton: "Export my data",
     setExportDataSuccessToast: "Your data export has started downloading.",
     setExportDataFailedToast: "Couldn't export your data. Please try again.",
     setDeleteAccountTitle: "Delete account",
-    setDeleteAccountDesc: "Permanently delete your account and all associated data. This cannot be undone.",
+    setDeleteAccountDesc:
+      "Permanently delete your account and all associated data. This cannot be undone.",
     setDeleteAccountButton: "Delete my account",
-    setDeleteAccountWarning: "This permanently deletes your account, cancels any active subscription, and erases all your data — roadmap, content history, tasks, mentor conversations, everything. There is no undo. Type DELETE to confirm.",
+    setDeleteAccountWarning:
+      "This permanently deletes your account, cancels any active subscription, and erases all your data — roadmap, content history, tasks, mentor conversations, everything. There is no undo. Type DELETE to confirm.",
     setDeleteAccountTypePlaceholder: "Type DELETE to confirm",
     setDeleteAccountConfirm: "Permanently delete my account",
-    setDeleteAccountFailedToast: "Couldn't delete your account. Please try again or contact support.",
+    setDeleteAccountFailedToast:
+      "Couldn't delete your account. Please try again or contact support.",
     setCancel: "Cancel",
     setBillingTitle: "Billing",
     setBillingDesc: "Manage your plan, payment method and invoice history.",
@@ -1585,70 +1695,80 @@ export const translations: Record<Lang, T> = {
     introEyebrow: "GETTING STARTED",
     introEnterCta: "Enter",
     introDontShowAgain: "Don't show this again",
-    introDashboardDesc: "Your daily home base — today's ritual, your active industry track, and the events shaping what to post next, all in one view.",
+    introDashboardDesc:
+      "Your daily home base — today's ritual, your active industry track, and the events shaping what to post next, all in one view.",
     introDashboardFeatures: [
       "Daily ritual with mode-specific tasks to check off",
       "Academy track progress at a glance",
       "Industry events with content-prep countdowns",
       "One-tap access to Mentor and Intelligence",
     ],
-    introRoadmapDesc: "A personalized 30-day entry plan built around your industry, level, and goals — specific daily actions you check off as you go.",
+    introRoadmapDesc:
+      "A personalized 30-day entry plan built around your industry, level, and goals — specific daily actions you check off as you go.",
     introRoadmapFeatures: [
       "Week-by-week plan tailored to your track and time budget",
       "Daily tasks generated for your exact situation",
       "Per-task AI help whenever you're stuck",
       "Progress carries straight into your daily ritual",
     ],
-    introIntelligenceDesc: "The signal beneath the noise — a live feed of curated news and moves in your industry, refreshed continuously.",
+    introIntelligenceDesc:
+      "The signal beneath the noise — a live feed of curated news and moves in your industry, refreshed continuously.",
     introIntelligenceFeatures: [
       "Real-time feed filtered to your industry",
-      "One-tap \"generate content\" from any story",
+      'One-tap "generate content" from any story',
       "Full briefs without leaving the page",
       "Categorized so you only see what's relevant",
     ],
-    introMentorDesc: "An open conversation with AURUM about your career moves, decisions, and positioning — it remembers your context between sessions.",
+    introMentorDesc:
+      "An open conversation with AURUM about your career moves, decisions, and positioning — it remembers your context between sessions.",
     introMentorFeatures: [
       "Saved conversation history — pick up where you left off",
       "Understands your industry, level, and current focus",
       "Suggested prompts to get you unstuck",
       "Personalized to your execution streak and goals",
     ],
-    introAcademyDesc: "Become an insider, methodically — structured modules that take you from outsider to fluent in your chosen industry.",
+    introAcademyDesc:
+      "Become an insider, methodically — structured modules that take you from outsider to fluent in your chosen industry.",
     introAcademyFeatures: [
       "Track-specific modules and lessons",
       "Role-play and applied exercises, not just reading",
       "Progress tracked module by module",
       "Built around real entry-level scenarios",
     ],
-    introTutorDesc: "Step-by-step lessons matched to your exact curriculum, with follow-up questions whenever you're stuck.",
+    introTutorDesc:
+      "Step-by-step lessons matched to your exact curriculum, with follow-up questions whenever you're stuck.",
     introTutorFeatures: [
       "Curriculum-matched, structured explanations",
       "Unlimited follow-up questions",
       "Saved lesson history",
       "Personalized to your track and industry",
     ],
-    introStudioDesc: "AURUM's AI creative director crafts post-ready content for your industry — hooks, captions, scripts, hashtags, and visuals in under 30 seconds.",
+    introStudioDesc:
+      "AURUM's AI creative director crafts post-ready content for your industry — hooks, captions, scripts, hashtags, and visuals in under 30 seconds.",
     introStudioFeatures: [
       "Platform-specific captions and hooks",
       "Full scripts with shot-by-shot beats",
       "Hashtag sets tuned to your industry",
       "Live signals to base content on what's trending now",
     ],
-    introCalendarDesc: "A living record of your daily rituals and a place to plan what's next — completions, streaks, and tasks with reminders, all in one grid.",
+    introCalendarDesc:
+      "A living record of your daily rituals and a place to plan what's next — completions, streaks, and tasks with reminders, all in one grid.",
     introCalendarFeatures: [
       "Visual streak and completion tracking",
       "Tasks with due dates and reminders",
       "Industry events layered on the same calendar",
       "Community events other members are sharing",
     ],
-    introNetworkDesc: "The room you're already in — manage your contacts, draft tailored outreach for every category, and track every message sent.",
+    introNetworkDesc:
+      "The room you're already in — manage your contacts, draft tailored outreach for every category, and track every message sent.",
     introNetworkFeatures: [
       "Contact list organized by category",
       "AI-drafted, personalized outreach messages",
       "Sent-message tracking so nothing falls through",
       "Community board to connect with other members",
     ],
-    introProfileDesc: "Your dossier — the profile AURUM uses to personalize every recommendation, plus your AURUM Score and connected accounts.",
+    introProfileDesc:
+      "Your dossier — the profile AURUM uses to personalize every recommendation, plus your AURUM Score and connected accounts.",
     introProfileFeatures: [
       "Editable profile that shapes AI recommendations",
       "AURUM Score breakdown",
@@ -1705,12 +1825,14 @@ export const translations: Record<Lang, T> = {
     langFrench: "Français",
     // Dashboard
     dashDemoMode: "Mode démo",
-    dashDemoMessage: "Connectez-vous pour profiter de l'expérience complète — mémoire, sauvegarde, IA illimitée.",
+    dashDemoMessage:
+      "Connectez-vous pour profiter de l'expérience complète — mémoire, sauvegarde, IA illimitée.",
     dashSignIn: "Se connecter",
     dashFreePlan: "Offre gratuite",
-    dashUpgradeMessage: "Passez à Pro — débloquez votre feuille de route de 30 jours, le Tuteur, l'Académie complète et le mentor illimité.",
+    dashUpgradeMessage:
+      "Passez à Pro — débloquez votre feuille de route de 30 jours, le Tuteur, l'Académie complète et le mentor illimité.",
     dashUpgradeCta: "Passer Pro · 29 £/mois",
-    greeting: (period) => period === "evening" ? "Bonsoir" : "Bonjour",
+    greeting: (period) => (period === "evening" ? "Bonsoir" : "Bonjour"),
     dashSpeakWithAurum: "Parler à AURUM",
     dashOpenIntelligence: "Ouvrir Intelligence",
     dashTodayEyebrow: (mode) => `AUJOURD'HUI · ${mode.toUpperCase()}`,
@@ -1725,14 +1847,22 @@ export const translations: Record<Lang, T> = {
     dashAskMentorHelp: "Demander l'aide du Mentor",
     dashAllIndustries: "Tous les secteurs",
     dashSelectEvent: "Sélectionnez un événement",
-    dashSelectEventDesc: "Cliquez sur un événement du calendrier pour voir les détails, la fenêtre de préparation et créer des publications.",
-    dashDaysAway: (n) => n === 1 ? "Dans 1 jour" : `Dans ${n} jours`,
+    dashSelectEventDesc:
+      "Cliquez sur un événement du calendrier pour voir les détails, la fenêtre de préparation et créer des publications.",
+    dashDaysAway: (n) => (n === 1 ? "Dans 1 jour" : `Dans ${n} jours`),
     dashHappeningToday: "C'est aujourd'hui",
     dashEventPassed: "Cet événement est passé",
     dashContentPrepWindow: "FENÊTRE DE PRÉPARATION",
-    dashStartPosting: (weeks) => weeks === 1 ? "Commencez à publier 1 semaine avant l'événement." : `Commencez à publier ${weeks} semaines avant l'événement.`,
-    dashContentWindowOpensIn: (days, date) => days === 1 ? `La fenêtre de contenu s'ouvre dans 1 jour — ${date}` : `La fenêtre de contenu s'ouvre dans ${days} jours — ${date}`,
-    dashContentWindowOpenNow: "La fenêtre de contenu est ouverte. Commencez à publier dès aujourd'hui.",
+    dashStartPosting: (weeks) =>
+      weeks === 1
+        ? "Commencez à publier 1 semaine avant l'événement."
+        : `Commencez à publier ${weeks} semaines avant l'événement.`,
+    dashContentWindowOpensIn: (days, date) =>
+      days === 1
+        ? `La fenêtre de contenu s'ouvre dans 1 jour — ${date}`
+        : `La fenêtre de contenu s'ouvre dans ${days} jours — ${date}`,
+    dashContentWindowOpenNow:
+      "La fenêtre de contenu est ouverte. Commencez à publier dès aujourd'hui.",
     dashEventHasPassed: "Cet événement est déjà passé.",
     dashCreateContentForEvent: "Créer du contenu pour cet événement",
     dashVisitOfficialSite: "Voir le site officiel",
@@ -1788,13 +1918,27 @@ export const translations: Record<Lang, T> = {
       "🏔️ Les grandes réussites se construisent un jour à la fois. Le travail du jour est fait. À demain.",
       "👑 Une journée de plus conquise. Cinq rituels accomplis. Revenez demain pour poursuivre votre ascension.",
     ],
-    monthShort: ["Janv.","Févr.","Mars","Avr.","Mai","Juin","Juil.","Août","Sept.","Oct.","Nov.","Déc."],
-    weekdayLetters: ["L","M","M","J","V","S","D"],
+    monthShort: [
+      "Janv.",
+      "Févr.",
+      "Mars",
+      "Avr.",
+      "Mai",
+      "Juin",
+      "Juil.",
+      "Août",
+      "Sept.",
+      "Oct.",
+      "Nov.",
+      "Déc.",
+    ],
+    weekdayLetters: ["L", "M", "M", "J", "V", "S", "D"],
     // Calendar
     calEyebrow: "VOS PROGRÈS, CARTOGRAPHIÉS",
     calHeroPre: "Chaque jour vous",
     calHeroEm: "vous engagez",
-    calSubtitle: "Un registre vivant de vos rituels quotidiens et un espace pour planifier la suite — accomplissements, séries et tâches avec rappels, réunis dans une seule grille.",
+    calSubtitle:
+      "Un registre vivant de vos rituels quotidiens et un espace pour planifier la suite — accomplissements, séries et tâches avec rappels, réunis dans une seule grille.",
     calAddTask: "Ajouter une tâche",
     calToday: "Aujourd'hui",
     calRitualLabel: "Rituel quotidien",
@@ -1814,7 +1958,8 @@ export const translations: Record<Lang, T> = {
     calModalDescPlaceholder: "Détail optionnel…",
     calModalDueLabel: "Date d'échéance",
     calModalReminderLabel: "Me rappeler",
-    calModalReminderHint: "Nous vous enverrons un e-mail à cette heure si la tâche n'est pas encore terminée.",
+    calModalReminderHint:
+      "Nous vous enverrons un e-mail à cette heure si la tâche n'est pas encore terminée.",
     calModalPriorityLabel: "Priorité",
     calPriorityLow: "Basse",
     calPriorityMedium: "Moyenne",
@@ -1863,12 +2008,14 @@ export const translations: Record<Lang, T> = {
     roadmapEyebrow: (mode) => `PROGRAMME · ${mode.toUpperCase()}`,
     roadmapBuilding: "Création de votre programme…",
     roadmapDefaultHeadline: "Votre programme de 30 jours",
-    roadmapDescription: "Un programme personnalisé de 30 jours conçu autour de votre secteur, votre niveau et vos objectifs. Des actions quotidiennes concrètes — cochez-les au fur et à mesure.",
+    roadmapDescription:
+      "Un programme personnalisé de 30 jours conçu autour de votre secteur, votre niveau et vos objectifs. Des actions quotidiennes concrètes — cochez-les au fur et à mesure.",
     roadmapRegenerate: "Régénérer",
     roadmapGenerating: "Génération…",
     roadmapOverallProgress: "Progression globale",
     roadmapArchitecting: "Élaboration de votre programme…",
-    roadmapArchitectingDesc: (industry) => `AURUM construit 30 jours d'exécution de précision pour le secteur ${industry}. Cela prend environ 15 secondes.`,
+    roadmapArchitectingDesc: (industry) =>
+      `AURUM construit 30 jours d'exécution de précision pour le secteur ${industry}. Cela prend environ 15 secondes.`,
     roadmapWeekLabel: (n) => `Semaine ${n} · `,
     roadmapWeekHeader: (n) => `SEMAINE ${n}`,
     roadmapMilestone: "ÉTAPE CLÉ",
@@ -1882,11 +2029,13 @@ export const translations: Record<Lang, T> = {
     roadmapSwapping: "Changement…",
     roadmapSwapFailed: "Impossible de changer cette tâche — réessayez.",
     roadmapContinueInMentor: "Continuer avec le Mentor",
-    roadmapHelpGateMessage: "Vous avez utilisé vos sessions d'aide gratuites. Passez à Pro pour une aide illimitée sur chaque tâche.",
+    roadmapHelpGateMessage:
+      "Vous avez utilisé vos sessions d'aide gratuites. Passez à Pro pour une aide illimitée sur chaque tâche.",
     roadmapMarkComplete: "Marquer comme terminé",
     roadmapMarkIncomplete: "Marquer comme non terminé",
     roadmapLockTitle: "Votre feuille de route de 30 jours",
-    roadmapLockDesc: "Un plan d'exécution jour par jour construit pour votre objectif — quatre semaines de tâches de réseautage, de contenu et de prospection, planifiées et synchronisées avec votre calendrier.",
+    roadmapLockDesc:
+      "Un plan d'exécution jour par jour construit pour votre objectif — quatre semaines de tâches de réseautage, de contenu et de prospection, planifiées et synchronisées avec votre calendrier.",
     roadmapLockFeatures: [
       "Plan complet de 30 jours, semaine par semaine",
       "Aide IA « Obtenir de l'aide » sur chaque tâche",
@@ -1909,8 +2058,8 @@ export const translations: Record<Lang, T> = {
     intelSyncing: "Synchronisation…",
     intelJustNow: "à l'instant",
     intelMinAgo: (n) => `il y a ${n} min`,
-    intelHourAgo: (n) => n === 1 ? "il y a 1 h" : `il y a ${n} h`,
-    intelDayAgo: (n) => n === 1 ? "il y a 1 j" : `il y a ${n} j`,
+    intelHourAgo: (n) => (n === 1 ? "il y a 1 h" : `il y a ${n} h`),
+    intelDayAgo: (n) => (n === 1 ? "il y a 1 j" : `il y a ${n} j`),
     intelSignalsTracked: "Signaux suivis",
     intelSources: "Sources",
     intelRealtime: "Temps réel",
@@ -1919,14 +2068,22 @@ export const translations: Record<Lang, T> = {
     intelSignalsOf: (category) => `Signaux · ${category}`,
     intelReadBrief: "Lire la synthèse",
     intelGenerateContent: "Générer du contenu",
-    categoryLabel: (category) => ({ yachting: "Yachting", property: "Immobilier", aviation: "Aviation", automotive: "Automobile" }[category] ?? category),
+    categoryLabel: (category) =>
+      ({
+        yachting: "Yachting",
+        property: "Immobilier",
+        aviation: "Aviation",
+        automotive: "Automobile",
+      })[category] ?? category,
     // Mentor
     mentorMinAgo: (n) => `il y a ${n} min`,
-    mentorHourAgo: (n) => n === 1 ? "il y a 1 h" : `il y a ${n} h`,
+    mentorHourAgo: (n) => (n === 1 ? "il y a 1 h" : `il y a ${n} h`),
     mentorYesterday: "Hier",
-    mentorOpener: (greeting, userName, persona, industry) => `${greeting}, ${userName}. Je suis votre ${persona} d'AURUM — ici pour vous aider à percer dans le secteur ${industry.toLowerCase()} au plus haut niveau. Quel est votre défi le plus urgent en ce moment ?`,
+    mentorOpener: (greeting, userName, persona, industry) =>
+      `${greeting}, ${userName}. Je suis votre ${persona} d'AURUM — ici pour vous aider à percer dans le secteur ${industry.toLowerCase()} au plus haut niveau. Quel est votre défi le plus urgent en ce moment ?`,
     mentorThinking: "AURUM réfléchit...",
-    mentorPlaceholder: (industry) => `Interrogez AURUM sur le secteur ${industry.toLowerCase()} — stratégie, prospection, le marché...`,
+    mentorPlaceholder: (industry) =>
+      `Interrogez AURUM sur le secteur ${industry.toLowerCase()} — stratégie, prospection, le marché...`,
     mentorFreeMessages: "messages gratuits",
     mentorOnline: "EN LIGNE",
     mentorNewConversation: "Nouvelle conversation",
@@ -1935,53 +2092,59 @@ export const translations: Record<Lang, T> = {
     mentorDeleteConversation: "Supprimer la conversation",
     mentorQuickInvocations: "INVOCATIONS RAPIDES",
     mentorContextLoaded: "CONTEXTE CHARGÉ",
-    mentorExecutionStreak: (n) => n === 1 ? "1 jour de série d'exécution" : `${n} jours de série d'exécution`,
-    mentorTasksCompletedToday: (n) => n === 1 ? "1 tâche complétée aujourd'hui" : `${n} tâches complétées aujourd'hui`,
-    mentorGateMessage: "Vous avez utilisé vos 5 messages gratuits avec le mentor. Passez à Pro pour un accès illimité.",
-    mentorGateMessageModal: "Vous avez utilisé vos 5 messages gratuits avec le mentor. Passez à Pro pour un mentorat illimité.",
+    mentorExecutionStreak: (n) =>
+      n === 1 ? "1 jour de série d'exécution" : `${n} jours de série d'exécution`,
+    mentorTasksCompletedToday: (n) =>
+      n === 1 ? "1 tâche complétée aujourd'hui" : `${n} tâches complétées aujourd'hui`,
+    mentorGateMessage:
+      "Vous avez utilisé vos 5 messages gratuits avec le mentor. Passez à Pro pour un accès illimité.",
+    mentorGateMessageModal:
+      "Vous avez utilisé vos 5 messages gratuits avec le mentor. Passez à Pro pour un mentorat illimité.",
     mentorErrorPrefix: "Erreur : ",
-    mentorContent: (industryId) => ({
-      yachts: {
-        persona: "AURUM · Conseil Yachting",
-        specialty: "Courtage, charter, psychologie des propriétaires · ancré à Monaco",
-        prompts: [
-          "Planifier ma semaine du Monaco Yacht Show",
-          "Revoir mon positionnement LinkedIn de courtier",
-          "Rédiger une demande de charter pour un prospect UHNW",
-          "M'entraîner à une conversation avec un courtier senior",
-        ],
-      },
-      villas: {
-        persona: "AURUM · Conseil Ultra-Prime",
-        specialty: "Immobilier d'exception, investisseurs UHNW, promoteurs · Dubaï/Miami/Monaco",
-        prompts: [
-          "Planifier ma semaine sur le marché trophée de Dubaï",
-          "Revoir mon positionnement en immobilier de luxe",
-          "Rédiger une approche pour un investisseur UHNW",
-          "M'entraîner à un pitch auprès d'un promoteur",
-        ],
-      },
-      jets: {
-        persona: "AURUM · Conseil Aviation",
-        specialty: "Courtage d'avions, charter, fractionnel, voyages UHNW",
-        prompts: [
-          "Planifier ma semaine EBACE / NBAA",
-          "Revoir mon positionnement LinkedIn aviation",
-          "Rédiger une approche pour un propriétaire de Global 7500",
-          "M'entraîner à un appel de tarification de charter",
-        ],
-      },
-      cars: {
-        persona: "AURUM · Conseil Collectionneur",
-        specialty: "Hypercars, ventes aux enchères de collection, relations concessionnaires, politique d'allocation",
-        prompts: [
-          "Planifier ma Monterey Car Week",
-          "Revoir mon positionnement LinkedIn de collectionneur",
-          "Rédiger une approche pour un contact d'allocation d'hypercar",
-          "M'entraîner à une négociation de gré à gré",
-        ],
-      },
-    })[industryId],
+    mentorContent: (industryId) =>
+      ({
+        yachts: {
+          persona: "AURUM · Conseil Yachting",
+          specialty: "Courtage, charter, psychologie des propriétaires · ancré à Monaco",
+          prompts: [
+            "Planifier ma semaine du Monaco Yacht Show",
+            "Revoir mon positionnement LinkedIn de courtier",
+            "Rédiger une demande de charter pour un prospect UHNW",
+            "M'entraîner à une conversation avec un courtier senior",
+          ],
+        },
+        villas: {
+          persona: "AURUM · Conseil Ultra-Prime",
+          specialty: "Immobilier d'exception, investisseurs UHNW, promoteurs · Dubaï/Miami/Monaco",
+          prompts: [
+            "Planifier ma semaine sur le marché trophée de Dubaï",
+            "Revoir mon positionnement en immobilier de luxe",
+            "Rédiger une approche pour un investisseur UHNW",
+            "M'entraîner à un pitch auprès d'un promoteur",
+          ],
+        },
+        jets: {
+          persona: "AURUM · Conseil Aviation",
+          specialty: "Courtage d'avions, charter, fractionnel, voyages UHNW",
+          prompts: [
+            "Planifier ma semaine EBACE / NBAA",
+            "Revoir mon positionnement LinkedIn aviation",
+            "Rédiger une approche pour un propriétaire de Global 7500",
+            "M'entraîner à un appel de tarification de charter",
+          ],
+        },
+        cars: {
+          persona: "AURUM · Conseil Collectionneur",
+          specialty:
+            "Hypercars, ventes aux enchères de collection, relations concessionnaires, politique d'allocation",
+          prompts: [
+            "Planifier ma Monterey Car Week",
+            "Revoir mon positionnement LinkedIn de collectionneur",
+            "Rédiger une approche pour un contact d'allocation d'hypercar",
+            "M'entraîner à une négociation de gré à gré",
+          ],
+        },
+      })[industryId],
     // Academy
     acadEyebrow: (mode) => `ACADÉMIE · ${mode}`,
     acadHeroPre: "Devenez un initié —",
@@ -1992,12 +2155,15 @@ export const translations: Record<Lang, T> = {
     acadComingSoon: "Bientôt disponible",
     acadComplete: (done, total) => `${done}/${total} terminés`,
     acadComingSoonTitle: (trackName) => `${trackName} — Bientôt disponible`,
-    acadComingSoonDesc: "Ce programme est en cours de conception par des experts du secteur. Passez au parcours Courtage Yacht pour commencer dès maintenant.",
+    acadComingSoonDesc:
+      "Ce programme est en cours de conception par des experts du secteur. Passez au parcours Courtage Yacht pour commencer dès maintenant.",
     acadAiTutorTitle: "Tuteur pour ce module",
     acadBeginRolePlay: "Commencer la mise en situation →",
     acadCourseComingSoon: "Cours bientôt disponible",
-    acadCourseComingSoonDesc: "Ce programme est en cours de création. Passez au parcours Courtage Yacht pour commencer dès maintenant.",
-    acadAdminViewNotice: "⚠ Vue admin — ce parcours est verrouillé pour les utilisateurs. Ajoutez du contenu et des quiz ici pour préparer le lancement.",
+    acadCourseComingSoonDesc:
+      "Ce programme est en cours de création. Passez au parcours Courtage Yacht pour commencer dès maintenant.",
+    acadAdminViewNotice:
+      "⚠ Vue admin — ce parcours est verrouillé pour les utilisateurs. Ajoutez du contenu et des quiz ici pour préparer le lancement.",
     acadActiveTrack: (track) => `PARCOURS ACTIF · ${track}`,
     acadYachtBrokerage: "COURTAGE YACHT",
     acadYourProgramme: "Votre programme de 10 modules",
@@ -2029,87 +2195,99 @@ export const translations: Record<Lang, T> = {
     acadQuizModule: (num) => `QUIZ · MODULE ${num}`,
     acadAnswerAll: "Répondez aux 5 questions · Score de 3/5 ou plus pour réussir.",
     acadModuleComplete: "Module terminé !",
-    acadScoredUnlocked: (score) => `Vous avez obtenu ${score}/5 — le module suivant est maintenant débloqué.`,
+    acadScoredUnlocked: (score) =>
+      `Vous avez obtenu ${score}/5 — le module suivant est maintenant débloqué.`,
     acadContinue: "Continuer →",
     acadNotQuite: "Pas tout à fait",
-    acadScoredRetry: (score, pass) => `Vous avez obtenu ${score}/5 — il vous faut ${pass} bonnes réponses pour réussir. Révisez le module et réessayez.`,
+    acadScoredRetry: (score, pass) =>
+      `Vous avez obtenu ${score}/5 — il vous faut ${pass} bonnes réponses pour réussir. Révisez le module et réessayez.`,
     acadTryAgain: "Réessayer",
     acadSubmitAnswers: "Valider les réponses",
     acadSubmitting: "Envoi en cours…",
     acadSubmitFailed: "Impossible d'envoyer vos réponses — vérifiez votre connexion et réessayez.",
-    acadPhaseTitle: (phaseNumber, fallback) => ({
-      1: "Comprendre le secteur",
-      2: "Se positionner professionnellement",
-      3: "Comprendre le fonctionnement du courtage",
-      4: "Construire votre carrière",
-    } as Record<number, string>)[phaseNumber] ?? fallback,
-    acadModuleTitle: (track, moduleNumber, fallback) => ({
-      cars: {
-        1: "Introduction aux voitures d'exception et de collection",
-        2: "Types de véhicules et segments de marché",
-        3: "Que fait un spécialiste automobile de luxe ?",
-        4: "Développer votre profil de spécialiste",
-        5: "Réseaux sociaux et vente automobile moderne",
-        6: "Communiquer avec des collectionneurs UHNW",
-        7: "Comment trouver votre premier véhicule",
-        8: "Comment travailler avec des acheteurs en vente aux enchères et de gré à gré",
-        9: "Provenance, évaluations et documentation",
-        10: "Exploiter Aurum OS pour réussir durablement",
-      },
-      jets: {
-        1: "Introduction à l'aviation privée",
-        2: "Types d'avions et spécifications",
-        3: "Que fait un courtier en aviation ?",
-        4: "Développer votre profil dans l'aviation",
-        5: "Réseaux sociaux et courtage aéronautique moderne",
-        6: "Communiquer avec des clients UHNW",
-        7: "Comment trouver votre premier avion",
-        8: "Comment travailler avec des acheteurs et des opérateurs",
-        9: "Réglementation, navigabilité et contrats",
-        10: "Exploiter Aurum OS pour réussir durablement",
-      },
-      villas: {
-        1: "Introduction à l'immobilier ultra-prime",
-        2: "Types de biens et segments de marché",
-        3: "Que fait un courtier immobilier de luxe ?",
-        4: "Développer votre profil de courtier",
-        5: "Réseaux sociaux et courtage immobilier moderne",
-        6: "Communiquer avec des clients UHNW",
-        7: "Comment trouver votre premier mandat",
-        8: "Comment travailler avec acheteurs et vendeurs",
-        9: "Cadres juridiques, contrats et conformité",
-        10: "Exploiter Aurum OS pour réussir durablement",
-      },
-      yachts: {
-        1: "Introduction au monde du yachting",
-        2: "Les différents types de yachts",
-        3: "Que fait réellement un courtier en yachts ?",
-        4: "Développer votre profil de courtier",
-        5: "Réseaux sociaux et courtage de yachts moderne",
-        6: "Communiquer avec des clients UHNW",
-        7: "Comment trouver votre premier bateau",
-        8: "Comment interagir avec les acheteurs",
-        9: "Administration, réglementation et contrats",
-        10: "Exploiter Aurum OS pour réussir durablement",
-      },
-    } as Record<string, Record<number, string>>)[track]?.[moduleNumber] ?? fallback,
-    acadTutorBlurb: (industryId) => ({
-      yachts: "Mettez en pratique « la retenue comme levier » lors d'une mise en situation avec AURUM, qui joue le rôle d'un propriétaire sceptique d'un yacht de 80 m.",
-      villas: "Simulez la recherche d'un mandat confidentiel pour un client UHNW — AURUM joue le rôle d'un agent monégasque discret représentant le vendeur.",
-      jets: "Simulez un appel acheteur pour un mandat Global 7500 — AURUM joue un client sceptique hésitant entre achat complet et programme fractionné.",
-      cars: "Simulez la construction de votre récit de collectionneur pour une allocation Pagani Utopia — AURUM joue le responsable des relations clients de Lorenzo.",
-    })[industryId],
+    acadPhaseTitle: (phaseNumber, fallback) =>
+      (
+        ({
+          1: "Comprendre le secteur",
+          2: "Se positionner professionnellement",
+          3: "Comprendre le fonctionnement du courtage",
+          4: "Construire votre carrière",
+        }) as Record<number, string>
+      )[phaseNumber] ?? fallback,
+    acadModuleTitle: (track, moduleNumber, fallback) =>
+      (
+        ({
+          cars: {
+            1: "Introduction aux voitures d'exception et de collection",
+            2: "Types de véhicules et segments de marché",
+            3: "Que fait un spécialiste automobile de luxe ?",
+            4: "Développer votre profil de spécialiste",
+            5: "Réseaux sociaux et vente automobile moderne",
+            6: "Communiquer avec des collectionneurs UHNW",
+            7: "Comment trouver votre premier véhicule",
+            8: "Comment travailler avec des acheteurs en vente aux enchères et de gré à gré",
+            9: "Provenance, évaluations et documentation",
+            10: "Exploiter Aurum OS pour réussir durablement",
+          },
+          jets: {
+            1: "Introduction à l'aviation privée",
+            2: "Types d'avions et spécifications",
+            3: "Que fait un courtier en aviation ?",
+            4: "Développer votre profil dans l'aviation",
+            5: "Réseaux sociaux et courtage aéronautique moderne",
+            6: "Communiquer avec des clients UHNW",
+            7: "Comment trouver votre premier avion",
+            8: "Comment travailler avec des acheteurs et des opérateurs",
+            9: "Réglementation, navigabilité et contrats",
+            10: "Exploiter Aurum OS pour réussir durablement",
+          },
+          villas: {
+            1: "Introduction à l'immobilier ultra-prime",
+            2: "Types de biens et segments de marché",
+            3: "Que fait un courtier immobilier de luxe ?",
+            4: "Développer votre profil de courtier",
+            5: "Réseaux sociaux et courtage immobilier moderne",
+            6: "Communiquer avec des clients UHNW",
+            7: "Comment trouver votre premier mandat",
+            8: "Comment travailler avec acheteurs et vendeurs",
+            9: "Cadres juridiques, contrats et conformité",
+            10: "Exploiter Aurum OS pour réussir durablement",
+          },
+          yachts: {
+            1: "Introduction au monde du yachting",
+            2: "Les différents types de yachts",
+            3: "Que fait réellement un courtier en yachts ?",
+            4: "Développer votre profil de courtier",
+            5: "Réseaux sociaux et courtage de yachts moderne",
+            6: "Communiquer avec des clients UHNW",
+            7: "Comment trouver votre premier bateau",
+            8: "Comment interagir avec les acheteurs",
+            9: "Administration, réglementation et contrats",
+            10: "Exploiter Aurum OS pour réussir durablement",
+          },
+        }) as Record<string, Record<number, string>>
+      )[track]?.[moduleNumber] ?? fallback,
+    acadTutorBlurb: (industryId) =>
+      ({
+        yachts:
+          "Mettez en pratique « la retenue comme levier » lors d'une mise en situation avec AURUM, qui joue le rôle d'un propriétaire sceptique d'un yacht de 80 m.",
+        villas:
+          "Simulez la recherche d'un mandat confidentiel pour un client UHNW — AURUM joue le rôle d'un agent monégasque discret représentant le vendeur.",
+        jets: "Simulez un appel acheteur pour un mandat Global 7500 — AURUM joue un client sceptique hésitant entre achat complet et programme fractionné.",
+        cars: "Simulez la construction de votre récit de collectionneur pour une allocation Pagani Utopia — AURUM joue le responsable des relations clients de Lorenzo.",
+      })[industryId],
     // Tutor
     tutTitle: "AURUM Tuteur",
     tutSubtitle: (trackName) => `${trackName} · apprentissage étape par étape`,
     tutOnline: "EN LIGNE",
     tutComposing: "Le tuteur rédige une réponse...",
-    tutPlaceholder: (industryId) => ({
-      yachts: "Demandez au tuteur d'expliquer un concept du yachting...",
-      villas: "Demandez au tuteur d'expliquer un concept de l'immobilier de prestige...",
-      jets: "Demandez au tuteur d'expliquer un concept de l'aviation privée...",
-      cars: "Demandez au tuteur d'expliquer un concept de l'automobile de collection...",
-    })[industryId],
+    tutPlaceholder: (industryId) =>
+      ({
+        yachts: "Demandez au tuteur d'expliquer un concept du yachting...",
+        villas: "Demandez au tuteur d'expliquer un concept de l'immobilier de prestige...",
+        jets: "Demandez au tuteur d'expliquer un concept de l'aviation privée...",
+        cars: "Demandez au tuteur d'expliquer un concept de l'automobile de collection...",
+      })[industryId],
     tutNewLesson: "Nouvelle leçon",
     tutRecentLessons: "LEÇONS RÉCENTES",
     tutDeleteLesson: "Supprimer la leçon",
@@ -2124,35 +2302,38 @@ export const translations: Record<Lang, T> = {
     tutPhaseLine: (phase) => `Phase · ${phase}`,
     tutOpener: (trackName) =>
       `Bienvenue dans le parcours ${trackName}. Je suis votre Tuteur — demandez-moi d'expliquer un module, un terme ou un concept et je vous le détaillerai étape par étape. Par où souhaitez-vous commencer ?`,
-    tutSuggestions: (industryId) => ({
-      yachts: [
-        "Expliquez-moi les fondamentaux du marché de la location de yachts",
-        "Présentez-moi le module 1 du parcours Courtage Yacht étape par étape",
-        "Quelle terminologie d'initié devrais-je maîtriser en premier ?",
-        "Interrogez-moi sur un concept clé de ce parcours",
-      ],
-      villas: [
-        "Expliquez-moi les fondamentaux du marché immobilier ultra-prime",
-        "Présentez-moi le module 1 du parcours Immobilier Ultra-Prime étape par étape",
-        "Quelle terminologie d'initié devrais-je maîtriser en premier ?",
-        "Interrogez-moi sur un concept clé de ce parcours",
-      ],
-      jets: [
-        "Expliquez-moi les fondamentaux du marché des avions d'occasion",
-        "Présentez-moi le module 1 du parcours Aviation Privée étape par étape",
-        "Quelle terminologie d'initié devrais-je maîtriser en premier ?",
-        "Interrogez-moi sur un concept clé de ce parcours",
-      ],
-      cars: [
-        "Expliquez-moi les fondamentaux du marché des voitures de collection",
-        "Présentez-moi le module 1 du parcours Automobile d'Exception étape par étape",
-        "Quelle terminologie d'initié devrais-je maîtriser en premier ?",
-        "Interrogez-moi sur un concept clé de ce parcours",
-      ],
-    })[industryId],
-    tutGateMessage: "Vous avez utilisé vos 5 messages gratuits avec le tuteur. Passez à Pro pour un tutorat illimité.",
+    tutSuggestions: (industryId) =>
+      ({
+        yachts: [
+          "Expliquez-moi les fondamentaux du marché de la location de yachts",
+          "Présentez-moi le module 1 du parcours Courtage Yacht étape par étape",
+          "Quelle terminologie d'initié devrais-je maîtriser en premier ?",
+          "Interrogez-moi sur un concept clé de ce parcours",
+        ],
+        villas: [
+          "Expliquez-moi les fondamentaux du marché immobilier ultra-prime",
+          "Présentez-moi le module 1 du parcours Immobilier Ultra-Prime étape par étape",
+          "Quelle terminologie d'initié devrais-je maîtriser en premier ?",
+          "Interrogez-moi sur un concept clé de ce parcours",
+        ],
+        jets: [
+          "Expliquez-moi les fondamentaux du marché des avions d'occasion",
+          "Présentez-moi le module 1 du parcours Aviation Privée étape par étape",
+          "Quelle terminologie d'initié devrais-je maîtriser en premier ?",
+          "Interrogez-moi sur un concept clé de ce parcours",
+        ],
+        cars: [
+          "Expliquez-moi les fondamentaux du marché des voitures de collection",
+          "Présentez-moi le module 1 du parcours Automobile d'Exception étape par étape",
+          "Quelle terminologie d'initié devrais-je maîtriser en premier ?",
+          "Interrogez-moi sur un concept clé de ce parcours",
+        ],
+      })[industryId],
+    tutGateMessage:
+      "Vous avez utilisé vos 5 messages gratuits avec le tuteur. Passez à Pro pour un tutorat illimité.",
     tutLockTitle: "Tuteur",
-    tutLockDesc: "Des leçons pas à pas adaptées à votre parcours exact, avec des questions de suivi illimitées dès que vous êtes bloqué.",
+    tutLockDesc:
+      "Des leçons pas à pas adaptées à votre parcours exact, avec des questions de suivi illimitées dès que vous êtes bloqué.",
     tutLockFeatures: [
       "Conversations illimitées avec le tuteur",
       "Leçons structurées, adaptées à votre parcours",
@@ -2163,7 +2344,8 @@ export const translations: Record<Lang, T> = {
     netEyebrow: (mode) => `RÉSEAU · ${mode}`,
     netHeroPre: "La pièce où vous",
     netHeroEm: "êtes déjà.",
-    netSubtitle: "Gérez vos contacts, rédigez des messages adaptés à chaque catégorie et suivez chaque envoi.",
+    netSubtitle:
+      "Gérez vos contacts, rédigez des messages adaptés à chaque catégorie et suivez chaque envoi.",
     netTabContacts: (n) => `Contacts (${n})`,
     netTabDrafts: (n) => `Brouillons (${n})`,
     netTabCompose: "Composer",
@@ -2176,7 +2358,8 @@ export const translations: Record<Lang, T> = {
     netSaveContact: "Enregistrer le contact",
     netLoadingContacts: "Chargement des contacts…",
     netNoContacts: "Aucun contact pour l'instant",
-    netNoContactsDesc: "Ajoutez votre premier contact pour commencer à rédiger des messages personnalisés.",
+    netNoContactsDesc:
+      "Ajoutez votre premier contact pour commencer à rédiger des messages personnalisés.",
     netDraftMessage: "Rédiger un message",
     netOutreach: "PROSPECTION",
     netDraftAMessage: "Rédiger un message",
@@ -2184,24 +2367,69 @@ export const translations: Record<Lang, T> = {
     netAddContactFirst: "Ajoutez d'abord un contact →",
     netPlatform: "PLATEFORME",
     netRoleCategory: "RÔLE / CATÉGORIE",
-    netCategories: (industryId) => ({
-      yachts: ["Courtier charter", "Courtier vente", "Capitaine / Équipage", "Chantier naval", "Marina", "Gestion de charter", "Assurance", "Expertise / Refit"],
-      villas: ["Promoteur", "Agent immobilier prime", "Gestionnaire de bien", "Architecte d'intérieur", "Assurance", "Juridique / Fiscal", "Banque privée"],
-      jets: ["Courtier", "Opérateur charter", "Maintenance (MRO)", "FBO", "Assurance", "Family office", "Société de gestion"],
-      cars: ["Concessionnaire", "Maison de vente aux enchères", "Collectionneur", "Spécialiste / Restaurateur", "Assurance", "Transport", "Organisateur de concours"],
-    })[industryId],
-    netDefaultCategories: ["Direction", "Courtier", "Assurance", "Agence", "Propriétaire", "Investisseur", "Média"],
+    netCategories: (industryId) =>
+      ({
+        yachts: [
+          "Courtier charter",
+          "Courtier vente",
+          "Capitaine / Équipage",
+          "Chantier naval",
+          "Marina",
+          "Gestion de charter",
+          "Assurance",
+          "Expertise / Refit",
+        ],
+        villas: [
+          "Promoteur",
+          "Agent immobilier prime",
+          "Gestionnaire de bien",
+          "Architecte d'intérieur",
+          "Assurance",
+          "Juridique / Fiscal",
+          "Banque privée",
+        ],
+        jets: [
+          "Courtier",
+          "Opérateur charter",
+          "Maintenance (MRO)",
+          "FBO",
+          "Assurance",
+          "Family office",
+          "Société de gestion",
+        ],
+        cars: [
+          "Concessionnaire",
+          "Maison de vente aux enchères",
+          "Collectionneur",
+          "Spécialiste / Restaurateur",
+          "Assurance",
+          "Transport",
+          "Organisateur de concours",
+        ],
+      })[industryId],
+    netDefaultCategories: [
+      "Direction",
+      "Courtier",
+      "Assurance",
+      "Agence",
+      "Propriétaire",
+      "Investisseur",
+      "Média",
+    ],
     netSubject: "OBJET",
     netSubjectPlaceholder: "Présentation — Votre nom",
-    netSelectContactHint: "↑ Sélectionnez un contact ci-dessus pour générer un message personnalisé",
+    netSelectContactHint:
+      "↑ Sélectionnez un contact ci-dessus pour générer un message personnalisé",
     netSelectContactFirstError: "Sélectionnez d'abord un contact.",
     netDraftFailed: "La génération du message a échoué. Réessayez.",
-    netGateMessage: "Vous avez utilisé vos 2 brouillons gratuits. Passez à Pro pour une prospection illimitée.",
+    netGateMessage:
+      "Vous avez utilisé vos 2 brouillons gratuits. Passez à Pro pour une prospection illimitée.",
     netDrafting: "Rédaction en cours…",
     netDraftMessageTo: (name) => `Rédiger un message à ${name}`,
     netSelectContactFirstBtn: "Sélectionnez d'abord un contact",
     netMessage: "MESSAGE",
-    netMessagePlaceholder: "Votre message apparaîtra ici après génération, ou saisissez-le directement…",
+    netMessagePlaceholder:
+      "Votre message apparaîtra ici après génération, ou saisissez-le directement…",
     netCopied: "Copié",
     netCopy: "Copier",
     netSaveDraft: "Enregistrer le brouillon",
@@ -2223,7 +2451,8 @@ export const translations: Record<Lang, T> = {
     comTab: "Communauté",
     comSectionEyebrow: "DISCUSSION",
     comBoardTitle: "Forum communautaire",
-    comBoardDesc: "Posez des questions, partagez vos connaissances et échangez avec d'autres acteurs de ce secteur.",
+    comBoardDesc:
+      "Posez des questions, partagez vos connaissances et échangez avec d'autres acteurs de ce secteur.",
     comNewPost: "Nouveau sujet",
     comPostTitlePlaceholder: "Donnez un titre clair…",
     comPostBodyPlaceholder: "Partagez une connaissance, posez une question, lancez une discussion…",
@@ -2253,20 +2482,24 @@ export const translations: Record<Lang, T> = {
     comYou: "Vous",
     comUpvote: "Voter",
     // Studio
-    stuGateMessage: "Vous avez utilisé votre brouillon de contenu gratuit. Passez à Pro pour une génération illimitée.",
-    stuUpgradeReason: "Vous avez utilisé votre brouillon de contenu gratuit. Passez à Pro pour une génération de contenu IA illimitée.",
+    stuGateMessage:
+      "Vous avez utilisé votre brouillon de contenu gratuit. Passez à Pro pour une génération illimitée.",
+    stuUpgradeReason:
+      "Vous avez utilisé votre brouillon de contenu gratuit. Passez à Pro pour une génération de contenu IA illimitée.",
     stuGenerationFailed: "La génération a échoué",
     stuEyebrow: (mode) => `Studio de contenu · ${mode}`,
     stuFreeDraftLabel: "brouillon gratuit",
     stuHeroPre: "Du contenu viral,",
     stuHeroEm: "à la demande.",
-    stuSubtitle: (label) => `Le directeur de création IA d'AURUM conçoit du contenu prêt à publier pour l'univers ${label} — accroches, légendes, scripts, hashtags, visuels. Prêt en moins de 30 secondes.`,
+    stuSubtitle: (label) =>
+      `Le directeur de création IA d'AURUM conçoit du contenu prêt à publier pour l'univers ${label} — accroches, légendes, scripts, hashtags, visuels. Prêt en moins de 30 secondes.`,
     stuTags: ["Accroches virales", "Légendes par plateforme", "Hashtags", "Visuels IA"],
     stuHistory: (n) => `Historique (${n})`,
     stuContentHistory: (label) => `HISTORIQUE DE CONTENU · ${label}`,
     stuGeneratedLibrary: (n) => `Bibliothèque (${n})`,
     stuGeneratedLibraryTitle: "BIBLIOTHÈQUE GÉNÉRÉE · TOUTES VOS IMAGES ET VIDÉOS",
-    stuGeneratedLibraryEmpty: "Rien de généré pour l'instant — chaque image et vidéo créée dans Studio sera enregistrée ici, même celles que vous signalez ou n'utilisez pas.",
+    stuGeneratedLibraryEmpty:
+      "Rien de généré pour l'instant — chaque image et vidéo créée dans Studio sera enregistrée ici, même celles que vous signalez ou n'utilisez pas.",
     stuUntitled: "Sans titre",
     stuDeleteDraft: "Supprimer le brouillon",
     stuModeAssisted: "Assisté par IA",
@@ -2278,7 +2511,8 @@ export const translations: Record<Lang, T> = {
     stuYourIdea: "VOTRE IDÉE",
     stuIdeaPlaceholder: `ex. « Pourquoi les superyachts hybrides sont devenus le nouveau symbole de statut à Monaco »`,
     stuSignalsLabel: "SIGNAUX · choisissez ce qu'il faut amplifier",
-    stuNoSignals: "Aucun signal en direct pour le moment. Passez en mode Assisté par IA pour rédiger à partir de votre propre idée.",
+    stuNoSignals:
+      "Aucun signal en direct pour le moment. Passez en mode Assisté par IA pour rédiger à partir de votre propre idée.",
     stuNoneSelected: "Aucun signal sélectionné → AURUM analysera les principaux signaux du jour.",
     stuSignalsSelected: (n) => `${n} signal${n > 1 ? "aux" : ""} sélectionné${n > 1 ? "s" : ""}.`,
     stuGoalLabel: "OBJECTIF",
@@ -2287,7 +2521,8 @@ export const translations: Record<Lang, T> = {
     stuGenerateButton: "Générer du contenu viral",
     stuApprox30s: "~30 s",
     stuReadyTitle: "Votre contenu, prêt en 30 s",
-    stuReadyDesc: (label) => `Accroche · Légendes · Script · Hashtags · Visuel — tout en un, adapté à l'univers ${label}.`,
+    stuReadyDesc: (label) =>
+      `Accroche · Légendes · Script · Hashtags · Visuel — tout en un, adapté à l'univers ${label}.`,
     stuComposing: "Composition de votre contenu…",
     stuLoadSteps: [
       "Analyse des signaux du jour...",
@@ -2314,21 +2549,26 @@ export const translations: Record<Lang, T> = {
     stuVisualPrompt: "PROMPT VISUEL",
     stuReferencePhotos: "PHOTOS DE RÉFÉRENCE",
     stuAddReferencePhoto: "+ Ajouter une photo",
-    stuReferencePhotosSelected: (n) => `${n} photo${n === 1 ? "" : "s"} de référence sélectionnée${n === 1 ? "" : "s"}`,
-    stuReferencePhotosTip: "Astuce : 2 à 4 photos nettes et bien éclairées, sous des angles différents, reproduisent le bateau plus fidèlement qu'un grand nombre de photos à la fois.",
-    stuReferencePhotoLabelPlaceholder: "Nom (ex. \"Sunseeker 88 - tribord\")",
+    stuReferencePhotosSelected: (n) =>
+      `${n} photo${n === 1 ? "" : "s"} de référence sélectionnée${n === 1 ? "" : "s"}`,
+    stuReferencePhotosTip:
+      "Astuce : 2 à 4 photos nettes et bien éclairées, sous des angles différents, reproduisent le bateau plus fidèlement qu'un grand nombre de photos à la fois.",
+    stuReferencePhotoLabelPlaceholder: 'Nom (ex. "Sunseeker 88 - tribord")',
     stuReferencePhotoRightsLabel: "Je possède cette photo ou j'ai le droit de l'utiliser",
     stuUploadReferencePhoto: "Ajouter à la bibliothèque",
     stuFlagInaccurate: "Pas fidèle ? Signaler et régénérer gratuitement",
-    stuFlagReasonPlaceholder: "Qu'est-ce qui ne va pas ? (ex. mauvaise couleur de coque, mauvais bateau)",
+    stuFlagReasonPlaceholder:
+      "Qu'est-ce qui ne va pas ? (ex. mauvaise couleur de coque, mauvais bateau)",
     stuFlagAndRegenerate: "Signaler et régénérer",
     stuFlagAddPicture: "Ajouter une photo pour aider à mieux régénérer (facultatif)",
     stuFlagFreeRemaining: (n) => `Régénération gratuite utilisée — ${n} restantes ce mois-ci.`,
-    stuFlagBilledNotice: "Vous avez utilisé vos 10 régénérations gratuites du mois — celle-ci compte comme une génération normale.",
+    stuFlagBilledNotice:
+      "Vous avez utilisé vos 10 régénérations gratuites du mois — celle-ci compte comme une génération normale.",
     stuFlagChooseFile: "Choisir un fichier",
     stuFlagChooseFromLibrary: "Choisir depuis la bibliothèque",
     stuFlagClearPicture: "Retirer",
-    stuFlagLibraryEmpty: "Votre bibliothèque est vide — ajoutez une photo de référence ou générez une image d'abord.",
+    stuFlagLibraryEmpty:
+      "Votre bibliothèque est vide — ajoutez une photo de référence ou générez une image d'abord.",
     stuLibraryAddedTab: (n) => `Ajoutées à la bibliothèque (${n})`,
     stuLibraryGeneratedTab: (n) => `Générées par IA (${n})`,
     stuLibraryAllFolders: "Tous",
@@ -2337,7 +2577,8 @@ export const translations: Record<Lang, T> = {
     stuLibraryNoFolder: "Aucun dossier",
     stuLibrarySelectAll: "Tout sélectionner",
     stuLibraryDeselectAll: "Tout désélectionner",
-    stuLibraryAddedEmpty: "Aucune photo ajoutée pour l'instant — ajoutez une photo de référence pour l'enregistrer ici.",
+    stuLibraryAddedEmpty:
+      "Aucune photo ajoutée pour l'instant — ajoutez une photo de référence pour l'enregistrer ici.",
     stuGenerateImage: "Générer l'image",
     stuGeneratingVisual: "Génération de votre visuel…",
     stuImageFailed: "La génération de l'image a échoué. Réessayez.",
@@ -2347,7 +2588,8 @@ export const translations: Record<Lang, T> = {
     stuGenerateVideo: "Générer la vidéo",
     stuGeneratingVideo: "Génération de votre vidéo…",
     stuVideoFailed: "La génération de la vidéo a échoué. Réessayez.",
-    stuVideoComingSoon: "La génération de vidéo arrive bientôt — ce bouton est prêt à être activé dès sa mise en ligne.",
+    stuVideoComingSoon:
+      "La génération de vidéo arrive bientôt — ce bouton est prêt à être activé dès sa mise en ligne.",
     stuPostOn: "PUBLIER VOTRE CONTENU SUR",
     stuConnected: "Connecté",
     stuConnectArrow: "Connecter →",
@@ -2366,7 +2608,8 @@ export const translations: Record<Lang, T> = {
     profUnnamedOperator: "Opérateur sans nom",
     profModeBadge: (label) => `Mode ${label}`,
     profMyMission: "MA MISSION",
-    profMissionPlaceholder: 'Ajoutez votre mission — ex. « Percer le courtage de yachts à Monaco avant le T4 »',
+    profMissionPlaceholder:
+      "Ajoutez votre mission — ex. « Percer le courtage de yachts à Monaco avant le T4 »",
     profEditIdentity: "MODIFIER L'IDENTITÉ",
     profUnlockDossier: "Ajoutez votre nom et votre mission pour débloquer votre dossier.",
     profAurumScore: "SCORE AURUM",
@@ -2411,7 +2654,8 @@ export const translations: Record<Lang, T> = {
     profCancel: "Annuler",
     profSave: "Enregistrer",
     profConnectPlatform: (name) => `Connecter ${name}`,
-    profConnectHintSuffix: " — AURUM utilisera cette information pour rediriger votre contenu vers la bonne plateforme.",
+    profConnectHintSuffix:
+      " — AURUM utilisera cette information pour rediriger votre contenu vers la bonne plateforme.",
     profPlatformLinkedinLabel: "URL DE PROFIL OU NOM D'UTILISATEUR",
     profPlatformLinkedinHint: "L'URL de votre profil LinkedIn ou votre nom d'utilisateur",
     profPlatformUsernameLabel: "NOM D'UTILISATEUR",
@@ -2439,7 +2683,8 @@ export const translations: Record<Lang, T> = {
     setFullNamePlaceholder: "Votre nom",
     setFieldEmail: "Adresse e-mail",
     setEmailPlaceholder: "vous@domaine.com",
-    setEmailChangeHint: "La modification de votre e-mail nécessite une confirmation depuis la nouvelle adresse.",
+    setEmailChangeHint:
+      "La modification de votre e-mail nécessite une confirmation depuis la nouvelle adresse.",
     setSaveChanges: "Enregistrer les modifications",
     setFieldPassword: "Mot de passe",
     setPasswordResetDesc: "Nous vous envoyons un lien de réinitialisation par e-mail.",
@@ -2447,9 +2692,11 @@ export const translations: Record<Lang, T> = {
     setEmailChangeToast: "Vérifiez votre nouvelle adresse e-mail pour confirmer le changement.",
     setAccountUpdatedToast: "Compte mis à jour.",
     setSaveFailedToast: "Échec de l'enregistrement",
-    setPasswordResetSentToast: "E-mail de réinitialisation envoyé. Vérifiez votre boîte de réception.",
+    setPasswordResetSentToast:
+      "E-mail de réinitialisation envoyé. Vérifiez votre boîte de réception.",
     setAurumTitle: "Mon AURUM",
-    setAurumDesc: "Personnalisez votre mentor, vos rituels quotidiens et votre système d'exploitation.",
+    setAurumDesc:
+      "Personnalisez votre mentor, vos rituels quotidiens et votre système d'exploitation.",
     setActiveMode: "Mode actif",
     setModeSwitchedToast: (label) => `Basculé en mode ${label}`,
     setExperienceLevel: "Niveau d'expérience",
@@ -2482,7 +2729,8 @@ export const translations: Record<Lang, T> = {
     setStyleDetailedDesc: "Explications approfondies",
     setAiStyleToast: "Style IA mis à jour",
     setResetOnboarding: "Réinitialiser l'intégration",
-    setResetOnboardingDesc: "Refaites votre configuration pour changer de secteur et d'objectifs depuis le début.",
+    setResetOnboardingDesc:
+      "Refaites votre configuration pour changer de secteur et d'objectifs depuis le début.",
     setRedoOnboarding: "Refaire l'intégration",
     setContentTitle: "Contenu & Intelligence",
     setContentDesc: "Contrôlez la façon dont AURUM génère du contenu pour vous.",
@@ -2527,27 +2775,34 @@ export const translations: Record<Lang, T> = {
     setViewTerms: "Conditions d'utilisation",
     setViewPrivacyPolicy: "Politique de confidentialité",
     setExportDataTitle: "Exporter vos données",
-    setExportDataDesc: "Téléchargez tout ce qu'Aurum OS possède sur votre compte — profil, feuille de route, historique de contenu, tâches et plus — au format JSON.",
+    setExportDataDesc:
+      "Téléchargez tout ce qu'Aurum OS possède sur votre compte — profil, feuille de route, historique de contenu, tâches et plus — au format JSON.",
     setExportDataButton: "Exporter mes données",
     setExportDataSuccessToast: "Le téléchargement de vos données a commencé.",
     setExportDataFailedToast: "Impossible d'exporter vos données. Veuillez réessayer.",
     setDeleteAccountTitle: "Supprimer le compte",
-    setDeleteAccountDesc: "Supprimez définitivement votre compte et toutes les données associées. Cette action est irréversible.",
+    setDeleteAccountDesc:
+      "Supprimez définitivement votre compte et toutes les données associées. Cette action est irréversible.",
     setDeleteAccountButton: "Supprimer mon compte",
-    setDeleteAccountWarning: "Cette action supprime définitivement votre compte, annule tout abonnement actif et efface toutes vos données — feuille de route, historique de contenu, tâches, conversations avec le mentor, tout. Il n'y a pas de retour en arrière. Tapez DELETE pour confirmer.",
+    setDeleteAccountWarning:
+      "Cette action supprime définitivement votre compte, annule tout abonnement actif et efface toutes vos données — feuille de route, historique de contenu, tâches, conversations avec le mentor, tout. Il n'y a pas de retour en arrière. Tapez DELETE pour confirmer.",
     setDeleteAccountTypePlaceholder: "Tapez DELETE pour confirmer",
     setDeleteAccountConfirm: "Supprimer définitivement mon compte",
-    setDeleteAccountFailedToast: "Impossible de supprimer votre compte. Réessayez ou contactez le support.",
+    setDeleteAccountFailedToast:
+      "Impossible de supprimer votre compte. Réessayez ou contactez le support.",
     setCancel: "Annuler",
     setBillingTitle: "Facturation",
-    setBillingDesc: "Gérez votre abonnement, votre moyen de paiement et l'historique de facturation.",
+    setBillingDesc:
+      "Gérez votre abonnement, votre moyen de paiement et l'historique de facturation.",
     setCurrentPlan: "Abonnement actuel",
     setPlanFree: "Gratuit",
     setPlanPro: "Pro",
     setManageBilling: "Gérer la facturation",
     setUpgradeToPro: "Passer à Pro — 29 £/mois",
-    setBillingPortalFailedToast: "Impossible d'ouvrir le portail de facturation. Veuillez réessayer.",
-    setPastDueWarning: "Votre dernier paiement a échoué — mettez à jour votre moyen de paiement pour conserver l'accès Pro.",
+    setBillingPortalFailedToast:
+      "Impossible d'ouvrir le portail de facturation. Veuillez réessayer.",
+    setPastDueWarning:
+      "Votre dernier paiement a échoué — mettez à jour votre moyen de paiement pour conserver l'accès Pro.",
     setTrialingNote: "Vous êtes en période d'essai.",
     setCanceledNote: "Votre abonnement a été annulé.",
     setAccessUntil: (date) => `Accès Pro jusqu'au ${date}, puis votre compte repasse en Gratuit.`,
@@ -2568,77 +2823,87 @@ export const translations: Record<Lang, T> = {
     introEyebrow: "POUR COMMENCER",
     introEnterCta: "Entrer",
     introDontShowAgain: "Ne plus afficher",
-    introDashboardDesc: "Votre base quotidienne — le rituel du jour, votre secteur actif, et les événements qui déterminent quoi publier ensuite, en un coup d'œil.",
+    introDashboardDesc:
+      "Votre base quotidienne — le rituel du jour, votre secteur actif, et les événements qui déterminent quoi publier ensuite, en un coup d'œil.",
     introDashboardFeatures: [
       "Rituel quotidien avec des tâches adaptées à votre mode",
       "Progression de l'Académie en un coup d'œil",
       "Événements du secteur avec compte à rebours de préparation de contenu",
       "Accès direct au Mentor et à l'Intelligence",
     ],
-    introRoadmapDesc: "Un plan d'entrée personnalisé sur 30 jours, construit autour de votre secteur, niveau et objectifs — des actions quotidiennes précises à cocher au fur et à mesure.",
+    introRoadmapDesc:
+      "Un plan d'entrée personnalisé sur 30 jours, construit autour de votre secteur, niveau et objectifs — des actions quotidiennes précises à cocher au fur et à mesure.",
     introRoadmapFeatures: [
       "Plan semaine par semaine adapté à votre parcours et à votre temps disponible",
       "Tâches quotidiennes générées pour votre situation exacte",
       "Aide IA par tâche dès que vous êtes bloqué",
       "La progression alimente directement votre rituel quotidien",
     ],
-    introIntelligenceDesc: "Le signal sous le bruit — un flux en direct d'actualités et de mouvements de votre secteur, actualisé en continu.",
+    introIntelligenceDesc:
+      "Le signal sous le bruit — un flux en direct d'actualités et de mouvements de votre secteur, actualisé en continu.",
     introIntelligenceFeatures: [
       "Flux en temps réel filtré selon votre secteur",
       "Génération de contenu en un clic depuis chaque actualité",
       "Briefs complets sans quitter la page",
       "Catégorisé pour ne voir que ce qui est pertinent",
     ],
-    introMentorDesc: "Une conversation ouverte avec AURUM sur vos choix de carrière, vos décisions et votre positionnement — le contexte est conservé d'une session à l'autre.",
+    introMentorDesc:
+      "Une conversation ouverte avec AURUM sur vos choix de carrière, vos décisions et votre positionnement — le contexte est conservé d'une session à l'autre.",
     introMentorFeatures: [
       "Historique des conversations sauvegardé — reprenez où vous en étiez",
       "Comprend votre secteur, votre niveau et votre focus actuel",
       "Suggestions de questions pour débloquer une conversation",
       "Personnalisé selon votre série et vos objectifs",
     ],
-    introAcademyDesc: "Devenez un initié, méthodiquement — des modules structurés qui vous font passer d'outsider à quelqu'un qui maîtrise son secteur.",
+    introAcademyDesc:
+      "Devenez un initié, méthodiquement — des modules structurés qui vous font passer d'outsider à quelqu'un qui maîtrise son secteur.",
     introAcademyFeatures: [
       "Modules et leçons spécifiques à votre parcours",
       "Mises en situation et exercices pratiques, pas seulement de la lecture",
       "Progression suivie module par module",
       "Construit autour de vrais scénarios d'entrée dans le métier",
     ],
-    introTutorDesc: "Des leçons pas à pas adaptées à votre parcours exact, avec des questions de suivi dès que vous êtes bloqué.",
+    introTutorDesc:
+      "Des leçons pas à pas adaptées à votre parcours exact, avec des questions de suivi dès que vous êtes bloqué.",
     introTutorFeatures: [
       "Explications structurées et adaptées au parcours",
       "Questions de suivi illimitées",
       "Historique des leçons sauvegardé",
       "Personnalisé selon votre parcours et votre secteur",
     ],
-    introStudioDesc: "Le directeur créatif IA d'AURUM crée du contenu prêt à publier pour votre secteur — accroches, légendes, scripts, hashtags et visuels en moins de 30 secondes.",
+    introStudioDesc:
+      "Le directeur créatif IA d'AURUM crée du contenu prêt à publier pour votre secteur — accroches, légendes, scripts, hashtags et visuels en moins de 30 secondes.",
     introStudioFeatures: [
       "Légendes et accroches adaptées à chaque plateforme",
       "Scripts complets avec un déroulé plan par plan",
       "Jeux de hashtags adaptés à votre secteur",
       "Signaux en direct pour baser le contenu sur les tendances du moment",
     ],
-    introCalendarDesc: "Un registre vivant de vos rituels quotidiens et un espace pour planifier la suite — complétions, séries et tâches avec rappels, le tout sur une seule grille.",
+    introCalendarDesc:
+      "Un registre vivant de vos rituels quotidiens et un espace pour planifier la suite — complétions, séries et tâches avec rappels, le tout sur une seule grille.",
     introCalendarFeatures: [
       "Suivi visuel des séries et des complétions",
       "Tâches avec échéances et rappels",
       "Événements du secteur superposés au même calendrier",
       "Événements communautaires partagés par d'autres membres",
     ],
-    introNetworkDesc: "La pièce dans laquelle vous êtes déjà — gérez vos contacts, rédigez des messages sur-mesure pour chaque catégorie, et suivez chaque message envoyé.",
+    introNetworkDesc:
+      "La pièce dans laquelle vous êtes déjà — gérez vos contacts, rédigez des messages sur-mesure pour chaque catégorie, et suivez chaque message envoyé.",
     introNetworkFeatures: [
       "Liste de contacts organisée par catégorie",
       "Messages de prospection rédigés par IA et personnalisés",
       "Suivi des messages envoyés pour ne rien laisser filer",
       "Espace communautaire pour échanger avec d'autres membres",
     ],
-    introProfileDesc: "Votre dossier — le profil qu'AURUM utilise pour personnaliser chaque recommandation, ainsi que votre AURUM Score et vos comptes connectés.",
+    introProfileDesc:
+      "Votre dossier — le profil qu'AURUM utilise pour personnaliser chaque recommandation, ainsi que votre AURUM Score et vos comptes connectés.",
     introProfileFeatures: [
       "Profil modifiable qui façonne les recommandations de l'IA",
       "Détail de votre AURUM Score",
       "Comptes sociaux et plateformes connectés",
       "Votre historique — série, complétions et parcours",
     ],
-    celebrationStreakTitle: (n) => n === 1 ? "Série de 1 jour" : `Série de ${n} jours`,
+    celebrationStreakTitle: (n) => (n === 1 ? "Série de 1 jour" : `Série de ${n} jours`),
     celebrationStreakSubtitle: "Continuez sur votre lancée.",
     celebrationModuleTitle: "Module terminé",
     celebrationPhaseTitle: (phase) => `Phase terminée — ${phase}`,
