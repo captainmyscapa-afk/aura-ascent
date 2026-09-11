@@ -440,6 +440,7 @@ export type T = {
   stuModify: string;
   stuRegenerating: string;
   stuRegenerateIdeaPlaceholder: string;
+  stuRegeneratePromptError: string;
   stuSave: string;
   stuCancel: string;
   stuOpening: string;
@@ -1424,6 +1425,7 @@ export const translations: Record<Lang, T> = {
     stuModify: "Modify",
     stuRegenerating: "Regenerating…",
     stuRegenerateIdeaPlaceholder: "An idea to help regeneration?",
+    stuRegeneratePromptError: "Couldn't generate a new prompt. Please try again.",
     stuSave: "Save",
     stuCancel: "Cancel",
     stuOpening: "Opening…",
@@ -2542,6 +2544,7 @@ export const translations: Record<Lang, T> = {
     stuModify: "Modifier",
     stuRegenerating: "Régénération…",
     stuRegenerateIdeaPlaceholder: "Une idée pour aider la régénération ?",
+    stuRegeneratePromptError: "Impossible de générer un nouveau prompt. Veuillez réessayer.",
     stuSave: "Enregistrer",
     stuCancel: "Annuler",
     stuOpening: "Ouverture…",

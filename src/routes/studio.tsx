@@ -169,6 +169,7 @@ function Studio() {
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [regeneratingPrompt, setRegeneratingPrompt] = useState(false);
+  const [regeneratePromptError, setRegeneratePromptError] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoError, setVideoError] = useState(false);
@@ -643,14 +644,15 @@ function Studio() {
   };
 
   // CAP-148: "Regenerate" on the Visual Prompt card -- asks the AI for a
-  // genuinely new scene (optionally steered by a typed idea), updates the
-  // visible prompt, then generates an image from it in one action. The new
-  // prompt is threaded straight into generateImageWithReferences instead of
-  // round-tripped through plan state first, so this can't read a stale,
-  // not-yet-committed value the way calling setEditablePlan and then
-  // immediately generating from `plan` could.
-  const regeneratePromptAndImage = async (currentVisualPrompt: string, idea: string) => {
+  // genuinely new scene (optionally steered by a typed idea) and updates
+  // the visible prompt text ONLY. Per Captain: this must NOT also spend an
+  // image generation -- the user reviews the new prompt (possibly several
+  // times in a row) and decides for themselves when it's worth actually
+  // generating an image from it, via the existing Generate/Regenerate-image
+  // button below.
+  const regeneratePromptOnly = async (currentVisualPrompt: string, idea: string) => {
     setRegeneratingPrompt(true);
+    setRegeneratePromptError(false);
     try {
       const { visualPrompt: newPrompt } = await regeneratePrompt({
         data: {
@@ -662,9 +664,8 @@ function Studio() {
       });
       const basePlan = editablePlan ?? plan;
       if (basePlan) setEditablePlan({ ...basePlan, visualPrompt: newPrompt });
-      await generateImageWithReferences(newPrompt);
     } catch {
-      setImageError(true);
+      setRegeneratePromptError(true);
     } finally {
       setRegeneratingPrompt(false);
     }
@@ -955,9 +956,10 @@ function Studio() {
                 generateImageWithReferences((editablePlan ?? plan!).visualPrompt)
               }
               onRegeneratePrompt={(idea) =>
-                regeneratePromptAndImage((editablePlan ?? plan!).visualPrompt, idea)
+                regeneratePromptOnly((editablePlan ?? plan!).visualPrompt, idea)
               }
               regeneratingPrompt={regeneratingPrompt}
+              regeneratePromptError={regeneratePromptError}
               onFlagInaccurate={(reason, attachment) =>
                 flagAndRegenerateImage((editablePlan ?? plan!).visualPrompt, reason, attachment)
               }
@@ -2039,6 +2041,7 @@ function PlanOutput({
   onGenerateImage,
   onRegeneratePrompt,
   regeneratingPrompt,
+  regeneratePromptError,
   onFlagInaccurate,
   flagNotice,
   flagAttachmentChoices,
@@ -2080,6 +2083,7 @@ function PlanOutput({
   onGenerateImage: () => void;
   onRegeneratePrompt: (idea: string) => void;
   regeneratingPrompt: boolean;
+  regeneratePromptError: boolean;
   onFlagInaccurate: (reason: string, attachment?: { file: File } | { url: string } | null) => void;
   flagNotice: string | null;
   flagAttachmentChoices: { id: string; url: string; label: string }[];
@@ -2454,6 +2458,11 @@ function PlanOutput({
         </div>
         {showRegenerateIdea && (
           <div className="space-y-2 mb-4 p-3 rounded-lg border border-border">
+            {/* CAP-148 fix: the box stays open across a regenerate -- the
+                new prompt lands in the text below on each click, so the
+                user can keep trying (same idea, a tweaked one, or none) as
+                many times as they want before closing it with Cancel. It
+                never triggers an image generation itself. */}
             <textarea
               value={regenerateIdeaDraft}
               onChange={(e) => setRegenerateIdeaDraft(e.target.value)}
@@ -2462,13 +2471,12 @@ function PlanOutput({
               disabled={regeneratingPrompt}
               className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/50 resize-y transition-colors disabled:opacity-50"
             />
+            {regeneratePromptError && (
+              <div className="text-[11px] text-destructive">{t.stuRegeneratePromptError}</div>
+            )}
             <div className="flex gap-2">
               <button
-                onClick={() => {
-                  onRegeneratePrompt(regenerateIdeaDraft);
-                  setShowRegenerateIdea(false);
-                  setRegenerateIdeaDraft("");
-                }}
+                onClick={() => onRegeneratePrompt(regenerateIdeaDraft)}
                 disabled={regeneratingPrompt}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-primary-foreground text-xs disabled:opacity-50"
                 style={{ background: "var(--gradient-gold)" }}
