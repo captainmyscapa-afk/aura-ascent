@@ -27,7 +27,14 @@ type Input = {
 // image/video -> tiktok/instagram/youtube_shorts). Per Captain, every
 // generation now targets every platform at once -- there's no format choice
 // left in the UI (see studio.tsx) -- so this is always the full union.
-const ALL_PLATFORM_KEYS = ["facebook", "twitter", "linkedin", "tiktok", "instagram", "youtube_shorts"];
+const ALL_PLATFORM_KEYS = [
+  "facebook",
+  "twitter",
+  "linkedin",
+  "tiktok",
+  "instagram",
+  "youtube_shorts",
+];
 
 function getPlatformGuidance(): string {
   return [
@@ -54,7 +61,7 @@ Vous DEVEZ r\u00e9pondre UNIQUEMENT avec un objet JSON valide \u2014 pas de bali
 {
   "title": "string \u2014 titre de contenu percutant (10-15 mots), en fran\u00e7ais",
   "hook": "string \u2014 accroche virale des 2 premi\u00e8res secondes, impossible \u00e0 ignorer, en fran\u00e7ais",
-  ${platformKeys.map(k => `"${k}": "string \u2014 l\u00e9gende pour ${k}, en fran\u00e7ais"`).join(",\n  ")},
+  ${platformKeys.map((k) => `"${k}": "string \u2014 l\u00e9gende pour ${k}, en fran\u00e7ais"`).join(",\n  ")},
   "script": ["tableau de strings \u2014 8-10 s\u00e9quences ordonn\u00e9es, pr\u00e9cises et cin\u00e9matographiques, en fran\u00e7ais"],
   "hashtags": ["tableau de strings \u2014 18-24 hashtags combinant ultra-niche + secteur + g\u00e9n\u00e9raux, en fran\u00e7ais quand pertinent"],
   "visual_prompt": "string \u2014 prompt d'image IA de SC\u00c8NE cin\u00e9matographique, 60-100 mots, qualit\u00e9 marque de luxe (peut rester en anglais pour le mod\u00e8le d'image). D\u00e9crire UNIQUEMENT le cadre, l'heure, la m\u00e9t\u00e9o, la lumi\u00e8re, l'angle de cam\u00e9ra/composition, l'ambiance et l'activit\u00e9 humaine autour du sujet."
@@ -69,7 +76,7 @@ You MUST respond with ONLY a valid JSON object \u2014 no markdown fences, no ext
 {
   "title": "string \u2014 bold content title (10-15 words)",
   "hook": "string \u2014 first 2-second viral hook, impossible to scroll past",
-  ${platformKeys.map(k => `"${k}": "string \u2014 caption for ${k}"`).join(",\n  ")},
+  ${platformKeys.map((k) => `"${k}": "string \u2014 caption for ${k}"`).join(",\n  ")},
   "script": ["string array \u2014 8-10 ordered beats, specific and cinematic"],
   "hashtags": ["string array \u2014 18-24 hashtags mixing ultra-niche + industry + broad"],
   "visual_prompt": "string \u2014 cinematic AI image SCENE prompt, 60-100 words, luxury brand quality. Describe ONLY the setting, time of day, weather, lighting, camera angle/composition, mood, and any human activity around the subject."
@@ -87,7 +94,9 @@ CRITICAL RULE FOR visual_prompt: never invent or describe the subject's own iden
           data.intelligenceContext ? `SIGNAUX :\n${data.intelligenceContext}` : "",
           `INDICATIONS PAR PLATEFORME :\n${getPlatformGuidance()}`,
           `R\u00e9pondez UNIQUEMENT avec un JSON valide, enti\u00e8rement en fran\u00e7ais. Pas de markdown. Pas d'explication.`,
-        ].filter(Boolean).join("\n\n")
+        ]
+          .filter(Boolean)
+          .join("\n\n")
       : [
           `MODE: ${data.industryLabel}`,
           data.goal ? `GOAL: ${data.goal}` : "",
@@ -95,17 +104,22 @@ CRITICAL RULE FOR visual_prompt: never invent or describe the subject's own iden
           data.intelligenceContext ? `SIGNALS:\n${data.intelligenceContext}` : "",
           `PLATFORM GUIDANCE:\n${getPlatformGuidance()}`,
           `Return ONLY valid JSON. No markdown. No explanation.`,
-        ].filter(Boolean).join("\n\n");
+        ]
+          .filter(Boolean)
+          .join("\n\n");
 
     // Full content plan (title, hook, 6 platform captions, 8-10 script
     // beats, 18-24 hashtags, visual prompt) easily runs past ai.chat's default
     // short-reply budget -- give it real headroom explicitly. Bumped from
     // 3000 to 5000 for CAP-128: generation now always covers all 6 platform
     // captions (previously only 3 at a time), roughly doubling output length.
-    const { text } = await ai.chat([
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userParts },
-    ], { maxTokens: 5000 });
+    const { text } = await ai.chat(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userParts },
+      ],
+      { maxTokens: 5000 },
+    );
 
     // Parse the JSON response. Strip accidental markdown fences, then take the
     // first {...} block rather than parsing the whole string -- the same
@@ -121,7 +135,12 @@ CRITICAL RULE FOR visual_prompt: never invent or describe the subject's own iden
       if (start === -1 || end === -1) throw new Error("no JSON object found in AI response");
       raw = JSON.parse(cleaned.slice(start, end + 1)) as Record<string, unknown>;
     } catch (e) {
-      console.error("generateStudioContent: failed to parse AI response as JSON:", e, "\nraw text:", text.slice(0, 500));
+      console.error(
+        "generateStudioContent: failed to parse AI response as JSON:",
+        e,
+        "\nraw text:",
+        text.slice(0, 500),
+      );
       throw new Error(
         isFrench
           ? "La g\u00e9n\u00e9ration de contenu a \u00e9chou\u00e9 \u2014 r\u00e9ponse invalide. Veuillez r\u00e9essayer."
