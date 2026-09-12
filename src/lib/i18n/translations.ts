@@ -13,6 +13,10 @@ export type T = {
   navIdentity: string;
   navPreferences: string;
   ecosystem: string;
+  navGroupCommand: string;
+  navGroupBuild: string;
+  navGroupCreate: string;
+  navGroupConnect: string;
   momentum: string;
   signOut: string;
   signInUnlock: string;
@@ -56,6 +60,33 @@ export type T = {
   dashTrackComplete: (done: number, total: number) => string;
   dashMomentumLabel: (pct: number) => string;
   dashAskMentorHelp: string;
+  dashHelpPickerTitle: string;
+  dashHelpPickerDesc: string;
+  dashHelpPickerConfirm: string;
+  dashHelpPickerCancel: string;
+  dashHelpPickerEmpty: string;
+  plansUpgradeButton: string;
+  plansModalTitle: string;
+  plansModalDesc: string;
+  plansCreditsLabel: (n: number) => string;
+  plansBonusLabel: (n: number) => string;
+  plansBadgeMostPopular: string;
+  plansBadgeBestValue: string;
+  plansCta: string;
+  plansComingSoon: string;
+  gemsLabel: string;
+  gemsNeedMore: string;
+  gemsBoostsTitle: string;
+  gemsBoostsDesc: string;
+  gemsBoostCta: (amount: number) => string;
+  gemsComingSoon: string;
+  gemsAdminTitle: string;
+  gemsAdminBalanceLabel: string;
+  gemsAdminAllotmentLabel: string;
+  gemsAdminSave: string;
+  gemsAdminReset: string;
+  gemsAdminSaved: string;
+  gemsAdminFailed: string;
   dashAllIndustries: string;
   dashSelectEvent: string;
   dashSelectEventDesc: string;
@@ -169,6 +200,26 @@ export type T = {
   roadmapHelpGateMessage: string;
   roadmapMarkComplete: string;
   roadmapMarkIncomplete: string;
+  roadmapAnswerTask: string;
+  roadmapHideAnswer: string;
+  roadmapAnswerPlaceholder: string;
+  roadmapAnswerNoPaste: string;
+  roadmapSubmitAnswer: string;
+  roadmapSubmittingAnswer: string;
+  roadmapAnswerFailed: string;
+  roadmapAnswerScoreLabel: (score: number) => string;
+  roadmapAnswerCorrectionLabel: string;
+  roadmapViewTasks: string;
+  roadmapViewMyRoadmap: string;
+  roadmapMyRoadmapDesc: string;
+  roadmapFinishLine: string;
+  roadmapDayDetailHint: string;
+  roadmapDayDetailTitle: (day: number) => string;
+  roadmapDayDetailLoading: string;
+  roadmapDayDetailNoDate: string;
+  roadmapCelebrationTitle: (industryLabel: string) => string;
+  roadmapCelebrationSubtitle: string;
+  roadmapCelebrationCta: string;
   roadmapLockTitle: string;
   roadmapLockDesc: string;
   roadmapLockFeatures: string[];
@@ -210,6 +261,8 @@ export type T = {
   mentorOnline: string;
   mentorNewConversation: string;
   mentorRecentConversations: string;
+  recentPanelCollapse: string;
+  recentPanelExpand: string;
   mentorConvMeta: (date: string, n: number) => string;
   mentorDeleteConversation: string;
   mentorQuickInvocations: string;
@@ -489,12 +542,8 @@ export type T = {
   stuVideoFailed: string;
   stuVideoComingSoon: string;
   stuPostOn: string;
-  stuConnected: string;
-  stuConnectArrow: string;
+  stuPostHere: string;
   stuCaptionLinked: (labels: string) => string;
-  stuPostNow: string;
-  stuSavedExcl: string;
-  stuSaving: string;
   stuSchedulePost: string;
   stuPostScheduled: string;
   stuScheduleHeader: string;
@@ -531,10 +580,10 @@ export type T = {
   profIdentityHint: string;
   profConnectedAccountsEyebrow: string;
   profConnectedAccountsTitle: string;
-  profConnectDesc: string;
   profConnected: string;
   profNotConnected: string;
   profDisconnect: string;
+  profVisitPage: (name: string) => string;
   profConnect: string;
   profEditIdentityTitle: string;
   profEditIdentityDesc: string;
@@ -544,8 +593,6 @@ export type T = {
   profFieldMission: string;
   profFieldGoal: string;
   profFieldPhotoUrl: string;
-  profFieldLinkedinUrl: string;
-  profFieldInstagramUrl: string;
   profPlaceholderProfession: string;
   profPlaceholderMission: string;
   profPlaceholderGoal: string;
@@ -557,6 +604,7 @@ export type T = {
   profPlatformLinkedinHint: string;
   profPlatformUsernameLabel: string;
   profPlatformInstagramHint: string;
+  profPlatformFacebookHint: string;
   profPlatformTwitterHint: string;
   profPlatformTiktokHint: string;
   profPlatformYoutubeLabel: string;
@@ -574,6 +622,20 @@ export type T = {
   setSectionPrivacy: string;
   setSectionBilling: string;
   setSectionDanger: string;
+  setSectionGems: string;
+  setGemsPricingTitle: string;
+  setGemsPricingDesc: string;
+  setGemsYourBalance: string;
+  setGemsCostLabel: (n: number) => string;
+  setGemsActionImageGeneration: string;
+  setGemsActionMentorNewConversation: string;
+  setGemsActionTutorNewConversation: string;
+  setGemsActionReadArticle: string;
+  setGemsActionStudioAiAssisted: string;
+  setGemsActionStudioLiveIntel: string;
+  setGemsActionRoadmapGetHelp: string;
+  setGemsActionRoadmapSwapTask: string;
+  setGemsActionMentorHelpPerTask: string;
   setSoon: string;
   setAccountTitle: string;
   setAccountDesc: string;
@@ -755,6 +817,10 @@ export const translations: Record<Lang, T> = {
     navPreferences: "Preferences",
     // Sidebar
     ecosystem: "ECOSYSTEM",
+    navGroupCommand: "COMMAND",
+    navGroupBuild: "BUILD",
+    navGroupCreate: "CREATE",
+    navGroupConnect: "CONNECT",
     momentum: "MOMENTUM",
     signOut: "Sign out",
     signInUnlock: "Sign in to unlock",
@@ -807,6 +873,33 @@ export const translations: Record<Lang, T> = {
     dashTrackComplete: (done, total) => `${done}/${total} complete`,
     dashMomentumLabel: (pct) => `Momentum · ${pct}%`,
     dashAskMentorHelp: "Ask Mentor for help",
+    dashHelpPickerTitle: "What do you need help with?",
+    dashHelpPickerDesc: "Select the task or tasks you're stuck on — Mentor will focus on just those.",
+    dashHelpPickerConfirm: "Ask Mentor",
+    dashHelpPickerCancel: "Cancel",
+    dashHelpPickerEmpty: "Select at least one task.",
+    plansUpgradeButton: "Upgrade",
+    plansModalTitle: "Choose your plan",
+    plansModalDesc: "Aurum Gems packs to unlock more AURUM Mentor, Studio and Tutor generations.",
+    plansCreditsLabel: (n) => `${n} Gems`,
+    plansBonusLabel: (n) => `+${n} bonus`,
+    plansBadgeMostPopular: "Most Popular",
+    plansBadgeBestValue: "Best Value",
+    plansCta: "Select this plan",
+    plansComingSoon: "Credit packs aren't live yet — coming soon.",
+    gemsLabel: "Aurum Gems",
+    gemsNeedMore: "Need more capacity?",
+    gemsBoostsTitle: "Credit Boosts",
+    gemsBoostsDesc: "Top up your Aurum Gems instantly, on top of your plan's monthly allotment.",
+    gemsBoostCta: (amount) => `+${amount} Gems`,
+    gemsComingSoon: "Credit Boosts aren't live yet — coming soon.",
+    gemsAdminTitle: "Admin controls (not linked to billing yet)",
+    gemsAdminBalanceLabel: "Balance",
+    gemsAdminAllotmentLabel: "Monthly allotment",
+    gemsAdminSave: "Save",
+    gemsAdminReset: "Reset to 0",
+    gemsAdminSaved: "Gem balance updated.",
+    gemsAdminFailed: "Couldn't update gem balance.",
     dashAllIndustries: "All industries",
     dashSelectEvent: "Select an event",
     dashSelectEventDesc:
@@ -989,6 +1082,28 @@ export const translations: Record<Lang, T> = {
       "You've used your free task help sessions. Upgrade to Pro for unlimited help on every task.",
     roadmapMarkComplete: "Mark complete",
     roadmapMarkIncomplete: "Mark incomplete",
+    roadmapAnswerTask: "Answer",
+    roadmapHideAnswer: "Hide answer",
+    roadmapAnswerPlaceholder: "Write your answer here…",
+    roadmapAnswerNoPaste: "No cheating 😉 GET TO WORK!",
+    roadmapSubmitAnswer: "Submit for review",
+    roadmapSubmittingAnswer: "Reviewing your answer…",
+    roadmapAnswerFailed: "Couldn't review this answer — try again.",
+    roadmapAnswerScoreLabel: (score: number) => `${score} / 10`,
+    roadmapAnswerCorrectionLabel: "AURUM's review",
+    roadmapViewTasks: "Task list",
+    roadmapViewMyRoadmap: "My Roadmap",
+    roadmapMyRoadmapDesc: "Your 30-day journey — one flag for every day you complete.",
+    roadmapFinishLine: "Finish line",
+    roadmapDayDetailHint: "Click for details",
+    roadmapDayDetailTitle: (day: number) => `Day ${day}`,
+    roadmapDayDetailLoading: "Loading completion dates…",
+    roadmapDayDetailNoDate: "Date not recorded",
+    roadmapCelebrationTitle: (industryLabel: string) =>
+      `Ready to enter the world of ${industryLabel}`,
+    roadmapCelebrationSubtitle:
+      "You completed all 30 days of your roadmap. This is proximity, earned.",
+    roadmapCelebrationCta: "Continue",
     roadmapLockTitle: "Your 30-Day Roadmap",
     roadmapLockDesc:
       "A day-by-day execution plan built for your goal — four weeks of networking, content, and outreach tasks, mapped out and synced to your calendar.",
@@ -1044,6 +1159,8 @@ export const translations: Record<Lang, T> = {
     mentorOnline: "ONLINE",
     mentorNewConversation: "New conversation",
     mentorRecentConversations: "RECENT CONVERSATIONS",
+    recentPanelCollapse: "Collapse",
+    recentPanelExpand: "Expand",
     mentorConvMeta: (date, n) => `${date} · ${n} message${n === 1 ? "" : "s"}`,
     mentorDeleteConversation: "Delete conversation",
     mentorQuickInvocations: "QUICK INVOCATIONS",
@@ -1478,12 +1595,8 @@ export const translations: Record<Lang, T> = {
     stuVideoComingSoon:
       "Video generation is launching soon — this button is ready to go live the moment it's connected.",
     stuPostOn: "POST YOUR CONTENT ON",
-    stuConnected: "Connected",
-    stuConnectArrow: "Connect →",
+    stuPostHere: "Post here →",
     stuCaptionLinked: (labels) => `Caption linked: ${labels}`,
-    stuPostNow: "Post your content now",
-    stuSavedExcl: "Saved!",
-    stuSaving: "Saving…",
     stuSchedulePost: "Schedule post",
     stuPostScheduled: "Post scheduled successfully",
     stuScheduleHeader: "SCHEDULE POST",
@@ -1519,11 +1632,11 @@ export const translations: Record<Lang, T> = {
     profIdentityHint: "Complete your profile",
     profConnectedAccountsEyebrow: "CONNECTED ACCOUNTS",
     profConnectedAccountsTitle: "Your publishing network.",
-    profConnectDesc: "Connect your accounts so AURUM can publish directly on your behalf.",
-    profConnected: "CONNECTED",
-    profNotConnected: "NOT CONNECTED",
-    profDisconnect: "Disconnect",
-    profConnect: "Connect",
+    profConnected: "HANDLE SAVED",
+    profNotConnected: "NOT SAVED",
+    profDisconnect: "Remove",
+    profVisitPage: (name) => `Open ${name}`,
+    profConnect: "Save handle",
     profEditIdentityTitle: "Edit identity",
     profEditIdentityDesc: "Your dossier shapes every recommendation AURUM makes.",
     profFieldFullName: "Full name",
@@ -1532,26 +1645,25 @@ export const translations: Record<Lang, T> = {
     profFieldMission: "My mission",
     profFieldGoal: "Goal",
     profFieldPhotoUrl: "Photo URL",
-    profFieldLinkedinUrl: "LinkedIn URL",
-    profFieldInstagramUrl: "Instagram URL",
     profPlaceholderProfession: "Yacht brokerage analyst",
     profPlaceholderMission: "Break into Monaco yacht brokerage by Q4",
     profPlaceholderGoal: "Sign first brokerage mandate",
     profCancel: "Cancel",
     profSave: "Save",
-    profConnectPlatform: (name) => `Connect ${name}`,
-    profConnectHintSuffix: " — AURUM will use this to redirect your content to the right platform.",
+    profConnectPlatform: (name) => `Save your ${name} handle`,
+    profConnectHintSuffix: " — AURUM uses this to tailor your captions. You'll still publish on the platform yourself for now.",
     profPlatformLinkedinLabel: "PROFILE URL OR USERNAME",
     profPlatformLinkedinHint: "Your LinkedIn profile URL or username",
     profPlatformUsernameLabel: "USERNAME",
     profPlatformInstagramHint: "Your Instagram handle (without @)",
+    profPlatformFacebookHint: "Your Facebook page or profile name",
     profPlatformTwitterHint: "Your X / Twitter handle",
     profPlatformTiktokHint: "Your TikTok handle",
     profPlatformYoutubeLabel: "CHANNEL NAME OR URL",
     profPlatformYoutubeHint: "Your YouTube channel name or URL",
     profPlatformSubstackLabel: "SUBSTACK URL",
     profPlatformSubstackHint: "Your full Substack publication URL",
-    profConnecting: "Connecting…",
+    profConnecting: "Saving…",
     setPreferencesEyebrow: "PREFERENCES",
     setTuneTitle: "Tune your operating system",
     setSectionAccount: "Account",
@@ -1561,6 +1673,20 @@ export const translations: Record<Lang, T> = {
     setSectionPrivacy: "Privacy",
     setSectionBilling: "Billing",
     setSectionDanger: "Danger Zone",
+    setSectionGems: "Gems Pricing",
+    setGemsPricingTitle: "Gems Pricing",
+    setGemsPricingDesc: "How many Aurum Gems each premium AI action costs.",
+    setGemsYourBalance: "Your balance",
+    setGemsCostLabel: (n) => `${n} Gems`,
+    setGemsActionImageGeneration: "Image generation",
+    setGemsActionMentorNewConversation: "New conversation with Mentor",
+    setGemsActionTutorNewConversation: "New conversation with Tutor",
+    setGemsActionReadArticle: "Read an article",
+    setGemsActionStudioAiAssisted: "Generate content — AI-assisted",
+    setGemsActionStudioLiveIntel: "Generate content — from Live Intel",
+    setGemsActionRoadmapGetHelp: "Roadmap \"Get help\"",
+    setGemsActionRoadmapSwapTask: "Roadmap \"Swap task\"",
+    setGemsActionMentorHelpPerTask: "\"Ask Mentor for help\" (per task selected)",
     setSoon: "SOON",
     setAccountTitle: "Account",
     setAccountDesc: "Manage your personal information and login credentials.",
@@ -1803,6 +1929,10 @@ export const translations: Record<Lang, T> = {
     navPreferences: "Préférences",
     // Sidebar
     ecosystem: "ÉCOSYSTÈME",
+    navGroupCommand: "COMMANDE",
+    navGroupBuild: "CONSTRUIRE",
+    navGroupCreate: "CRÉER",
+    navGroupConnect: "CONNECTER",
     momentum: "ÉLAN",
     signOut: "Se déconnecter",
     signInUnlock: "Se connecter",
@@ -1851,6 +1981,33 @@ export const translations: Record<Lang, T> = {
     dashTrackComplete: (done, total) => `${done}/${total} terminé`,
     dashMomentumLabel: (pct) => `Élan · ${pct}%`,
     dashAskMentorHelp: "Demander l'aide du Mentor",
+    dashHelpPickerTitle: "De quoi avez-vous besoin ?",
+    dashHelpPickerDesc: "Sélectionnez la ou les tâches qui vous bloquent — le Mentor se concentrera sur celles-ci.",
+    dashHelpPickerConfirm: "Demander au Mentor",
+    dashHelpPickerCancel: "Annuler",
+    dashHelpPickerEmpty: "Sélectionnez au moins une tâche.",
+    plansUpgradeButton: "Améliorer",
+    plansModalTitle: "Choisissez votre forfait",
+    plansModalDesc: "Des packs d'Aurum Gems pour débloquer plus de générations AURUM Mentor, Studio et Tutor.",
+    plansCreditsLabel: (n) => `${n} Gems`,
+    plansBonusLabel: (n) => `+${n} bonus`,
+    plansBadgeMostPopular: "Le plus populaire",
+    plansBadgeBestValue: "Meilleure valeur",
+    plansCta: "Choisir ce forfait",
+    plansComingSoon: "Les packs de crédits arrivent bientôt.",
+    gemsLabel: "Aurum Gems",
+    gemsNeedMore: "Besoin de plus de capacité ?",
+    gemsBoostsTitle: "Recharges de crédits",
+    gemsBoostsDesc: "Rechargez vos Aurum Gems instantanément, en plus de l'allocation mensuelle de votre forfait.",
+    gemsBoostCta: (amount) => `+${amount} Gems`,
+    gemsComingSoon: "Les recharges de crédits arrivent bientôt.",
+    gemsAdminTitle: "Contrôles admin (pas encore lié à la facturation)",
+    gemsAdminBalanceLabel: "Solde",
+    gemsAdminAllotmentLabel: "Allocation mensuelle",
+    gemsAdminSave: "Enregistrer",
+    gemsAdminReset: "Réinitialiser à 0",
+    gemsAdminSaved: "Solde de gemmes mis à jour.",
+    gemsAdminFailed: "Impossible de mettre à jour le solde.",
     dashAllIndustries: "Tous les secteurs",
     dashSelectEvent: "Sélectionnez un événement",
     dashSelectEventDesc:
@@ -2039,6 +2196,28 @@ export const translations: Record<Lang, T> = {
       "Vous avez utilisé vos sessions d'aide gratuites. Passez à Pro pour une aide illimitée sur chaque tâche.",
     roadmapMarkComplete: "Marquer comme terminé",
     roadmapMarkIncomplete: "Marquer comme non terminé",
+    roadmapAnswerTask: "Répondre",
+    roadmapHideAnswer: "Masquer la réponse",
+    roadmapAnswerPlaceholder: "Écrivez votre réponse ici…",
+    roadmapAnswerNoPaste: "Pas de triche 😉 AU TRAVAIL !",
+    roadmapSubmitAnswer: "Soumettre pour révision",
+    roadmapSubmittingAnswer: "Analyse de votre réponse…",
+    roadmapAnswerFailed: "Impossible d'analyser cette réponse — réessayez.",
+    roadmapAnswerScoreLabel: (score: number) => `${score} / 10`,
+    roadmapAnswerCorrectionLabel: "L'avis d'AURUM",
+    roadmapViewTasks: "Liste des tâches",
+    roadmapViewMyRoadmap: "Ma feuille de route",
+    roadmapMyRoadmapDesc: "Votre parcours de 30 jours — un drapeau pour chaque jour complété.",
+    roadmapFinishLine: "Ligne d'arrivée",
+    roadmapDayDetailHint: "Cliquez pour les détails",
+    roadmapDayDetailTitle: (day: number) => `Jour ${day}`,
+    roadmapDayDetailLoading: "Chargement des dates de complétion…",
+    roadmapDayDetailNoDate: "Date non enregistrée",
+    roadmapCelebrationTitle: (industryLabel: string) =>
+      `Prêt à entrer dans le monde de ${industryLabel}`,
+    roadmapCelebrationSubtitle:
+      "Vous avez terminé les 30 jours de votre feuille de route. C'est de la proximité, méritée.",
+    roadmapCelebrationCta: "Continuer",
     roadmapLockTitle: "Votre feuille de route de 30 jours",
     roadmapLockDesc:
       "Un plan d'exécution jour par jour construit pour votre objectif — quatre semaines de tâches de réseautage, de contenu et de prospection, planifiées et synchronisées avec votre calendrier.",
@@ -2094,6 +2273,8 @@ export const translations: Record<Lang, T> = {
     mentorOnline: "EN LIGNE",
     mentorNewConversation: "Nouvelle conversation",
     mentorRecentConversations: "CONVERSATIONS RÉCENTES",
+    recentPanelCollapse: "Réduire",
+    recentPanelExpand: "Développer",
     mentorConvMeta: (date, n) => `${date} · ${n} message${n === 1 ? "" : "s"}`,
     mentorDeleteConversation: "Supprimer la conversation",
     mentorQuickInvocations: "INVOCATIONS RAPIDES",
@@ -2600,12 +2781,8 @@ export const translations: Record<Lang, T> = {
     stuVideoComingSoon:
       "La génération de vidéo arrive bientôt — ce bouton est prêt à être activé dès sa mise en ligne.",
     stuPostOn: "PUBLIER VOTRE CONTENU SUR",
-    stuConnected: "Connecté",
-    stuConnectArrow: "Connecter →",
+    stuPostHere: "Publier ici →",
     stuCaptionLinked: (labels) => `Légende liée : ${labels}`,
-    stuPostNow: "Publier votre contenu maintenant",
-    stuSavedExcl: "Enregistré !",
-    stuSaving: "Enregistrement…",
     stuSchedulePost: "Programmer la publication",
     stuPostScheduled: "Publication programmée avec succès",
     stuScheduleHeader: "PROGRAMMER LA PUBLICATION",
@@ -2642,11 +2819,11 @@ export const translations: Record<Lang, T> = {
     profIdentityHint: "Compléter votre profil",
     profConnectedAccountsEyebrow: "COMPTES CONNECTÉS",
     profConnectedAccountsTitle: "Votre réseau de diffusion.",
-    profConnectDesc: "Connectez vos comptes pour qu'AURUM puisse publier directement en votre nom.",
-    profConnected: "CONNECTÉ",
-    profNotConnected: "NON CONNECTÉ",
-    profDisconnect: "Déconnecter",
-    profConnect: "Connecter",
+    profConnected: "IDENTIFIANT ENREGISTRÉ",
+    profNotConnected: "NON ENREGISTRÉ",
+    profDisconnect: "Retirer",
+    profVisitPage: (name) => `Ouvrir ${name}`,
+    profConnect: "Enregistrer",
     profEditIdentityTitle: "Modifier l'identité",
     profEditIdentityDesc: "Votre dossier façonne chaque recommandation d'AURUM.",
     profFieldFullName: "Nom complet",
@@ -2655,27 +2832,26 @@ export const translations: Record<Lang, T> = {
     profFieldMission: "Ma mission",
     profFieldGoal: "Objectif",
     profFieldPhotoUrl: "URL de la photo",
-    profFieldLinkedinUrl: "URL LinkedIn",
-    profFieldInstagramUrl: "URL Instagram",
     profPlaceholderProfession: "Analyste en courtage de yachts",
     profPlaceholderMission: "Percer le courtage de yachts à Monaco avant le T4",
     profPlaceholderGoal: "Signer le premier mandat de courtage",
     profCancel: "Annuler",
     profSave: "Enregistrer",
-    profConnectPlatform: (name) => `Connecter ${name}`,
+    profConnectPlatform: (name) => `Enregistrer votre identifiant ${name}`,
     profConnectHintSuffix:
-      " — AURUM utilisera cette information pour rediriger votre contenu vers la bonne plateforme.",
+      " — AURUM utilise cette information pour adapter vos légendes. Vous publiez encore vous-même sur la plateforme pour l'instant.",
     profPlatformLinkedinLabel: "URL DE PROFIL OU NOM D'UTILISATEUR",
     profPlatformLinkedinHint: "L'URL de votre profil LinkedIn ou votre nom d'utilisateur",
     profPlatformUsernameLabel: "NOM D'UTILISATEUR",
     profPlatformInstagramHint: "Votre identifiant Instagram (sans @)",
+    profPlatformFacebookHint: "Le nom de votre page ou profil Facebook",
     profPlatformTwitterHint: "Votre identifiant X / Twitter",
     profPlatformTiktokHint: "Votre identifiant TikTok",
     profPlatformYoutubeLabel: "NOM DE CHAÎNE OU URL",
     profPlatformYoutubeHint: "Le nom ou l'URL de votre chaîne YouTube",
     profPlatformSubstackLabel: "URL SUBSTACK",
     profPlatformSubstackHint: "L'URL complète de votre publication Substack",
-    profConnecting: "Connexion…",
+    profConnecting: "Enregistrement…",
     setPreferencesEyebrow: "PRÉFÉRENCES",
     setTuneTitle: "Ajustez votre système d'exploitation",
     setSectionAccount: "Compte",
@@ -2685,6 +2861,20 @@ export const translations: Record<Lang, T> = {
     setSectionPrivacy: "Confidentialité",
     setSectionBilling: "Facturation",
     setSectionDanger: "Zone de danger",
+    setSectionGems: "Tarifs des Gems",
+    setGemsPricingTitle: "Tarifs des Gems",
+    setGemsPricingDesc: "Le nombre d'Aurum Gems que coûte chaque action IA premium.",
+    setGemsYourBalance: "Votre solde",
+    setGemsCostLabel: (n) => `${n} Gems`,
+    setGemsActionImageGeneration: "Génération d'image",
+    setGemsActionMentorNewConversation: "Nouvelle conversation avec le Mentor",
+    setGemsActionTutorNewConversation: "Nouvelle conversation avec le Tuteur",
+    setGemsActionReadArticle: "Lire un article",
+    setGemsActionStudioAiAssisted: "Génération de contenu — assistée par IA",
+    setGemsActionStudioLiveIntel: "Génération de contenu — depuis Live Intel",
+    setGemsActionRoadmapGetHelp: "Roadmap « Obtenir de l'aide »",
+    setGemsActionRoadmapSwapTask: "Roadmap « Remplacer la tâche »",
+    setGemsActionMentorHelpPerTask: "« Demander de l'aide au Mentor » (par tâche sélectionnée)",
     setSoon: "BIENTÔT",
     setAccountTitle: "Compte",
     setAccountDesc: "Gérez vos informations personnelles et vos identifiants de connexion.",

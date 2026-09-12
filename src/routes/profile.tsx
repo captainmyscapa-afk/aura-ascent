@@ -8,6 +8,7 @@ import {
   Pencil,
   Twitter,
   Youtube,
+  Facebook,
   Music2,
   FileText,
   Loader2,
@@ -54,11 +55,46 @@ type SocialAccount = {
 const PLATFORMS = [
   { key: "linkedin", name: "LinkedIn", icon: Linkedin },
   { key: "instagram", name: "Instagram", icon: Instagram },
+  { key: "facebook", name: "Facebook", icon: Facebook },
   { key: "twitter", name: "X / Twitter", icon: Twitter },
   { key: "tiktok", name: "TikTok", icon: Music2 },
-  { key: "youtube", name: "YouTube", icon: Youtube },
+  { key: "youtube_shorts", name: "YouTube", icon: Youtube },
   { key: "substack", name: "Substack", icon: FileText },
 ] as const;
+
+// Connected Accounts stores a bare handle OR a full URL (the dialog accepts
+// either — see getPlatformMeta's placeholders below). This normalizes
+// whatever was saved into a real, clickable profile URL so the icon in the
+// list actually lands other users on that person's page, not nowhere.
+function buildSocialUrl(platform: string, value: string): string {
+  const v = value.trim();
+  if (/^https?:\/\//i.test(v)) return v;
+  const handle = v.replace(/^@/, "").replace(/^\/+/, "");
+  switch (platform) {
+    case "linkedin":
+      return v.toLowerCase().includes("linkedin.com")
+        ? `https://${v.replace(/^\/+/, "")}`
+        : `https://www.linkedin.com/in/${handle}`;
+    case "instagram":
+      return `https://www.instagram.com/${handle}`;
+    case "facebook":
+      return `https://www.facebook.com/${handle}`;
+    case "twitter":
+      return `https://twitter.com/${handle}`;
+    case "tiktok":
+      return `https://www.tiktok.com/@${handle}`;
+    case "youtube_shorts":
+      return v.toLowerCase().includes("youtube.com")
+        ? `https://${v.replace(/^\/+/, "")}`
+        : `https://www.youtube.com/@${handle}`;
+    case "substack":
+      return v.toLowerCase().includes("substack.com")
+        ? `https://${v.replace(/^\/+/, "")}`
+        : `https://${handle}.substack.com`;
+    default:
+      return v;
+  }
+}
 
 function titleFor(mode: string, level: string) {
   const m = mode?.[0]?.toUpperCase() + mode?.slice(1);
@@ -85,8 +121,6 @@ function computeCompleteness(p: UserProfile) {
     p.mission,
     p.goal,
     p.photo_url,
-    p.linkedin_url,
-    p.instagram_url,
   ];
   const filled = fields.filter((v) => !!v && String(v).trim().length > 0).length;
   return Math.round((filled / fields.length) * 100);
@@ -313,16 +347,23 @@ function Profile() {
                   <MapPin className="h-3.5 w-3.5" /> {profile.location}
                 </span>
               )}
-              {profile.linkedin_url && (
-                <a href={profile.linkedin_url} target="_blank" rel="noreferrer" className="hover:text-foreground">
-                  <Linkedin className="h-4 w-4" />
-                </a>
-              )}
-              {profile.instagram_url && (
-                <a href={profile.instagram_url} target="_blank" rel="noreferrer" className="hover:text-foreground">
-                  <Instagram className="h-4 w-4" />
-                </a>
-              )}
+              {PLATFORMS.map((p) => {
+                const account = socials.find((s) => s.platform === p.key);
+                if (!account?.username) return null;
+                const Icon = p.icon;
+                return (
+                  <a
+                    key={p.key}
+                    href={buildSocialUrl(p.key, account.username)}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={t.profVisitPage(p.name)}
+                    className="hover:text-foreground transition-colors"
+                  >
+                    <Icon className="h-4 w-4" />
+                  </a>
+                );
+              })}
             </div>
             <div className="mt-6 rounded-xl border border-border/60 bg-background/40 p-4 max-w-2xl">
               <div className="text-[9px] tracking-[0.34em] text-muted-foreground mb-1.5">{t.profMyMission}</div>
@@ -406,21 +447,31 @@ function Profile() {
 
       <div className="glass rounded-2xl p-6 sm:p-8 mb-10 animate-fade-up" style={{ animationDelay: "240ms" }}>
         <SectionHeading eyebrow={t.profConnectedAccountsEyebrow} title={t.profConnectedAccountsTitle} />
-        <p className="text-sm text-muted-foreground -mt-2 mb-1">
-          {t.profConnectDesc}
-        </p>
         <div className="grid sm:grid-cols-2 gap-3 mt-5">
           {PLATFORMS.map((p) => {
             const connected = socials.find((s) => s.platform === p.key);
             const Icon = p.icon;
+            const url = connected?.username ? buildSocialUrl(p.key, connected.username) : null;
             return (
               <div
                 key={p.key}
                 className="rounded-xl border border-border/60 bg-background/40 p-4 flex items-center gap-4"
               >
-                <div className="h-10 w-10 rounded-lg bg-[var(--gradient-card)] flex items-center justify-center">
-                  <Icon className="h-5 w-5" />
-                </div>
+                {url ? (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={t.profVisitPage(p.name)}
+                    className="h-10 w-10 rounded-lg bg-[var(--gradient-card)] flex items-center justify-center shrink-0 transition-transform hover:scale-105 hover:ring-2 hover:ring-primary/40"
+                  >
+                    <Icon className="h-5 w-5" />
+                  </a>
+                ) : (
+                  <div className="h-10 w-10 rounded-lg bg-[var(--gradient-card)] flex items-center justify-center shrink-0 opacity-50">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-serif text-base">{p.name}</span>
@@ -434,7 +485,18 @@ function Profile() {
                     )}
                   </div>
                   {connected?.username && (
-                    <div className="text-xs text-muted-foreground truncate">@{connected.username}</div>
+                    url ? (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-muted-foreground hover:text-primary transition-colors truncate block"
+                      >
+                        @{connected.username}
+                      </a>
+                    ) : (
+                      <div className="text-xs text-muted-foreground truncate">@{connected.username}</div>
+                    )
                   )}
                 </div>
                 {connected ? (
@@ -529,22 +591,6 @@ function EditIdentitySheet({
               placeholder="https://…"
             />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={t.profFieldLinkedinUrl}>
-              <Input
-                value={form.linkedin_url ?? ""}
-                onChange={(e) => set("linkedin_url", e.target.value)}
-                placeholder="https://linkedin.com/in/…"
-              />
-            </Field>
-            <Field label={t.profFieldInstagramUrl}>
-              <Input
-                value={form.instagram_url ?? ""}
-                onChange={(e) => set("instagram_url", e.target.value)}
-                placeholder="https://instagram.com/…"
-              />
-            </Field>
-          </div>
         </div>
         <div className="mt-8 flex gap-3 justify-end">
           <Button variant="outline" onClick={onClose} disabled={saving}>
@@ -577,12 +623,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function getPlatformMeta(t: T): Record<string, { label: string; placeholder: string; hint: string }> {
   return {
-    linkedin:  { label: t.profPlatformLinkedinLabel, placeholder: "linkedin.com/in/yourname or yourname", hint: t.profPlatformLinkedinHint },
-    instagram: { label: t.profPlatformUsernameLabel, placeholder: "@yourhandle", hint: t.profPlatformInstagramHint },
-    twitter:   { label: t.profPlatformUsernameLabel, placeholder: "@yourhandle", hint: t.profPlatformTwitterHint },
-    tiktok:    { label: t.profPlatformUsernameLabel, placeholder: "@yourhandle", hint: t.profPlatformTiktokHint },
-    youtube:   { label: t.profPlatformYoutubeLabel, placeholder: "youtube.com/@yourchannel", hint: t.profPlatformYoutubeHint },
-    substack:  { label: t.profPlatformSubstackLabel, placeholder: "https://you.substack.com", hint: t.profPlatformSubstackHint },
+    linkedin:       { label: t.profPlatformLinkedinLabel, placeholder: "linkedin.com/in/yourname or yourname", hint: t.profPlatformLinkedinHint },
+    instagram:      { label: t.profPlatformUsernameLabel, placeholder: "@yourhandle", hint: t.profPlatformInstagramHint },
+    facebook:       { label: t.profPlatformUsernameLabel, placeholder: "@yourpage", hint: t.profPlatformFacebookHint },
+    twitter:        { label: t.profPlatformUsernameLabel, placeholder: "@yourhandle", hint: t.profPlatformTwitterHint },
+    tiktok:         { label: t.profPlatformUsernameLabel, placeholder: "@yourhandle", hint: t.profPlatformTiktokHint },
+    youtube_shorts: { label: t.profPlatformYoutubeLabel, placeholder: "youtube.com/@yourchannel", hint: t.profPlatformYoutubeHint },
+    substack:       { label: t.profPlatformSubstackLabel, placeholder: "https://you.substack.com", hint: t.profPlatformSubstackHint },
   };
 }
 

@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, Lock, RefreshCw, MapPin, ChevronLeft, Clock, Flame, MessageCircle } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, Lock, RefreshCw, MapPin, ChevronLeft, Clock, Flame, MessageCircle, X } from "lucide-react";
 import React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -17,7 +17,10 @@ import { generateRecommendation, generateDailyTasks } from "@/lib/identity.funct
 import { useSubscription } from "@/hooks/useSubscription";
 import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import type { T } from "@/lib/i18n/translations";
 import { celebrate } from "@/lib/celebration";
+import { useGemBalance } from "@/hooks/useGemBalance";
+import { GEM_COSTS } from "@/lib/gemCosts";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
@@ -242,6 +245,100 @@ function weekStartIso(d = new Date()) {
   return dt.toISOString().slice(0, 10);
 }
 
+/**
+ * CAP-152: "Ask Mentor for help" used to seed Mentor with every daily task at
+ * once. This lets the user pick just the task(s) they're actually stuck on
+ * before handing off, so Mentor gets a focused prompt instead of the whole list
+ * every time.
+ */
+function TaskHelpPicker({
+  open,
+  tasks,
+  t,
+  onClose,
+  onConfirm,
+}: {
+  open: boolean;
+  tasks: string[];
+  t: T;
+  onClose: () => void;
+  onConfirm: (selected: number[]) => void;
+}) {
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (open) setSelected(new Set());
+  }, [open]);
+
+  if (!open) return null;
+
+  const toggle = (i: number) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative glass rounded-2xl max-w-md w-full p-6 border border-primary/20 shadow-[0_0_60px_rgba(201,168,76,0.1)]">
+        <button
+          onClick={onClose}
+          className="absolute top-5 right-5 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="flex items-center gap-3 mb-2">
+          <div
+            className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: "var(--gradient-gold)" }}
+          >
+            <MessageCircle className="h-4 w-4 text-primary-foreground" />
+          </div>
+          <div className="font-serif text-lg">{t.dashHelpPickerTitle}</div>
+        </div>
+        <p className="text-xs text-muted-foreground mb-5 pl-12 -mt-1">{t.dashHelpPickerDesc}</p>
+
+        <div className="space-y-1.5 mb-5 max-h-[45vh] overflow-y-auto">
+          {tasks.map((task, i) => {
+            const isSelected = selected.has(i);
+            return (
+              <button
+                key={i}
+                onClick={() => toggle(i)}
+                className={`w-full text-left flex items-start gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                  isSelected ? "bg-primary/10 border border-primary/40" : "border border-transparent hover:bg-secondary/40"
+                }`}
+              >
+                <div
+                  className={`mt-0.5 h-4 w-4 rounded flex items-center justify-center border shrink-0 transition-colors ${
+                    isSelected ? "bg-primary border-primary" : "border-border/70"
+                  }`}
+                >
+                  {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                </div>
+                <span className="text-sm leading-snug text-foreground/90">{task}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          onClick={() => selected.size > 0 && onConfirm(Array.from(selected).sort((a, b) => a - b))}
+          disabled={selected.size === 0}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-primary-foreground disabled:opacity-40 transition-opacity"
+          style={{ background: "var(--gradient-gold)" }}
+        >
+          {selected.size === 0 ? t.dashHelpPickerEmpty : t.dashHelpPickerConfirm}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { t, lang } = useLanguage();
   const dateLocale = lang === "fr" ? "fr-FR" : "en-US";
@@ -264,6 +361,9 @@ export default function Dashboard() {
   const [tasksLoading, setTasksLoading] = useState(false);
   const [done, setDone] = useState<Record<number, boolean>>({});
   const [completionMsg, setCompletionMsg] = useState<string | null>(null);
+  const [helpPickerOpen, setHelpPickerOpen] = useState(false);
+  const navigate = useNavigate();
+  const gems = useGemBalance();
 
   const [calFilter, setCalFilter] = React.useState<string>("all");
   const [selectedEvent, setSelectedEvent] = React.useState<CalendarEvent | null>(null);
@@ -608,6 +708,21 @@ export default function Dashboard() {
   return (
     <AppShell>
       <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
+      <TaskHelpPicker
+        open={helpPickerOpen}
+        tasks={dailyTasks}
+        t={t}
+        onClose={() => setHelpPickerOpen(false)}
+        onConfirm={(selected) => {
+          setHelpPickerOpen(false);
+          const prompt =
+            selected.length === 1
+              ? `Can you help me with this daily ritual task today?\n\n${dailyTasks[selected[0]]}`
+              : `Can you help me with these daily ritual tasks today?\n\n${selected.map((i, idx) => `${idx + 1}. ${dailyTasks[i]}`).join("\n")}`;
+          void gems.spend(GEM_COSTS.mentorHelpPerTask * selected.length, "mentor_help_per_task");
+          void navigate({ to: "/mentor", search: { prompt } });
+        }}
+      />
 
       {isDemo && (
         <div className="mb-6 flex items-center justify-between gap-4 glass rounded-xl px-4 sm:px-5 py-3 border border-primary/20 animate-fade-up">
@@ -752,15 +867,12 @@ export default function Dashboard() {
                   seeds the chat with today's actual task list so Mentor has real
                   context instead of a bare "help me" (mirrors the seed-prompt
                   pattern intelligence.tsx already uses for Studio). */}
-              <Link
-                to="/mentor"
-                search={{
-                  prompt: `Can you help me with my daily ritual tasks today?\n\n${dailyTasks.map((task, idx) => `${idx + 1}. ${task}`).join("\n")}`,
-                }}
+              <button
+                onClick={() => setHelpPickerOpen(true)}
                 className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-primary/80 hover:text-primary transition-colors"
               >
                 <MessageCircle className="h-3 w-3" /> {t.dashAskMentorHelp}
-              </Link>
+              </button>
             </div>
           </Card>
 

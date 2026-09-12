@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
-import { Sparkles, Send, MessageCircle, Compass, Target, Zap, RefreshCw, Plus, Clock, X } from "lucide-react";
+import { Sparkles, Send, MessageCircle, Compass, Target, Zap, RefreshCw, Plus, Clock, X, ChevronDown } from "lucide-react";
 import { useIndustry, useIndustrySystemPrompt } from "@/lib/industry/IndustryProvider";
 import { askGemini } from "@/lib/gemini.functions";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
@@ -15,6 +15,8 @@ import { generateConversationTitle, generateMentorQuickInvocations } from "@/lib
 import type { ConversationMessage } from "@/hooks/useMentorConversations";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { T } from "@/lib/i18n/translations";
+import { useGemBalance } from "@/hooks/useGemBalance";
+import { GEM_COSTS } from "@/lib/gemCosts";
 
 export const Route = createFileRoute("/mentor")({
   component: Mentor,
@@ -66,9 +68,11 @@ function Mentor() {
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const mentorGate = useProGate("mentor_messages");
+  const gems = useGemBalance();
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [prompts, setPrompts] = useState<string[]>([...mentorContent.prompts]);
+  const [recentOpen, setRecentOpen] = useState(false);
   const quickPromptsLoadingRef = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -180,7 +184,10 @@ function Mentor() {
         const firstUserMsg = next.find((m) => m.r === "me")?.t ?? text;
         const { title } = await genTitle({ data: { firstMessage: firstUserMsg, industry: industryId } });
         const newConv = await createConversation(industryId, final, title);
-        if (newConv) setActiveConvId(newConv.id);
+        if (newConv) {
+          setActiveConvId(newConv.id);
+          void gems.spend(GEM_COSTS.mentorNewConversation, "mentor_new_conversation");
+        }
       } else {
         scheduleSave(final, activeConvId);
       }
@@ -263,7 +270,15 @@ function Mentor() {
 
           {!convsLoading && mentorConversations.length > 0 && (
             <div className="glass rounded-xl p-5">
-              <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">{t.mentorRecentConversations}</div>
+              <button
+                onClick={() => setRecentOpen((o) => !o)}
+                className={`w-full flex items-center justify-between ${recentOpen ? "mb-3" : ""}`}
+                title={recentOpen ? t.recentPanelCollapse : t.recentPanelExpand}
+              >
+                <span className="text-[10px] tracking-[0.34em] text-muted-foreground">{t.mentorRecentConversations}</span>
+                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${recentOpen ? "rotate-180" : ""}`} />
+              </button>
+              {recentOpen && (
               <div className="space-y-2">
                 {mentorConversations.map((conv) => (
                   <div key={conv.id} className={"flex items-start gap-1 rounded-lg border transition-colors " + (activeConvId === conv.id ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/40")}>
@@ -288,6 +303,7 @@ function Mentor() {
                   </div>
                 ))}
               </div>
+              )}
             </div>
           )}
 

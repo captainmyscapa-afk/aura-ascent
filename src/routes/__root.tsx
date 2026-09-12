@@ -10,6 +10,7 @@ import {
 import { IndustryProvider } from "@/lib/industry/IndustryProvider";
 import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
 import { AuthProvider } from "@/hooks/useAuth";
+import { GemBalanceProvider } from "@/hooks/useGemBalance";
 import { Toaster } from "@/components/ui/sonner";
 import { CommandPalette } from "@/components/aurum/CommandPalette";
 
@@ -152,9 +153,11 @@ function RootComponent() {
       <AuthProvider>
         <LanguageProvider>
           <IndustryProvider>
-            <Outlet />
-            <CommandPalette />
-            <Toaster />
+            <GemBalanceProvider>
+              <Outlet />
+              <CommandPalette />
+              <Toaster />
+            </GemBalanceProvider>
           </IndustryProvider>
         </LanguageProvider>
       </AuthProvider>

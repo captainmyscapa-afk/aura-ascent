@@ -102,5 +102,5 @@ export function useSubscription() {
     }
   }, [session]);
 
-  return { sub, loading, isPro, startCheckout };
+  return { sub, loading, isPro, isAdmin, startCheckout };
 }

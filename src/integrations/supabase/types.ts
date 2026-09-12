@@ -280,6 +280,9 @@ export type Database = {
       }
       aurum_tasks: {
         Row: {
+          answer_feedback: string | null
+          answer_score: number | null
+          answer_text: string | null
           completed_at: string | null
           created_at: string | null
           description: string | null
@@ -295,6 +298,9 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          answer_feedback?: string | null
+          answer_score?: number | null
+          answer_text?: string | null
           completed_at?: string | null
           created_at?: string | null
           description?: string | null
@@ -310,6 +316,9 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          answer_feedback?: string | null
+          answer_score?: number | null
+          answer_text?: string | null
           completed_at?: string | null
           created_at?: string | null
           description?: string | null

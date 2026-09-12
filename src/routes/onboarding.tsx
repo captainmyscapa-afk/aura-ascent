@@ -5,9 +5,17 @@ import { Logo } from "@/components/aurum/Logo";
 import { INDUSTRY_LIST } from "@/lib/industry/config";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 
 export const Route = createFileRoute("/onboarding")({
-  component: Onboarding,
+  // CAP-149: onboarding (the 9 identity questions) must only be reachable
+  // after signing up — landing page CTAs go to /signup, which redirects
+  // here on success. This guard closes the direct-URL bypass.
+  component: () => (
+    <RequireAuth>
+      <Onboarding />
+    </RequireAuth>
+  ),
 });
 
 const levels = [

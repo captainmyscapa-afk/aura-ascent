@@ -89,7 +89,15 @@ const PRIORITY_META: Record<Priority, { dot: string; ring: string; text: string 
 
 // CAP-93: same industry → color mapping used for calendar events on the dashboard,
 // so a ritual's mode is visually consistent across the app.
-type CompletedItem = { title: string; industry: string | null };
+type CompletedItem = {
+  title: string;
+  industry: string | null;
+  // CAP-150: present when this roadmap task was completed via the graded Answer
+  // feature rather than the plain checkbox.
+  answerScore: number | null;
+  answerFeedback: string | null;
+  answerText: string | null;
+};
 const INDUSTRY_META: Record<string, { dot: string; text: string; label: string }> = {
   yachts: { dot: "bg-blue-400", text: "text-blue-300", label: "Yacht" },
   villas: { dot: "bg-emerald-400", text: "text-emerald-300", label: "Villa" },
@@ -399,7 +407,13 @@ function CalendarPage() {
       // to the viewer's local day instead, same fix as isoDay() itself.
       const key = isoDay(new Date(r.completed_at));
       if (!map[key]) map[key] = { ritual: [], roadmap: [] };
-      if (r.title) map[key][r.source === "daily_ritual" ? "ritual" : "roadmap"].push({ title: r.title, industry: r.industry ?? null });
+      if (r.title) map[key][r.source === "daily_ritual" ? "ritual" : "roadmap"].push({
+        title: r.title,
+        industry: r.industry ?? null,
+        answerScore: r.answer_score ?? null,
+        answerFeedback: r.answer_feedback ?? null,
+        answerText: r.answer_text ?? null,
+      });
     });
     return map;
   }, [monthTasks]);
@@ -1108,6 +1122,9 @@ function CompletedList({
             >
               <CheckCircle2 className={`h-3.5 w-3.5 shrink-0 mt-0.5 ${accentClass}`} />
               <span className={isOpen ? "flex-1 whitespace-normal break-words" : "flex-1 truncate"}>{item.title}</span>
+              {item.answerScore != null && (
+                <span className="shrink-0 mt-0.5 font-mono text-[10px] text-primary">{item.answerScore}/10</span>
+              )}
               {meta && (
                 <span className="flex items-center gap-1 shrink-0 mt-1" title={`${meta.label} Mode`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
@@ -1118,6 +1135,17 @@ function CompletedList({
                 className={`h-3 w-3 shrink-0 mt-0.5 text-muted-foreground/50 transition-transform ${isOpen ? "rotate-180" : ""}`}
               />
             </button>
+            {/* CAP-150: the answer that was submitted plus AURUM's graded review, shown on expand */}
+            {isOpen && (item.answerText || item.answerFeedback) && (
+              <div className="mt-1.5 ml-[22px] pl-3 border-l border-border/40 space-y-1.5">
+                {item.answerText && (
+                  <p className="text-[11px] text-muted-foreground/80 whitespace-pre-line break-words">"{item.answerText}"</p>
+                )}
+                {item.answerFeedback && (
+                  <p className="text-[11px] text-primary/80 whitespace-pre-line break-words">{item.answerFeedback}</p>
+                )}
+              </div>
+            )}
           </li>
         );
       })}

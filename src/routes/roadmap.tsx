@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
-import { Sparkles, RefreshCw, CheckCircle2, Circle, Users, BookOpen, Send, Brain, Trophy, Loader2, ArrowUpRight, Map } from "lucide-react";
+import { Sparkles, RefreshCw, CheckCircle2, Circle, Users, BookOpen, Send, Brain, Trophy, Loader2, ArrowUpRight, Map, Flag, ListChecks, MessageSquareText, X, type LucideIcon } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -15,6 +15,9 @@ import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { T } from "@/lib/i18n/translations";
 import { generateRoadmap, type Roadmap, type RoadmapTask } from "@/lib/identity.functions";
+import { useGemBalance } from "@/hooks/useGemBalance";
+import { GEM_COSTS } from "@/lib/gemCosts";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/roadmap")({
   component: RoadmapPage,
@@ -54,6 +57,7 @@ function TaskHelp({
   onUsed: () => void;
 }) {
   const ask = useServerFn(askGemini);
+  const gems = useGemBalance();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -81,6 +85,7 @@ function TaskHelp({
       });
       setText(reply || null);
       onUsed();
+      void gems.spend(GEM_COSTS.roadmapGetHelp, "roadmap_get_help");
     } catch (e) {
       setError(e instanceof Error ? e.message : t.roadmapHelpFailed);
     } finally {
@@ -125,6 +130,435 @@ function TaskHelp({
   );
 }
 
+/**
+ * CAP-150: lets a user answer a roadmap task in their own words and get it
+ * reviewed by AURUM — a score out of 10 plus a short correction if the answer
+ * was wrong or incomplete. Submitting also marks the task complete, which is
+ * what mirrors it onto aurum_tasks (and therefore the Calendar) with the
+ * graded answer attached. Stays mounted even after the task is marked done so
+ * the score doesn't vanish once the row re-renders as completed.
+ */
+function AnswerTask({
+  task,
+  industryLabel,
+  lang,
+  t,
+  onGraded,
+}: {
+  task: RoadmapTask;
+  industryLabel: string;
+  lang: "en" | "fr";
+  t: T;
+  onGraded: (task: RoadmapTask, result: { answerText: string; score: number; feedback: string }) => Promise<void>;
+}) {
+  const ask = useServerFn(askGemini);
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [result, setResult] = useState<{ score: number; feedback: string } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Answers must be typed, not pasted in from elsewhere (ChatGPT, notes, etc.) —
+  // blocks both keyboard paste and a dragged-in text drop, and pokes fun at anyone trying.
+  const blockPaste = (e: React.ClipboardEvent<HTMLTextAreaElement> | React.DragEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    toast(t.roadmapAnswerNoPaste);
+  };
+
+  const submit = async () => {
+    if (!draft.trim() || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const { text } = await ask({
+        data: {
+          system: `You are AURUM, an expert mentor grading a roadmap task answer for someone breaking into the ${industryLabel} industry. Return ONLY valid JSON, no markdown: {"score": integer 0-10, "feedback": "1-3 sentence assessment of quality and correctness; if the answer is wrong, incomplete, or could be sharper, give the correction or the better answer directly in this string"}. Be honest and specific — never inflate the score. ${lang === "fr" ? "Write the feedback in natural, native French." : "Write the feedback in English."}`,
+          messages: [
+            {
+              role: "user" as const,
+              text: `Task: "${task.title}". ${task.detail}\n\nUser's answer: "${draft.trim()}"`,
+            },
+          ],
+        },
+      });
+      const cleaned = text.replace(/```json|```/g, "").trim();
+      const start = cleaned.indexOf("{");
+      const end = cleaned.lastIndexOf("}");
+      if (start === -1 || end === -1) throw new Error("no JSON object found in AI response");
+      const parsed = JSON.parse(cleaned.slice(start, end + 1)) as { score?: number; feedback?: string };
+      const score = Math.max(0, Math.min(10, Math.round(Number(parsed.score) || 0)));
+      const feedback = parsed.feedback?.trim() || "";
+      setResult({ score, feedback });
+      await onGraded(task, { answerText: draft.trim(), score, feedback });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t.roadmapAnswerFailed);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-muted-foreground hover:text-primary transition-colors"
+      >
+        <MessageSquareText className="h-3 w-3" />
+        {open ? t.roadmapHideAnswer : t.roadmapAnswerTask}
+      </button>
+      {open && (
+        <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 p-3.5 animate-fade-up space-y-2.5">
+          {result ? (
+            <>
+              <div className="font-mono text-sm text-primary">{t.roadmapAnswerScoreLabel(result.score)}</div>
+              {result.feedback && (
+                <div>
+                  <div className="text-[9px] tracking-[0.2em] uppercase text-primary/70 mb-1">{t.roadmapAnswerCorrectionLabel}</div>
+                  <p className="text-sm leading-relaxed whitespace-pre-line text-foreground/90">{result.feedback}</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onPaste={blockPaste}
+                onDrop={blockPaste}
+                placeholder={t.roadmapAnswerPlaceholder}
+                rows={3}
+                disabled={submitting}
+                className="w-full rounded-md border border-border/60 bg-background/40 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/40 resize-none"
+              />
+              {error && <div className="text-xs text-destructive">{error}</div>}
+              <button
+                onClick={() => void submit()}
+                disabled={submitting || !draft.trim()}
+                className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-primary/80 hover:text-primary transition-colors disabled:opacity-50"
+              >
+                {submitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                {submitting ? t.roadmapSubmittingAnswer : t.roadmapSubmitAnswer}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * CAP-151/follow-up: "My Roadmap" — the 30-day journey drawn as an actual
+ * path, one row per week, with a flag planted on every day the user finished
+ * all of that day's tasks and a trophy at the finish line.
+ *
+ * Follow-up polish: the industry's own vehicle (yacht for Yachts, jet for
+ * Jets, etc. — reuses IndustryConfig.icon so every mode gets its own, not
+ * just yachting) sails along the path exactly as far as the user has actually
+ * completed — not merely "today's date" — so it's a real progress marker,
+ * with a gold "wake" line trailing behind it. Clicking a flag opens the
+ * completed day's tasks with the date each was actually completed.
+ */
+function MyRoadmapPath({
+  roadmap,
+  completed,
+  currentDay,
+  industryIcon: VehicleIcon,
+  userId,
+  lang,
+  t,
+}: {
+  roadmap: Roadmap;
+  completed: Record<string, boolean>;
+  currentDay: number;
+  industryIcon: LucideIcon;
+  userId: string | null;
+  lang: "en" | "fr";
+  t: T;
+}) {
+  const [selectedDay, setSelectedDay] = useState<{ globalDay: number; weekTheme: string; tasks: RoadmapTask[] } | null>(null);
+
+  // Distance "sailed" = days actually completed, not the calendar date — so the
+  // vehicle reflects real progress rather than just showing where "today" is.
+  let sailedDays = 0;
+  roadmap.weeks.forEach((week) => {
+    week.days.forEach((day) => {
+      if (day.tasks.length > 0 && day.tasks.every((tk) => completed[tk.id])) sailedDays += 1;
+    });
+  });
+
+  // Walk week by week to find exactly which row the vehicle sits in and how far
+  // across that row's line it is — avoids rendering it twice at a week boundary.
+  let remaining = sailedDays;
+  let vehicleWeekIndex = roadmap.weeks.length - 1;
+  let vehicleWeekPct = 100;
+  for (let i = 0; i < roadmap.weeks.length; i++) {
+    const len = roadmap.weeks[i]?.days.length ?? 0;
+    if (remaining < len || i === roadmap.weeks.length - 1) {
+      vehicleWeekIndex = i;
+      vehicleWeekPct = len > 0 ? Math.max(0, Math.min(100, (remaining / len) * 100)) : 0;
+      break;
+    }
+    remaining -= len;
+  }
+
+  return (
+    <>
+      <div className="glass rounded-2xl p-6 sm:p-10 overflow-x-auto animate-fade-up">
+        <p className="text-sm text-muted-foreground mb-8 max-w-xl">{t.roadmapMyRoadmapDesc}</p>
+        <div className="min-w-[760px] space-y-14">
+          {roadmap.weeks.map((week, wi) => {
+            const isLastWeek = wi === roadmap.weeks.length - 1;
+            const showVehicle = wi === vehicleWeekIndex;
+            const wakePct = wi < vehicleWeekIndex ? 100 : wi === vehicleWeekIndex ? vehicleWeekPct : 0;
+            return (
+              <div key={week.week}>
+                <div
+                  className={`text-[10px] tracking-[0.3em] uppercase mb-6 ${
+                    WEEK_BORDER[wi]?.replace("border-", "text-").replace("/30", "") ?? "text-muted-foreground/70"
+                  }`}
+                >
+                  {t.roadmapWeekHeader(week.week)} · {week.theme}
+                </div>
+                <div className="relative flex items-start justify-between pt-7">
+                  <div className="absolute left-6 right-6 top-7 h-0.5 bg-border/50" />
+                  <div
+                    className="absolute left-6 top-7 h-0.5 bg-[var(--gradient-gold)] transition-[width] duration-700"
+                    style={{ width: `calc((100% - 3rem) * ${wakePct / 100})` }}
+                  />
+                  {showVehicle && (
+                    <div
+                      className="absolute top-7 z-20 pointer-events-none"
+                      style={{
+                        left: `calc(1.5rem + (100% - 3rem) * ${wakePct / 100})`,
+                        transform: "translate(-50%, -100%)",
+                      }}
+                    >
+                      <div
+                        className="animate-boat-bob mb-1 h-8 w-8 rounded-full flex items-center justify-center shadow-[0_0_16px_rgba(201,168,76,0.55)]"
+                        style={{ background: "var(--gradient-gold)" }}
+                      >
+                        <VehicleIcon className="h-4 w-4 text-primary-foreground" />
+                      </div>
+                    </div>
+                  )}
+                  {week.days.map((day, di) => {
+                    const globalDay = wi * 7 + day.day;
+                    const dayDone = day.tasks.length > 0 && day.tasks.every((tk) => completed[tk.id]);
+                    const isToday = globalDay === currentDay;
+                    const isLastDay = isLastWeek && di === week.days.length - 1;
+                    return (
+                      <div key={day.day} className="relative z-10 flex flex-1 flex-col items-center gap-2 px-1">
+                        <button
+                          type="button"
+                          disabled={!dayDone}
+                          onClick={() => setSelectedDay({ globalDay, weekTheme: week.theme, tasks: day.tasks })}
+                          title={dayDone ? t.roadmapDayDetailHint : undefined}
+                          className={`h-12 w-12 rounded-full border flex items-center justify-center shrink-0 transition-all focus:outline-none ${
+                            dayDone
+                              ? "border-primary bg-primary/15 cursor-pointer hover:scale-110 hover:shadow-[0_0_20px_rgba(201,168,76,0.4)]"
+                              : isToday
+                                ? "border-primary/60 ring-4 ring-primary/15 bg-secondary/40"
+                                : isLastDay
+                                  ? "border-primary/40 bg-secondary/20"
+                                  : "border-border/60 bg-secondary/10"
+                          }`}
+                        >
+                          {dayDone ? (
+                            <Flag className="h-5 w-5 text-primary" />
+                          ) : isLastDay ? (
+                            <Trophy className="h-5 w-5 text-primary/60" />
+                          ) : (
+                            <span className={`font-mono text-xs ${isToday ? "text-primary" : "text-muted-foreground"}`}>
+                              {globalDay}
+                            </span>
+                          )}
+                        </button>
+                        <span
+                          className={`text-[9px] tracking-[0.1em] uppercase text-center ${
+                            dayDone ? "text-primary" : "text-muted-foreground/60"
+                          }`}
+                        >
+                          {isLastDay ? t.roadmapFinishLine : `D${globalDay}`}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <DayDetailModal day={selectedDay} userId={userId} lang={lang} t={t} onClose={() => setSelectedDay(null)} />
+    </>
+  );
+}
+
+/** Shown when a flag on My Roadmap is clicked — the date each of that day's tasks was actually completed. */
+function DayDetailModal({
+  day,
+  userId,
+  lang,
+  t,
+  onClose,
+}: {
+  day: { globalDay: number; weekTheme: string; tasks: RoadmapTask[] } | null;
+  userId: string | null;
+  lang: "en" | "fr";
+  t: T;
+  onClose: () => void;
+}) {
+  const [dates, setDates] = useState<Record<string, string | null>>({});
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!day) return;
+    setDates({});
+    if (!userId) return;
+    setLoading(true);
+    const titles = day.tasks.map((tk) => tk.title);
+    supabase
+      .from("aurum_tasks")
+      .select("title, completed_at")
+      .eq("user_id", userId)
+      .eq("source", "roadmap")
+      .in("title", titles)
+      .then(({ data }) => {
+        const map: Record<string, string | null> = {};
+        (data ?? []).forEach((row) => {
+          if (row.title) map[row.title] = row.completed_at ?? null;
+        });
+        setDates(map);
+        setLoading(false);
+      });
+  }, [day, userId]);
+
+  if (!day) return null;
+
+  const dateLocale = lang === "fr" ? "fr-FR" : "en-US";
+  const formatDate = (iso: string | null) =>
+    iso
+      ? new Date(iso).toLocaleDateString(dateLocale, { weekday: "short", month: "short", day: "numeric" })
+      : t.roadmapDayDetailNoDate;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative glass rounded-2xl max-w-md w-full p-6 border border-primary/20 shadow-[0_0_60px_rgba(201,168,76,0.1)]">
+        <button
+          onClick={onClose}
+          className="absolute top-5 right-5 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <div className="flex items-center gap-3 mb-5">
+          <div
+            className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: "var(--gradient-gold)" }}
+          >
+            <Flag className="h-4 w-4 text-primary-foreground" />
+          </div>
+          <div>
+            <div className="text-[10px] tracking-[0.25em] text-primary/80 uppercase">{day.weekTheme}</div>
+            <div className="font-serif text-lg">{t.roadmapDayDetailTitle(day.globalDay)}</div>
+          </div>
+        </div>
+        <div className="space-y-2">
+          {loading ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground py-4">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+              {t.roadmapDayDetailLoading}
+            </div>
+          ) : (
+            day.tasks.map((task) => (
+              <div key={task.id} className="flex items-start gap-3 px-3 py-2.5 rounded-lg bg-secondary/20">
+                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-foreground/90">{task.title}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5 font-mono">
+                    {formatDate(dates[task.title] ?? null)}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const FIREWORK_COLORS = ["#D4A843", "#F2E6C9", "#C9A84C", "#fff4d6"];
+const FIREWORK_BURSTS = [
+  { left: 20, top: 28, delay: 0 },
+  { left: 78, top: 22, delay: 0.35 },
+  { left: 50, top: 38, delay: 0.7 },
+  { left: 30, top: 62, delay: 1.1 },
+  { left: 72, top: 58, delay: 1.5 },
+];
+
+function FireworkBurst({ left, top, delay, color }: { left: number; top: number; delay: number; color: string }) {
+  const particles = Array.from({ length: 12 });
+  return (
+    <div className="absolute" style={{ left: `${left}%`, top: `${top}%` }}>
+      {particles.map((_, i) => {
+        const angle = (i / particles.length) * Math.PI * 2;
+        const dist = 46 + (i % 3) * 16;
+        const tx = Math.cos(angle) * dist;
+        const ty = Math.sin(angle) * dist;
+        return (
+          <span
+            key={i}
+            className="absolute h-1.5 w-1.5 rounded-full firework-particle"
+            style={
+              {
+                background: color,
+                boxShadow: `0 0 6px 1px ${color}`,
+                animationDelay: `${delay}s`,
+                "--tx": `${tx}px`,
+                "--ty": `${ty}px`,
+              } as React.CSSProperties
+            }
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+/** CAP-151: full-screen fireworks celebration shown once, the moment all 30 days are complete. */
+function RoadmapCelebration({ industryLabel, t, onClose }: { industryLabel: string; t: T; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505]/92 backdrop-blur-sm animate-fade-up">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {FIREWORK_BURSTS.map((b, i) => (
+          <FireworkBurst key={i} left={b.left} top={b.top} delay={b.delay} color={FIREWORK_COLORS[i % FIREWORK_COLORS.length]} />
+        ))}
+      </div>
+      <div className="relative z-10 max-w-lg mx-auto text-center px-6">
+        <div
+          className="mx-auto mb-6 h-16 w-16 rounded-full flex items-center justify-center animate-pulse-gold"
+          style={{ background: "var(--gradient-gold)" }}
+        >
+          <Trophy className="h-8 w-8 text-primary-foreground" />
+        </div>
+        <h2 className="font-serif text-3xl sm:text-4xl leading-tight mb-4 text-primary uppercase tracking-tight">
+          {t.roadmapCelebrationTitle(industryLabel)}
+        </h2>
+        <p className="text-sm text-muted-foreground mb-8">{t.roadmapCelebrationSubtitle}</p>
+        <button
+          onClick={onClose}
+          className="px-6 py-2.5 rounded-lg text-sm font-medium text-primary-foreground"
+          style={{ background: "var(--gradient-gold)" }}
+        >
+          {t.roadmapCelebrationCta}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function RoadmapPage() {
   const { industry, industryId } = useIndustry();
   const { state: core, update: updateCore } = useAurumCoreState();
@@ -132,6 +566,7 @@ function RoadmapPage() {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
   const helpGate = useProGate("roadmap_help");
+  const gems = useGemBalance();
   const { isPro, loading: subLoading } = useSubscription();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const genRoadmap = useServerFn(generateRoadmap);
@@ -148,6 +583,8 @@ function RoadmapPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeWeek, setActiveWeek] = useState(0);
+  const [viewMode, setViewMode] = useState<"tasks" | "path">("tasks");
+  const [showCelebration, setShowCelebration] = useState(false);
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
   const [swappingId, setSwappingId] = useState<string | null>(null);
   const [swapError, setSwapError] = useState<string | null>(null);
@@ -237,6 +674,34 @@ function RoadmapPage() {
     }
   }, [updateCore, core?.roadmap_progress, industryId, completed, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // CAP-150: submitting a graded answer also marks the task complete — same
+  // mirror-to-aurum_tasks pattern as toggleTask (CAP-85), now carrying the
+  // answer text, score, and AI feedback along so they surface on the Calendar.
+  const submitAnswer = useCallback(async (task: RoadmapTask, result: { answerText: string; score: number; feedback: string }) => {
+    setCompleted((prev) => {
+      const next = { ...prev, [task.id]: true };
+      const progressMap = getProgressMap();
+      updateCore({ roadmap_progress: { ...progressMap, [industryId]: next } as unknown as null });
+      return next;
+    });
+
+    if (!user) return;
+    await supabase.from("aurum_tasks").delete().eq("user_id", user.id).eq("source", "roadmap").eq("title", task.title);
+    await supabase.from("aurum_tasks").insert({
+      user_id: user.id,
+      title: task.title,
+      description: task.detail,
+      status: "completed",
+      priority: "medium",
+      source: "roadmap",
+      industry: industryId,
+      completed_at: new Date().toISOString(),
+      answer_text: result.answerText,
+      answer_score: result.score,
+      answer_feedback: result.feedback,
+    });
+  }, [updateCore, core?.roadmap_progress, industryId, user]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Swap: regenerate one task in place instead of a full round trip to Mentor.
   // Keeps the same task.id so the completed/progress map stays keyed correctly.
   const swapTask = useCallback(async (weekIdx: number, dayIdx: number, task: RoadmapTask, otherTask: RoadmapTask | undefined) => {
@@ -293,6 +758,7 @@ function RoadmapPage() {
       const updatedRoadmap = { ...roadmap, weeks: updatedWeeks };
       setRoadmap(updatedRoadmap);
       await updateCore({ roadmap: { ...getRoadmapMap(), [industryId]: updatedRoadmap } as unknown as null });
+      void gems.spend(GEM_COSTS.roadmapSwapTask, "roadmap_swap_task");
     } catch (e) {
       console.error("swapTask failed:", e);
       setSwapError(task.id);
@@ -311,6 +777,24 @@ function RoadmapPage() {
     : core?.roadmap_generated_at
       ? Math.min(Math.floor((Date.now() - new Date(core.roadmap_generated_at).getTime()) / 86_400_000) + 1, 30)
       : 1;
+
+  // CAP-151: the finish-line fireworks fire exactly once — the celebrated flag lives
+  // under a reserved "_celebrated" key in roadmap_progress (never a real industryId),
+  // kept separate from the per-task completed map so it can't inflate completedCount.
+  const allDone = totalTasks > 0 && completedCount === totalTasks;
+  useEffect(() => {
+    if (!roadmap || loading || !allDone) return;
+    const progressMap = getProgressMap();
+    const celebratedMap = (progressMap["_celebrated"] as Record<string, boolean> | undefined) ?? {};
+    if (celebratedMap[industryId]) return;
+    setShowCelebration(true);
+    void updateCore({
+      roadmap_progress: {
+        ...progressMap,
+        _celebrated: { ...celebratedMap, [industryId]: true },
+      } as unknown as null,
+    });
+  }, [allDone, industryId, roadmap, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Free-plan users see a locked page instead of the roadmap — never the roadmap itself,
   // and generate() / the auto-generate effect above both self-guard on isPro so no Gemini
@@ -339,6 +823,13 @@ function RoadmapPage() {
         onClose={() => helpGate.setShowUpgrade(false)}
         reason={t.roadmapHelpGateMessage}
       />
+      {showCelebration && (
+        <RoadmapCelebration
+          industryLabel={industry.label.toUpperCase()}
+          t={t}
+          onClose={() => setShowCelebration(false)}
+        />
+      )}
       {/* Header */}
       <div className="mb-8 animate-fade-up">
         <div className="text-[10px] tracking-[0.34em] text-primary/80 mb-2">
@@ -358,14 +849,6 @@ function RoadmapPage() {
               </div>
             )}
           </div>
-          <button
-            onClick={generate}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:border-primary/40 text-sm text-muted-foreground hover:text-foreground transition-all disabled:opacity-50 shrink-0"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            {loading ? t.roadmapGenerating : t.roadmapRegenerate}
-          </button>
         </div>
       </div>
 
@@ -411,8 +894,48 @@ function RoadmapPage() {
         </div>
       )}
 
-      {/* Roadmap content */}
+      {/* CAP-151: switch between the day-by-day task list and the visual "My Roadmap" path */}
       {roadmap && !loading && (
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setViewMode("tasks")}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg border text-sm transition-all ${
+              viewMode === "tasks"
+                ? "border-primary/60 bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:border-primary/30"
+            }`}
+          >
+            <ListChecks className="h-3.5 w-3.5" />
+            {t.roadmapViewTasks}
+          </button>
+          <button
+            onClick={() => setViewMode("path")}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg border text-sm transition-all ${
+              viewMode === "path"
+                ? "border-primary/60 bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:border-primary/30"
+            }`}
+          >
+            <Map className="h-3.5 w-3.5" />
+            {t.roadmapViewMyRoadmap}
+          </button>
+        </div>
+      )}
+
+      {roadmap && !loading && viewMode === "path" && (
+        <MyRoadmapPath
+          roadmap={roadmap}
+          completed={completed}
+          currentDay={currentDay}
+          industryIcon={industry.icon}
+          userId={user?.id ?? null}
+          lang={lang}
+          t={t}
+        />
+      )}
+
+      {/* Roadmap content */}
+      {roadmap && !loading && viewMode === "tasks" && (
         <>
           {/* Week tabs */}
           <div className="flex gap-2 mb-6 flex-wrap">
@@ -509,32 +1032,44 @@ function RoadmapPage() {
                                     </div>
                                     <div className={`text-sm font-medium ${done ? "line-through text-muted-foreground" : ""}`}>{task.title}</div>
                                     <div className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{task.detail}</div>
-                                    {!done && (
-                                      <div className="flex items-center gap-4 mt-2 flex-wrap">
-                                        <TaskHelp
-                                          task={task}
-                                          industryLabel={industry.label}
-                                          lang={lang}
-                                          t={t}
-                                          gate={helpGate.gate}
-                                          onUsed={() => void helpGate.increment("roadmap_help")}
-                                        />
-                                        <button
-                                          onClick={() =>
-                                            void swapTask(activeWeek, dayIdx, task, day.tasks.find((tk) => tk.id !== task.id))
-                                          }
-                                          disabled={swappingId === task.id}
-                                          className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
-                                        >
-                                          {swappingId === task.id ? (
-                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                          ) : (
-                                            <RefreshCw className="h-3 w-3" />
-                                          )}
-                                          {swappingId === task.id ? t.roadmapSwapping : t.roadmapSwapTask}
-                                        </button>
-                                      </div>
-                                    )}
+                                    {/* Answer stays mounted even once done, so its score/feedback
+                                        doesn't disappear the moment the task flips to completed
+                                        (CAP-150). Help + Swap only make sense before completion. */}
+                                    <div className="flex items-center gap-4 mt-2 flex-wrap">
+                                      {!done && (
+                                        <>
+                                          <TaskHelp
+                                            task={task}
+                                            industryLabel={industry.label}
+                                            lang={lang}
+                                            t={t}
+                                            gate={helpGate.gate}
+                                            onUsed={() => void helpGate.increment("roadmap_help")}
+                                          />
+                                          <button
+                                            onClick={() =>
+                                              void swapTask(activeWeek, dayIdx, task, day.tasks.find((tk) => tk.id !== task.id))
+                                            }
+                                            disabled={swappingId === task.id}
+                                            className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                                          >
+                                            {swappingId === task.id ? (
+                                              <Loader2 className="h-3 w-3 animate-spin" />
+                                            ) : (
+                                              <RefreshCw className="h-3 w-3" />
+                                            )}
+                                            {swappingId === task.id ? t.roadmapSwapping : t.roadmapSwapTask}
+                                          </button>
+                                        </>
+                                      )}
+                                      <AnswerTask
+                                        task={task}
+                                        industryLabel={industry.label}
+                                        lang={lang}
+                                        t={t}
+                                        onGraded={submitAnswer}
+                                      />
+                                    </div>
                                     {swapError === task.id && (
                                       <div className="text-[10px] text-destructive mt-1">{t.roadmapSwapFailed}</div>
                                     )}

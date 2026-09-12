@@ -6,9 +6,12 @@ import { NotificationPanel } from "./NotificationPanel";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check, Sparkles, Gem } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
-import type { Lang } from "@/lib/i18n/translations";
+import type { Lang, T } from "@/lib/i18n/translations";
+import { PlansModal } from "./PlansModal";
+import { CreditBoostsModal } from "./CreditBoostsModal";
+import { useGemBalance } from "@/hooks/useGemBalance";
 
 const LANG_OPTIONS: { lang: Lang; flag: string; label: string }[] = [
   { lang: "en", flag: "🇬🇧", label: "English" },
@@ -61,9 +64,35 @@ function LanguageSwitcher() {
   );
 }
 
+function GemBalanceWidget({ t }: { t: T }) {
+  const { balance, monthlyAllotment } = useGemBalance();
+  const pct = monthlyAllotment > 0 ? Math.min(100, Math.round((balance / monthlyAllotment) * 100)) : 0;
+
+  return (
+    <div className="hidden md:flex items-center gap-2 glass rounded-full px-3 py-1.5">
+      <Gem className="h-3.5 w-3.5 text-primary shrink-0" />
+      <span className="text-[10px] font-medium tracking-[0.15em] uppercase text-muted-foreground whitespace-nowrap">
+        {t.gemsLabel}
+      </span>
+      <span className="text-xs font-semibold text-foreground whitespace-nowrap">
+        {balance}/{monthlyAllotment}
+      </span>
+      <div className="w-16 h-1.5 rounded-full bg-secondary/60 overflow-hidden shrink-0">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${pct}%`, background: "var(--gradient-gold)" }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function TopBar() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [initials, setInitials] = useState<string | null>(null);
+  const [plansOpen, setPlansOpen] = useState(false);
+  const [boostsOpen, setBoostsOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -101,8 +130,27 @@ export function TopBar() {
             <Logo />
           </Link>
         </div>
-        <div className="hidden md:flex flex-1" />
+        <div className="hidden md:flex flex-1 items-center justify-center">
+          <GemBalanceWidget t={t} />
+        </div>
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
+          <PlansModal open={plansOpen} onClose={() => setPlansOpen(false)} t={t} />
+          <CreditBoostsModal open={boostsOpen} onClose={() => setBoostsOpen(false)} t={t} />
+          <button
+            onClick={() => setBoostsOpen(true)}
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground border border-primary/20 hover:border-primary/50 hover:text-foreground transition-colors"
+          >
+            <Gem className="h-3 w-3" />
+            {t.gemsNeedMore}
+          </button>
+          <button
+            onClick={() => setPlansOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+            style={{ background: "var(--gradient-gold)" }}
+          >
+            <Sparkles className="h-3 w-3" />
+            <span className="hidden sm:inline">{t.plansUpgradeButton}</span>
+          </button>
           <LanguageSwitcher />
           <div className="hidden sm:block">
             <IndustrySwitcher />

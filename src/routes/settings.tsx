@@ -20,6 +20,7 @@ import {
   ArrowUpRight,
   Download,
   Trash2,
+  Gem,
 } from "lucide-react";
 import { AppShell } from "@/components/aurum/AppShell";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,6 +29,8 @@ import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useFreeTier, FREE_LIMITS, type FreeTierKey } from "@/hooks/useFreeTier";
+import { useGemBalance } from "@/hooks/useGemBalance";
+import { GEM_COSTS } from "@/lib/gemCosts";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -40,7 +43,7 @@ export const Route = createFileRoute("/settings")({
   component: Settings,
 });
 
-type SectionId = "account" | "aurum" | "content" | "notifications" | "privacy" | "billing" | "danger";
+type SectionId = "account" | "aurum" | "content" | "notifications" | "privacy" | "gems" | "billing" | "danger";
 
 type Section = {
   id: SectionId;
@@ -56,6 +59,7 @@ function getSections(t: T): Section[] {
     { id: "content", label: t.setSectionContent, icon: ChevronRight, soon: false },
     { id: "notifications", label: t.setSectionNotifications, icon: Bell, soon: false },
     { id: "privacy", label: t.setSectionPrivacy, icon: Shield, soon: false },
+    { id: "gems", label: t.setSectionGems, icon: Gem, soon: false },
     { id: "billing", label: t.setSectionBilling, icon: CreditCard, soon: false },
     { id: "danger", label: t.setSectionDanger, icon: AlertTriangle, soon: false },
   ];
@@ -101,6 +105,20 @@ function getContentTones(t: T) {
   ] as const;
 }
 
+function getGemsPricingRows(t: T) {
+  return [
+    { label: t.setGemsActionImageGeneration, cost: GEM_COSTS.imageGeneration },
+    { label: t.setGemsActionMentorNewConversation, cost: GEM_COSTS.mentorNewConversation },
+    { label: t.setGemsActionTutorNewConversation, cost: GEM_COSTS.tutorNewConversation },
+    { label: t.setGemsActionReadArticle, cost: GEM_COSTS.readArticle },
+    { label: t.setGemsActionStudioAiAssisted, cost: GEM_COSTS.studioGenerateAiAssisted },
+    { label: t.setGemsActionStudioLiveIntel, cost: GEM_COSTS.studioGenerateFromLiveIntel },
+    { label: t.setGemsActionRoadmapGetHelp, cost: GEM_COSTS.roadmapGetHelp },
+    { label: t.setGemsActionRoadmapSwapTask, cost: GEM_COSTS.roadmapSwapTask },
+    { label: t.setGemsActionMentorHelpPerTask, cost: GEM_COSTS.mentorHelpPerTask },
+  ];
+}
+
 function getPlatformOptions(t: T) {
   return [
     { id: "All", label: t.setPlatformAll },
@@ -118,6 +136,8 @@ function Settings() {
   const AI_STYLES = getAiStyles(t);
   const CONTENT_TONES = getContentTones(t);
   const PLATFORMS = getPlatformOptions(t);
+  const GEMS_PRICING_ROWS = getGemsPricingRows(t);
+  const { balance: gemBalance, monthlyAllotment: gemAllotment } = useGemBalance();
   const navigate = useNavigate();
   const { user, session, signOut } = useAuth();
   const { profile, update: updateProfile } = useUserProfile();
@@ -723,6 +743,42 @@ function Settings() {
               </div>
             </div>
           )}
+
+          {activeSection === "gems" && (
+            <div className="space-y-8">
+              <SectionTitle title={t.setGemsPricingTitle} desc={t.setGemsPricingDesc} />
+
+              <div className="rounded-xl border border-border/60 p-6">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="h-10 w-10 rounded-xl flex items-center justify-center"
+                    style={{ background: "var(--gradient-gold)" }}
+                  >
+                    <Gem className="h-5 w-5 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] tracking-[0.3em] text-muted-foreground uppercase">{t.setGemsYourBalance}</div>
+                    <div className="font-serif text-xl">{gemBalance} / {gemAllotment}</div>
+                  </div>
+                </div>
+              </div>
+
+              <Field label={t.setGemsPricingTitle}>
+                <div className="space-y-2 mt-1">
+                  {GEMS_PRICING_ROWS.map((row) => (
+                    <div
+                      key={row.label}
+                      className="flex items-center justify-between px-4 py-3 rounded-lg border border-border/50"
+                    >
+                      <span className="text-sm">{row.label}</span>
+                      <span className="text-xs font-mono text-primary">{t.setGemsCostLabel(row.cost)}</span>
+                    </div>
+                  ))}
+                </div>
+              </Field>
+            </div>
+          )}
+
           {activeSection === "billing" && (
             <div className="space-y-8">
               <SectionTitle title={t.setBillingTitle} desc={t.setBillingDesc} />

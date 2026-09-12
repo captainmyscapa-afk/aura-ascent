@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
@@ -52,6 +52,8 @@ import { useGeneratedLibrary } from "@/hooks/useGeneratedLibrary";
 import { useMediaCollections } from "@/hooks/useMediaCollections";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { T } from "@/lib/i18n/translations";
+import { useGemBalance } from "@/hooks/useGemBalance";
+import { GEM_COSTS } from "@/lib/gemCosts";
 
 export const Route = createFileRoute("/studio")({
   component: Studio,
@@ -174,6 +176,7 @@ function Studio() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const studioGate = useProGate("studio_drafts");
+  const gems = useGemBalance();
   const [copied, setCopied] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
@@ -194,7 +197,6 @@ function Studio() {
   const [lastSavedId, setLastSavedId] = useState<string | null>(null);
   const [loadStep, setLoadStep] = useState(0);
   const [editablePlan, setEditablePlan] = useState<StudioContentPlan | null>(null);
-  const [connectedPlatforms, setConnectedPlatforms] = useState<Set<string>>(new Set());
   // CAP-133: saved reference photos let generation stay accurate to the
   // real boat instead of hallucinating one. Selection is per-generation;
   // the library itself persists across sessions.
@@ -303,13 +305,6 @@ function Studio() {
   useEffect(() => {
     if (user) {
       loadHistory();
-      // Load connected social platforms
-      (supabase.from("social_accounts") as any)
-        .select("platform")
-        .eq("user_id", user.id)
-        .then(({ data }: { data: { platform: string }[] | null }) => {
-          setConnectedPlatforms(new Set((data ?? []).map((a) => a.platform)));
-        });
     }
   }, [user, industryId]);
 
@@ -482,6 +477,10 @@ function Studio() {
       await studioGate.increment("studio_drafts");
       await saveToHistory(result);
       await updateMemory(result);
+      void gems.spend(
+        mode === "intelligence" ? GEM_COSTS.studioGenerateFromLiveIntel : GEM_COSTS.studioGenerateAiAssisted,
+        mode === "intelligence" ? "studio_generate_from_live_intel" : "studio_generate_ai_assisted",
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : t.stuGenerationFailed);
     } finally {
@@ -612,6 +611,7 @@ function Studio() {
       }
 
       setImageUrl(finalUrl);
+      void gems.spend(GEM_COSTS.imageGeneration, "image_generation");
       // CAP-134: tell the user whether a flagged regenerate was actually
       // free or just spent a normal generation (10 free flags/month cap).
       setFlagNotice(
@@ -911,6 +911,7 @@ function Studio() {
         twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text.slice(0, 280))}`,
         linkedin: `https://www.linkedin.com/feed/?shareActive=true`,
         instagram: `https://www.instagram.com/`,
+        facebook: `https://www.facebook.com/`,
         tiktok: `https://www.tiktok.com/upload`,
         youtube: `https://studio.youtube.com/`,
         substack: `https://substack.com/publish/post/new`,
@@ -1024,7 +1025,6 @@ function Studio() {
               onDownloadVideo={downloadVideo}
               onShare={shareToplatform}
               sharing={sharing}
-              connectedPlatforms={connectedPlatforms}
               session={supabase}
               userId={user?.id}
               industryId={industryId}
@@ -2090,7 +2090,6 @@ function PlanOutput({
   onDownloadVideo,
   onShare,
   sharing,
-  connectedPlatforms,
   session: supabaseClient,
   userId,
   industryId,
@@ -2144,7 +2143,6 @@ function PlanOutput({
   onDownloadVideo: () => void;
   onShare?: (platform: string, text: string, key: string) => void;
   sharing?: string | null;
-  connectedPlatforms: Set<string>;
   session: typeof supabase;
   userId?: string;
   industryId: string;
@@ -3194,7 +3192,6 @@ function PlanOutput({
       {/* Publish Panel */}
       <PublishPanel
         plan={plan}
-        connectedPlatforms={connectedPlatforms}
         supabaseClient={supabaseClient}
         userId={userId}
         industryId={industryId}
@@ -3219,7 +3216,6 @@ const ALL_PUBLISH_PLATFORMS = [
 
 function PublishPanel({
   plan,
-  connectedPlatforms,
   supabaseClient,
   userId,
   industryId,
@@ -3228,7 +3224,6 @@ function PublishPanel({
   t,
 }: {
   plan: StudioContentPlan;
-  connectedPlatforms: Set<string>;
   supabaseClient: typeof supabase;
   userId?: string;
   industryId: string;
@@ -3241,14 +3236,12 @@ function PublishPanel({
     new Set(availablePlatforms.map((p) => p.key)),
   );
   const [postStatus, setPostStatus] = useState<
-    Record<string, "idle" | "posting" | "done" | "error">
+    Record<string, "idle" | "done">
   >({});
   const [showScheduler, setShowScheduler] = useState(false);
   const [schedDate, setSchedDate] = useState("");
   const [schedTime, setSchedTime] = useState("09:00");
-  const [saving, setSaving] = useState(false);
   const [scheduling, setScheduling] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [scheduled, setScheduled] = useState(false);
 
   const togglePlatform = (key: string) => {
@@ -3260,71 +3253,28 @@ function PublishPanel({
     });
   };
 
-  const postNow = async () => {
-    const {
-      data: { session },
-    } = await supabaseClient.auth.getSession();
-    const token = session?.access_token ?? "";
-
-    for (const key of selected) {
-      if (!plan.platforms[key]) continue;
-      setPostStatus((s) => ({ ...s, [key]: "posting" }));
-
-      if (connectedPlatforms.has(key)) {
-        try {
-          const res = await fetch(
-            "https://ooliwsmmtpggejyjmone.supabase.co/functions/v1/post-content",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-              body: JSON.stringify({
-                platform: key,
-                text: plan.platforms[key],
-                imageUrl: imageUrl ?? undefined,
-              }),
-            },
-          );
-          const data = (await res.json()) as {
-            success?: boolean;
-            manualPost?: boolean;
-            error?: string;
-          };
-          if (data.success || data.manualPost) {
-            setPostStatus((s) => ({ ...s, [key]: "done" }));
-            // Fallback: open platform if manual
-            if (data.manualPost) {
-              await navigator.clipboard.writeText(plan.platforms[key] ?? "");
-              const urls: Record<string, string> = {
-                instagram: "https://www.instagram.com/",
-                tiktok: "https://www.tiktok.com/upload",
-                youtube_shorts: "https://studio.youtube.com/",
-                facebook: "https://www.facebook.com/",
-                linkedin: "https://www.linkedin.com/feed/?shareActive=true",
-                twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent((plan.platforms[key] ?? "").slice(0, 280))}`,
-              };
-              if (urls[key]) window.open(urls[key], "_blank");
-            }
-          } else {
-            setPostStatus((s) => ({ ...s, [key]: "error" }));
-          }
-        } catch {
-          setPostStatus((s) => ({ ...s, [key]: "error" }));
-        }
-      } else {
-        // Not connected — copy + open
-        await navigator.clipboard.writeText(plan.platforms[key] ?? "");
-        const urls: Record<string, string> = {
-          instagram: "https://www.instagram.com/",
-          tiktok: "https://www.tiktok.com/upload",
-          youtube_shorts: "https://studio.youtube.com/",
-          facebook: "https://www.facebook.com/",
-          linkedin: "https://www.linkedin.com/feed/?shareActive=true",
-          twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent((plan.platforms[key] ?? "").slice(0, 280))}`,
-        };
-        if (urls[key]) window.open(urls[key], "_blank");
-        setPostStatus((s) => ({ ...s, [key]: "done" }));
-      }
+  // Every platform's caption already lives at plan.platforms[key] (generated
+  // 1:1 with ALL_PUBLISH_PLATFORMS keys by generateStudioContent). "Post
+  // here" copies exactly that platform's caption and opens that platform —
+  // no partial/real API posting is implied or attempted.
+  const postHere = async (key: string) => {
+    const text = plan.platforms[key] ?? "";
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // clipboard may be unavailable — still open the platform below
     }
+    const urls: Record<string, string> = {
+      instagram: "https://www.instagram.com/",
+      tiktok: "https://www.tiktok.com/upload",
+      youtube_shorts: "https://studio.youtube.com/",
+      facebook: "https://www.facebook.com/",
+      linkedin: "https://www.linkedin.com/feed/?shareActive=true",
+      twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text.slice(0, 280))}`,
+    };
+    if (urls[key]) window.open(urls[key], "_blank");
+    setPostStatus((s) => ({ ...s, [key]: "done" }));
+    setTimeout(() => setPostStatus((s) => ({ ...s, [key]: "idle" })), 2000);
   };
 
   const schedulePost = async () => {
@@ -3352,29 +3302,6 @@ function PublishPanel({
     setTimeout(() => setScheduled(false), 3000);
   };
 
-  const saveNow = async () => {
-    if (!userId) return;
-    setSaving(true);
-    await (supabaseClient.from("scheduled_posts") as any).insert({
-      user_id: userId,
-      industry: industryId,
-      format: plan.format,
-      title: plan.title,
-      viral_hook: plan.viralHook,
-      platforms: plan.platforms,
-      selected_platforms: Array.from(selected),
-      hashtags: plan.hashtags,
-      script: plan.script,
-      visual_prompt: plan.visualPrompt,
-      image_url: imageUrl,
-      scheduled_at: new Date().toISOString(),
-      status: "saved",
-    });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  };
-
   if (availablePlatforms.length === 0) return null;
 
   return (
@@ -3386,44 +3313,44 @@ function PublishPanel({
         {availablePlatforms.map((p) => {
           const Icon = p.icon;
           const isSelected = selected.has(p.key);
-          const isConnected = connectedPlatforms.has(p.key);
           const status = postStatus[p.key] ?? "idle";
           return (
-            <button
+            <div
               key={p.key}
-              onClick={() => togglePlatform(p.key)}
-              className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
+              className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
                 isSelected
                   ? "border-primary/50 bg-primary/5"
                   : "border-border hover:border-primary/30"
               }`}
             >
-              {isSelected ? (
-                <CheckSquare className="h-4 w-4 text-primary shrink-0" />
-              ) : (
-                <Square className="h-4 w-4 text-muted-foreground shrink-0" />
-              )}
+              <button
+                type="button"
+                onClick={() => togglePlatform(p.key)}
+                className="shrink-0"
+                aria-label={p.label}
+              >
+                {isSelected ? (
+                  <CheckSquare className="h-4 w-4 text-primary" />
+                ) : (
+                  <Square className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
               <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="flex-1 text-sm">{p.label}</span>
-              {isConnected ? (
-                <span className="text-[9px] tracking-[0.2em] text-emerald-400 uppercase">
-                  {t.stuConnected}
+              {status === "done" ? (
+                <span className="flex items-center gap-1 text-[9px] tracking-[0.2em] text-emerald-400 uppercase shrink-0">
+                  <Check className="h-3 w-3" /> {t.stuCopied}
                 </span>
               ) : (
-                <Link
-                  to="/profile"
-                  className="text-[9px] tracking-[0.2em] text-muted-foreground hover:text-primary uppercase transition-colors"
-                  onClick={(e) => e.stopPropagation()}
+                <button
+                  type="button"
+                  onClick={() => void postHere(p.key)}
+                  className="shrink-0 text-[9px] tracking-[0.2em] text-muted-foreground hover:text-primary uppercase transition-colors"
                 >
-                  {t.stuConnectArrow}
-                </Link>
+                  {t.stuPostHere}
+                </button>
               )}
-              {status === "posting" && (
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />
-              )}
-              {status === "done" && <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />}
-              {status === "error" && <X className="h-3.5 w-3.5 text-destructive shrink-0" />}
-            </button>
+            </div>
           );
         })}
       </div>
@@ -3446,41 +3373,11 @@ function PublishPanel({
       {/* Action buttons */}
       <div className="flex flex-col gap-2">
         <button
-          onClick={postNow}
-          disabled={selected.size === 0}
-          className="w-full h-12 rounded-xl text-primary-foreground font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-all group relative overflow-hidden"
-          style={{ background: "var(--gradient-gold)" }}
+          onClick={() => setShowScheduler(!showScheduler)}
+          className={`w-full h-10 rounded-xl border text-sm flex items-center justify-center gap-2 transition-all ${showScheduler ? "border-primary/50 text-primary bg-primary/5" : "border-border text-muted-foreground hover:text-foreground hover:border-primary/40"}`}
         >
-          <span className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          <Zap className="h-4 w-4" />
-          {t.stuPostNow}
+          <Clock className="h-3.5 w-3.5" /> {t.stuSchedulePost}
         </button>
-
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={saveNow}
-            disabled={saving}
-            className="h-10 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/40 flex items-center justify-center gap-2 transition-all"
-          >
-            {saved ? (
-              <>
-                <Check className="h-3.5 w-3.5 text-emerald-400" /> {t.stuSavedExcl}
-              </>
-            ) : saving ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t.stuSaving}
-              </>
-            ) : (
-              t.stuSave
-            )}
-          </button>
-          <button
-            onClick={() => setShowScheduler(!showScheduler)}
-            className={`h-10 rounded-xl border text-sm flex items-center justify-center gap-2 transition-all ${showScheduler ? "border-primary/50 text-primary bg-primary/5" : "border-border text-muted-foreground hover:text-foreground hover:border-primary/40"}`}
-          >
-            <Clock className="h-3.5 w-3.5" /> {t.stuSchedulePost}
-          </button>
-        </div>
 
         {scheduled && (
           <div className="flex items-center gap-2 text-sm text-emerald-400 justify-center">

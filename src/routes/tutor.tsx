@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
-import { GraduationCap, Send, BookOpen, Lightbulb, ListChecks, HelpCircle, Plus, Clock, X } from "lucide-react";
+import { GraduationCap, Send, BookOpen, Lightbulb, ListChecks, HelpCircle, Plus, Clock, X, ChevronDown } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { askGemini } from "@/lib/gemini.functions";
 import { generateConversationTitle, generateTutorLessonStarters } from "@/lib/mentor.functions";
@@ -15,6 +15,8 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { T } from "@/lib/i18n/translations";
+import { useGemBalance } from "@/hooks/useGemBalance";
+import { GEM_COSTS } from "@/lib/gemCosts";
 
 export const Route = createFileRoute("/tutor")({
   component: Tutor,
@@ -58,6 +60,7 @@ function Tutor() {
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const tutorGate = useProGate("tutor_messages");
+  const gems = useGemBalance();
   const { isPro, loading: subLoading } = useSubscription();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
@@ -78,6 +81,7 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
   const displayMessages = messages.length > 0 ? messages : seed;
 
   const [suggestions, setSuggestions] = useState<string[]>(() => t.tutSuggestions(industryId));
+  const [recentOpen, setRecentOpen] = useState(false);
 
   useEffect(() => {
     if (messages.length === 0 && !pending) return;
@@ -179,7 +183,10 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
         const firstUserMsg = next.find((m) => m.r === "me")?.t ?? text;
         const { title } = await genTitle({ data: { firstMessage: firstUserMsg, industry: industryId } });
         const newConv = await createConversation(industryId + "-tutor", final, title);
-        if (newConv) setActiveConvId(newConv.id);
+        if (newConv) {
+          setActiveConvId(newConv.id);
+          void gems.spend(GEM_COSTS.tutorNewConversation, "tutor_new_conversation");
+        }
       } else {
         scheduleSave(final, activeConvId);
       }
@@ -266,7 +273,15 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
 
           {!convsLoading && tutorConversations.length > 0 && (
             <div className="glass rounded-xl p-5">
-              <div className="text-[10px] tracking-[0.34em] text-muted-foreground mb-3">{t.tutRecentLessons}</div>
+              <button
+                onClick={() => setRecentOpen((o) => !o)}
+                className={`w-full flex items-center justify-between ${recentOpen ? "mb-3" : ""}`}
+                title={recentOpen ? t.recentPanelCollapse : t.recentPanelExpand}
+              >
+                <span className="text-[10px] tracking-[0.34em] text-muted-foreground">{t.tutRecentLessons}</span>
+                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${recentOpen ? "rotate-180" : ""}`} />
+              </button>
+              {recentOpen && (
               <div className="space-y-2">
                 {tutorConversations.map((conv) => (
                   <div key={conv.id} className={"flex items-start gap-1 rounded-lg border transition-colors " + (activeConvId === conv.id ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/40")}>
@@ -291,6 +306,7 @@ Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep
                   </div>
                 ))}
               </div>
+              )}
             </div>
           )}
 

@@ -1,5 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ChevronDown } from "lucide-react";
+import { PLAN_TIERS } from "@/lib/plans";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -340,6 +342,34 @@ const STYLES = `
   .l-pricing-feature:last-of-type { border-bottom: none; }
   .l-pricing-check { color: #C9A84C; font-size: 11px; margin-top: 2px; flex-shrink: 0; }
 
+  /* Plan cards (CAP-148) */
+  .l-plan-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; max-width: 1100px; margin: 0 auto; }
+  .l-plan-card {
+    background: #0d0d0d; border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 16px; padding: 2rem 1.5rem 1.75rem; position: relative;
+    cursor: pointer; transition: border-color 0.2s, background 0.2s;
+  }
+  .l-plan-card:hover { border-color: rgba(201,168,76,0.35); }
+  .l-plan-card-open { border-color: rgba(201,168,76,0.5); background: linear-gradient(160deg, rgba(201,168,76,0.06), #0d0d0d 60%); }
+  .l-plan-ribbon {
+    position: absolute; top: -14px; left: 1.5rem;
+    background: linear-gradient(135deg, #D4A843, #9A7530);
+    color: #080808; font-size: 10px; font-weight: 600; letter-spacing: 0.15em;
+    text-transform: uppercase; padding: 6px 14px 10px;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+  }
+  .l-plan-badge {
+    position: absolute; top: -13px; right: 1.25rem;
+    background: #f0ece0; color: #080808; font-size: 9px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 10px; border-radius: 100px;
+    white-space: nowrap;
+  }
+  .l-plan-price { font-family: 'Cormorant Garamond', serif; font-size: 2.5rem; margin-top: 0.75rem; }
+  .l-plan-allowance { font-size: 12px; color: rgba(240,236,224,0.45); margin-top: 0.35rem; }
+  .l-plan-detail { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.08); }
+  .l-plan-total { font-size: 13px; color: rgba(240,236,224,0.75); margin-bottom: 1rem; }
+  .l-plan-total strong { color: #C9A84C; font-weight: 500; }
+
   /* CTA section */
   .l-cta {
     text-align: center; padding: 8rem 2rem;
@@ -391,6 +421,7 @@ const STYLES = `
     .l-steps { grid-template-columns: 1fr 1fr; gap: 2rem; }
     .l-testimonials { grid-template-columns: 1fr; }
     .l-pricing-grid { grid-template-columns: 1fr; }
+    .l-plan-grid { grid-template-columns: 1fr 1fr; }
     .l-section { padding: 4rem 1.5rem; }
   }
 `;
@@ -482,6 +513,7 @@ const BENTO_CARDS: BentoCard[] = [
 
 export default function Landing() {
   const bentoRef = useRef<HTMLDivElement>(null);
+  const [openPlan, setOpenPlan] = useState<string | null>("basic");
 
   useEffect(() => {
     const el = bentoRef.current;
@@ -526,7 +558,7 @@ export default function Landing() {
 
           <div className="l-nav-right">
             <Link to="/login" className="l-btn-text">Sign in</Link>
-            <Link to="/onboarding" className="l-btn-primary">Get started free →</Link>
+            <Link to="/signup" className="l-btn-primary">Get started free →</Link>
           </div>
         </div>
       </nav>
@@ -552,7 +584,7 @@ export default function Landing() {
         </p>
 
         <div className="l-hero-actions">
-          <Link to="/onboarding" className="l-btn-primary" style={{ padding: "0.85rem 2rem", fontSize: 14 }}>
+          <Link to="/signup" className="l-btn-primary" style={{ padding: "0.85rem 2rem", fontSize: 14 }}>
             Start for free — no card needed
           </Link>
           <a href="#platform" className="l-btn-ghost" style={{ padding: "0.85rem 2rem", fontSize: 14 }}>
@@ -703,63 +735,57 @@ export default function Landing() {
       <section id="pricing" className="l-section" style={{ borderTop: "1px solid rgba(201,168,76,0.1)" }}>
         <p className="l-eyebrow" style={{ marginBottom: "1.25rem", textAlign: "center" }}>Pricing</p>
         <h2 className="l-serif" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", lineHeight: 1.1, marginBottom: "1rem", textAlign: "center" }}>
-          Start free.<br /><em className="l-gold">Scale when ready.</em>
+          Credit packs.<br /><em className="l-gold">Scale when ready.</em>
         </h2>
         <p className="l-mid" style={{ fontSize: "1rem", textAlign: "center", marginBottom: "3.5rem", fontWeight: 300 }}>
-          No experience required. No credit card to start. Cancel anytime.
+          Click a plan to see the full breakdown. No subscription, no commitment.
         </p>
 
-        <div className="l-pricing-grid">
-          {/* Free */}
-          <div className="l-pricing-card">
-            <div className="l-pricing-tier">Initiate</div>
-            <div className="l-pricing-price l-serif">Free</div>
-            <div className="l-pricing-cadence">Forever</div>
-            {[
-              "AURUM Mentor — 10 messages / day",
-              "Live Intelligence feed",
-              "Daily execution tasks",
-              "Academy — Module 01",
-              "Industry event calendar",
-            ].map((f) => (
-              <div key={f} className="l-pricing-feature">
-                <span className="l-pricing-check">—</span>
-                {f}
+        <div className="l-plan-grid">
+          {PLAN_TIERS.map((plan) => (
+            <div
+              key={plan.id}
+              className={`l-plan-card ${openPlan === plan.id ? "l-plan-card-open" : ""}`}
+              onClick={() => setOpenPlan((cur) => (cur === plan.id ? null : plan.id))}
+            >
+              <div className="l-plan-ribbon">{plan.name}</div>
+              {plan.badge && (
+                <div className="l-plan-badge">{plan.badge === "popular" ? "Most Popular" : "Best Value"}</div>
+              )}
+              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "0.5rem" }}>
+                <div className="l-plan-price">{plan.priceLabel}</div>
+                <ChevronDown
+                  size={16}
+                  style={{
+                    color: "rgba(240,236,224,0.4)",
+                    marginBottom: "0.4rem",
+                    flexShrink: 0,
+                    transform: openPlan === plan.id ? "rotate(180deg)" : "none",
+                    transition: "transform 0.2s",
+                  }}
+                />
               </div>
-            ))}
-            <div style={{ marginTop: "2rem" }}>
-              <Link to="/onboarding" className="l-btn-ghost" style={{ width: "100%", justifyContent: "center" }}>
-                Get started free
-              </Link>
-            </div>
-          </div>
+              <div className="l-plan-allowance">
+                {plan.credits} credits · +{plan.bonusCredits} bonus
+              </div>
 
-          {/* Pro */}
-          <div className="l-pricing-card l-pricing-card-pro">
-            <div className="l-pricing-badge">Most popular</div>
-            <div className="l-pricing-tier">Operator</div>
-            <div className="l-pricing-price l-serif">£29</div>
-            <div className="l-pricing-cadence">per month · cancel anytime</div>
-            {[
-              "AURUM Mentor — unlimited conversations",
-              "Full intelligence feed — all signals + actions",
-              "Full Academy — all tracks, all modules",
-              "Content Studio — unlimited generation",
-              "AI Tutor — role-play simulations",
-              "Network introductions — AI-drafted",
-              "Priority AI responses",
-            ].map((f) => (
-              <div key={f} className="l-pricing-feature">
-                <span className="l-pricing-check" style={{ color: "#C9A84C" }}>✓</span>
-                {f}
-              </div>
-            ))}
-            <div style={{ marginTop: "2rem" }}>
-              <Link to="/onboarding" className="l-btn-primary" style={{ width: "100%", justifyContent: "center", padding: "0.85rem 1.5rem" }}>
-                Start Operator →
-              </Link>
+              {openPlan === plan.id && (
+                <div className="l-plan-detail">
+                  <div className="l-plan-total">
+                    {plan.credits} credits + {plan.bonusCredits} bonus = <strong>{plan.credits + plan.bonusCredits} total</strong>
+                  </div>
+                  <Link
+                    to="/signup"
+                    onClick={(e) => e.stopPropagation()}
+                    className="l-btn-primary"
+                    style={{ width: "100%", justifyContent: "center", padding: "0.7rem 1.25rem", fontSize: "13px" }}
+                  >
+                    Select this plan
+                  </Link>
+                </div>
+              )}
             </div>
-          </div>
+          ))}
         </div>
       </section>
 
@@ -773,7 +799,7 @@ export default function Landing() {
         <p className="l-mid" style={{ fontSize: "1.05rem", maxWidth: 480, lineHeight: 1.75, margin: "0 auto 3rem", fontWeight: 300 }}>
           Join ambitious professionals using AURUM OS to compress a decade of proximity into months.
         </p>
-        <Link to="/onboarding" className="l-btn-primary" style={{ padding: "1rem 2.5rem", fontSize: 14 }}>
+        <Link to="/signup" className="l-btn-primary" style={{ padding: "1rem 2.5rem", fontSize: 14 }}>
           Start for free — no card needed →
         </Link>
       </div>

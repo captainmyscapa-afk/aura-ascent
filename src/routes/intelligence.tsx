@@ -8,6 +8,8 @@ import { INDUSTRY_TO_CATEGORY } from "@/lib/industry/categoryMap";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { T } from "@/lib/i18n/translations";
+import { useGemBalance } from "@/hooks/useGemBalance";
+import { GEM_COSTS } from "@/lib/gemCosts";
 
 export const Route = createFileRoute("/intelligence")({
   component: Intelligence,
@@ -44,6 +46,7 @@ function Intelligence() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<Date | null>(null);
+  const gems = useGemBalance();
 
   useEffect(() => {
     let mounted = true;
@@ -196,7 +199,13 @@ function Intelligence() {
             return (
               <li key={e.id} className="animate-fade-up" style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}>
                 {e.url ? (
-                  <a href={e.url} target="_blank" rel="noopener noreferrer" className="block">
+                  <a
+                    href={e.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                    onClick={() => void gems.spend(GEM_COSTS.readArticle, "read_article")}
+                  >
                     {inner}
                   </a>
                 ) : (

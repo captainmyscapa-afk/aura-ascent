@@ -28,17 +28,37 @@ export function Sidebar() {
   const { t } = useLanguage();
   const navigate = useNavigate();
 
-  const nav = [
-    { to: "/app", label: t.navDashboard, icon: LayoutDashboard },
-    { to: "/roadmap", label: t.navRoadmap, icon: Map },
-    { to: "/intelligence", label: t.navIntelligence, icon: Radio },
-    { to: "/mentor", label: t.navMentor, icon: Sparkles },
-    { to: "/academy", label: t.navAcademy, icon: GraduationCap },
-    { to: "/tutor", label: t.navTutor, icon: BookOpen },
-    { to: "/studio", label: t.navStudio, icon: Video },
-    { to: "/calendar", label: t.navCalendar, icon: CalendarDays },
-    { to: "/network", label: t.navNetwork, icon: Users },
-    { to: "/profile", label: t.navIdentity, icon: User2 },
+  const navGroups = [
+    {
+      label: t.navGroupCommand,
+      items: [
+        { to: "/app", label: t.navDashboard, icon: LayoutDashboard },
+        { to: "/mentor", label: t.navMentor, icon: Sparkles },
+        { to: "/intelligence", label: t.navIntelligence, icon: Radio },
+      ],
+    },
+    {
+      label: t.navGroupBuild,
+      items: [
+        { to: "/roadmap", label: t.navRoadmap, icon: Map },
+        { to: "/academy", label: t.navAcademy, icon: GraduationCap },
+        { to: "/tutor", label: t.navTutor, icon: BookOpen },
+      ],
+    },
+    {
+      label: t.navGroupCreate,
+      items: [
+        { to: "/studio", label: t.navStudio, icon: Video },
+        { to: "/profile", label: t.navIdentity, icon: User2 },
+      ],
+    },
+    {
+      label: t.navGroupConnect,
+      items: [
+        { to: "/network", label: t.navNetwork, icon: Users },
+        { to: "/calendar", label: t.navCalendar, icon: CalendarDays },
+      ],
+    },
   ] as const;
 
   const handleLogout = async () => {
@@ -54,30 +74,36 @@ export function Sidebar() {
         </Link>
       </div>
 
-      <nav className="flex-1 px-3 space-y-1">
-        <div className="px-3 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70">{t.ecosystem}</div>
-        {nav.map(({ to, label, icon: Icon }) => {
-          const active = pathname === to || pathname.startsWith(to + "/");
-          return (
-            <Link
-              key={to}
-              to={to}
-              className={`group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-all ${
-                active
-                  ? "bg-secondary/60 text-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
-              }`}
-            >
-              <Icon
-                className={`h-4 w-4 transition-colors ${
-                  active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                }`}
-              />
-              <span className="tracking-wide">{label}</span>
-              {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary animate-pulse-gold" />}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 px-3 space-y-5 overflow-y-auto">
+        {navGroups.map((group) => (
+          <div key={group.label}>
+            <div className="px-3 pb-2 text-[10px] tracking-[0.32em] text-muted-foreground/70">{group.label}</div>
+            <div className="space-y-1">
+              {group.items.map(({ to, label, icon: Icon }) => {
+                const active = pathname === to || pathname.startsWith(to + "/");
+                return (
+                  <Link
+                    key={to}
+                    to={to}
+                    className={`group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-all ${
+                      active
+                        ? "bg-secondary/60 text-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
+                    }`}
+                  >
+                    <Icon
+                      className={`h-4 w-4 transition-colors ${
+                        active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                      }`}
+                    />
+                    <span className="tracking-wide">{label}</span>
+                    {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary animate-pulse-gold" />}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       <div className="p-4 border-t border-border/60">
