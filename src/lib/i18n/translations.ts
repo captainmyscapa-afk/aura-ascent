@@ -50,6 +50,42 @@ export type T = {
   greeting: (period: "morning" | "afternoon" | "evening") => string;
   dashSpeakWithAurum: string;
   dashOpenIntelligence: string;
+  dashTaskControl: string;
+  taskCtrlEyebrow: string;
+  taskCtrlTitle: string;
+  taskCtrlDesc: string;
+  taskCtrlDay7Title: string;
+  taskCtrlDay30Title: string;
+  taskCtrlDaysOfN: (current: number, target: number) => string;
+  taskCtrlDaysToGo: (n: number) => string;
+  taskCtrlReady: string;
+  taskCtrlTakeQuiz: string;
+  taskCtrlResumeQuiz: string;
+  taskCtrlGenerating: string;
+  taskCtrlGenerateFailed: string;
+  taskCtrlNotEnoughTasks: string;
+  taskCtrlQuestionOf: (current: number, total: number) => string;
+  taskCtrlSubmitQuiz: string;
+  taskCtrlSubmitting: string;
+  taskCtrlAnswerAllHint: string;
+  taskCtrlScoreResult: (score: number, total: number) => string;
+  taskCtrlReviewAnswers: string;
+  taskCtrlYourAnswerLabel: string;
+  taskCtrlCorrectAnswerLabel: string;
+  taskCtrlCloseResults: string;
+  taskCtrlPastAttempts: (n: number) => string;
+  taskCtrlLastScore: (score: number, total: number) => string;
+  taskCtrlHistoryTitle: string;
+  taskCtrlHistoryDesc: string;
+  taskCtrlFilterAll: string;
+  taskCtrlFilterDailyRitual: string;
+  taskCtrlFilterRoadmap: string;
+  taskCtrlNoHistory: string;
+  taskCtrlViewAnswer: string;
+  taskCtrlHideAnswer: string;
+  taskCtrlAnswerScoreLabel: (score: number) => string;
+  taskCtrlCompletedAt: (date: string) => string;
+
   dashTodayEyebrow: (mode: string) => string;
   dashDailyRitual: string;
   dashOfCount: (completed: number, total: number) => string;
@@ -863,6 +899,41 @@ export const translations: Record<Lang, T> = {
           : "Good evening",
     dashSpeakWithAurum: "Speak with AURUM",
     dashOpenIntelligence: "Open Intelligence",
+    dashTaskControl: "Task Control",
+    taskCtrlEyebrow: "Your Work, Reviewed",
+    taskCtrlTitle: "Task Control",
+    taskCtrlDesc: "Every daily ritual and roadmap task you've completed, your own answers, and periodic quizzes to test what's actually sticking.",
+    taskCtrlDay7Title: "7-Day Review Quiz",
+    taskCtrlDay30Title: "30-Day Mastery Quiz",
+    taskCtrlDaysOfN: (current, target) => `${current} / ${target} days`,
+    taskCtrlDaysToGo: (n) => `${n} day${n === 1 ? "" : "s"} to go`,
+    taskCtrlReady: "Ready",
+    taskCtrlTakeQuiz: "Take Quiz",
+    taskCtrlResumeQuiz: "Resume Quiz",
+    taskCtrlGenerating: "Building your quiz from what you've completed...",
+    taskCtrlGenerateFailed: "Couldn't generate the quiz — try again.",
+    taskCtrlNotEnoughTasks: "Not enough completed tasks yet to build this quiz.",
+    taskCtrlQuestionOf: (current, total) => `Question ${current} of ${total}`,
+    taskCtrlSubmitQuiz: "Submit Quiz",
+    taskCtrlSubmitting: "Grading...",
+    taskCtrlAnswerAllHint: "Answer every question to submit.",
+    taskCtrlScoreResult: (score, total) => `You scored ${score} / ${total}`,
+    taskCtrlReviewAnswers: "Review answers",
+    taskCtrlYourAnswerLabel: "Your answer",
+    taskCtrlCorrectAnswerLabel: "Correct answer",
+    taskCtrlCloseResults: "Close",
+    taskCtrlPastAttempts: (n) => `${n} past attempt${n === 1 ? "" : "s"}`,
+    taskCtrlLastScore: (score, total) => `Last score: ${score}/${total}`,
+    taskCtrlHistoryTitle: "Task History",
+    taskCtrlHistoryDesc: "Everything you've completed, most recent first.",
+    taskCtrlFilterAll: "All",
+    taskCtrlFilterDailyRitual: "Daily Ritual",
+    taskCtrlFilterRoadmap: "Roadmap",
+    taskCtrlNoHistory: "No completed tasks yet — they'll show up here as you go.",
+    taskCtrlViewAnswer: "View my answer",
+    taskCtrlHideAnswer: "Hide answer",
+    taskCtrlAnswerScoreLabel: (score) => `Score: ${score}/10`,
+    taskCtrlCompletedAt: (date) => `Completed ${date}`,
     dashTodayEyebrow: (mode) => `TODAY · ${mode.toUpperCase()}`,
     dashDailyRitual: "Daily ritual",
     dashOfCount: (completed, total) => `${completed} of ${total}`,
@@ -1971,6 +2042,41 @@ export const translations: Record<Lang, T> = {
     greeting: (period) => (period === "evening" ? "Bonsoir" : "Bonjour"),
     dashSpeakWithAurum: "Parler à AURUM",
     dashOpenIntelligence: "Ouvrir Intelligence",
+    dashTaskControl: "Contrôle des tâches",
+    taskCtrlEyebrow: "Votre travail, passé en revue",
+    taskCtrlTitle: "Contrôle des tâches",
+    taskCtrlDesc: "Chaque tâche de rituel quotidien et de roadmap terminée, vos propres réponses, et des quiz périodiques pour tester ce qui reste vraiment.",
+    taskCtrlDay7Title: "Quiz de révision (7 jours)",
+    taskCtrlDay30Title: "Quiz de maîtrise (30 jours)",
+    taskCtrlDaysOfN: (current, target) => `${current} / ${target} jours`,
+    taskCtrlDaysToGo: (n) => `${n} jour${n === 1 ? "" : "s"} restant${n === 1 ? "" : "s"}`,
+    taskCtrlReady: "Prêt",
+    taskCtrlTakeQuiz: "Passer le quiz",
+    taskCtrlResumeQuiz: "Reprendre le quiz",
+    taskCtrlGenerating: "Création de votre quiz à partir de vos tâches terminées...",
+    taskCtrlGenerateFailed: "Impossible de générer le quiz — réessayez.",
+    taskCtrlNotEnoughTasks: "Pas encore assez de tâches terminées pour créer ce quiz.",
+    taskCtrlQuestionOf: (current, total) => `Question ${current} sur ${total}`,
+    taskCtrlSubmitQuiz: "Valider le quiz",
+    taskCtrlSubmitting: "Correction...",
+    taskCtrlAnswerAllHint: "Répondez à toutes les questions pour valider.",
+    taskCtrlScoreResult: (score, total) => `Vous avez obtenu ${score} / ${total}`,
+    taskCtrlReviewAnswers: "Revoir les réponses",
+    taskCtrlYourAnswerLabel: "Votre réponse",
+    taskCtrlCorrectAnswerLabel: "Bonne réponse",
+    taskCtrlCloseResults: "Fermer",
+    taskCtrlPastAttempts: (n) => `${n} tentative${n === 1 ? "" : "s"} précédente${n === 1 ? "" : "s"}`,
+    taskCtrlLastScore: (score, total) => `Dernier score : ${score}/${total}`,
+    taskCtrlHistoryTitle: "Historique des tâches",
+    taskCtrlHistoryDesc: "Tout ce que vous avez terminé, du plus récent au plus ancien.",
+    taskCtrlFilterAll: "Tout",
+    taskCtrlFilterDailyRitual: "Rituel quotidien",
+    taskCtrlFilterRoadmap: "Roadmap",
+    taskCtrlNoHistory: "Aucune tâche terminée pour l'instant — elles apparaîtront ici au fur et à mesure.",
+    taskCtrlViewAnswer: "Voir ma réponse",
+    taskCtrlHideAnswer: "Masquer la réponse",
+    taskCtrlAnswerScoreLabel: (score) => `Score : ${score}/10`,
+    taskCtrlCompletedAt: (date) => `Terminé ${date}`,
     dashTodayEyebrow: (mode) => `AUJOURD'HUI · ${mode.toUpperCase()}`,
     dashDailyRitual: "Rituel quotidien",
     dashOfCount: (completed, total) => `${completed} sur ${total}`,

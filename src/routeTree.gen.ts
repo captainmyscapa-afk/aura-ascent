@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TutorRouteImport } from './routes/tutor'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as StudioRouteImport } from './routes/studio'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -38,6 +39,11 @@ const TutorRoute = TutorRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TasksRoute = TasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StudioRoute = StudioRouteImport.update({
@@ -150,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/studio': typeof StudioRoute
+  '/tasks': typeof TasksRoute
   '/terms': typeof TermsRoute
   '/tutor': typeof TutorRoute
 }
@@ -172,6 +179,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/studio': typeof StudioRoute
+  '/tasks': typeof TasksRoute
   '/terms': typeof TermsRoute
   '/tutor': typeof TutorRoute
 }
@@ -195,6 +203,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/studio': typeof StudioRoute
+  '/tasks': typeof TasksRoute
   '/terms': typeof TermsRoute
   '/tutor': typeof TutorRoute
 }
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signup'
     | '/studio'
+    | '/tasks'
     | '/terms'
     | '/tutor'
   fileRoutesByTo: FileRoutesByTo
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signup'
     | '/studio'
+    | '/tasks'
     | '/terms'
     | '/tutor'
   id:
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signup'
     | '/studio'
+    | '/tasks'
     | '/terms'
     | '/tutor'
   fileRoutesById: FileRoutesById
@@ -286,6 +298,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
   StudioRoute: typeof StudioRoute
+  TasksRoute: typeof TasksRoute
   TermsRoute: typeof TermsRoute
   TutorRoute: typeof TutorRoute
 }
@@ -304,6 +317,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tasks': {
+      id: '/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof TasksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/studio': {
@@ -454,6 +474,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
   StudioRoute: StudioRoute,
+  TasksRoute: TasksRoute,
   TermsRoute: TermsRoute,
   TutorRoute: TutorRoute,
 }

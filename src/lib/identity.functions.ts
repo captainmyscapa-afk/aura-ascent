@@ -15,6 +15,22 @@ export type TodayBrief = {
   network_move: string;
 };
 
+// CAP-155: Task Control review quizzes.
+export type TaskQuizQuestion = {
+  question: string;
+  options: string[]; // exactly 4
+  correctIndex: number; // 0-3
+};
+
+export type TaskQuizSourceTask = {
+  title: string;
+  description?: string | null;
+  industry?: string | null;
+  source: "daily_ritual" | "roadmap";
+  answerText?: string | null;
+  answerFeedback?: string | null;
+};
+
 type AuditInput = {
   name?: string;
   mode: string;
@@ -69,6 +85,41 @@ const briefTool: AiTool = {
         network_move: { type: "string", description: "One networking move" },
       },
       required: ["priority", "insight", "network_move"],
+      additionalProperties: false,
+    },
+  },
+};
+
+const taskQuizTool: AiTool = {
+  type: "function",
+  function: {
+    name: "emit_task_quiz",
+    description: "Return a multiple-choice recall quiz built only from the completed tasks and answers given.",
+    parameters: {
+      type: "object",
+      properties: {
+        questions: {
+          type: "array",
+          minItems: 1,
+          maxItems: 20,
+          items: {
+            type: "object",
+            properties: {
+              question: { type: "string" },
+              options: {
+                type: "array",
+                minItems: 4,
+                maxItems: 4,
+                items: { type: "string" },
+              },
+              correctIndex: { type: "integer", minimum: 0, maximum: 3 },
+            },
+            required: ["question", "options", "correctIndex"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["questions"],
       additionalProperties: false,
     },
   },
@@ -596,4 +647,49 @@ Types: networking, content, learning, outreach, mindset (keep these "type" value
         weeks,
       } as Roadmap,
     };
+  });
+
+
+// CAP-155: generates a multiple-choice "did you actually retain this" quiz
+// from a sample of the user's own completed tasks (and, where graded, their
+// own free-text answers) — never invented facts, only recall of what's given.
+export const generateTaskReviewQuiz = createServerFn({ method: "POST" })
+  .inputValidator((d: { milestone: "day7" | "day30"; questionCount: number; language?: "en" | "fr"; tasks: TaskQuizSourceTask[] }) => d)
+  .handler(async ({ data }) => {
+    await requireServerAuth();
+    const isFrench = data.language === "fr";
+
+    const taskLines = data.tasks
+      .map((t, i) => {
+        const parts = [
+          `${i + 1}. [${t.source === "roadmap" ? "Roadmap" : "Daily Ritual"}${t.industry ? ` · ${t.industry}` : ""}] ${t.title}`,
+        ];
+        if (t.description) parts.push(`   Detail: ${t.description}`);
+        if (t.answerText) parts.push(`   Their own answer: ${t.answerText}`);
+        if (t.answerFeedback) parts.push(`   Feedback they received: ${t.answerFeedback}`);
+        return parts.join("\n");
+      })
+      .join("\n");
+
+    const result = await ai.complete(
+      [
+        {
+          role: "system",
+          content: `You are AURUM, testing whether this person genuinely remembers the work they completed — not their general industry knowledge. Every question and every answer option must be answerable strictly from the completed tasks and answers given below; never invent outside facts or test anything not present in the material. Mix recall of task subjects, specific details they researched, and (where given) the substance of their own written answers. Exactly one option per question must be correct, and the 3 distractors must be plausible but clearly wrong to someone who did the work. Vary phrasing and which option position (0-3) is correct across questions.${isFrench ? " Write every question and option in natural, native French." : ""} Always invoke emit_task_quiz with exactly ${data.questionCount} questions.`,
+        },
+        {
+          role: "user",
+          content: `COMPLETED TASKS (${data.tasks.length} sampled):
+${taskLines}
+
+Generate exactly ${data.questionCount} multiple-choice questions (4 options each, one correct) testing recall of the material above.`,
+        },
+      ],
+      [taskQuizTool],
+      "emit_task_quiz",
+    );
+    if (!result.args) throw new Error("AI did not return a quiz.");
+    const questions = (result.args as { questions: TaskQuizQuestion[] }).questions;
+    if (!questions?.length) throw new Error("AI returned an empty quiz.");
+    return { questions };
   });

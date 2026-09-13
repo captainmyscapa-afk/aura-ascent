@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, Lock, RefreshCw, MapPin, ChevronLeft, Clock, Flame, MessageCircle, X } from "lucide-react";
+import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, Lock, RefreshCw, MapPin, ChevronLeft, Clock, Flame, MessageCircle, X, ClipboardList, MessageSquareText, Loader2, Send } from "lucide-react";
 import React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAurumCoreState, type RitualProfile } from "@/hooks/useAurumCoreState";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { generateRecommendation, generateDailyTasks } from "@/lib/identity.functions";
+import { askGemini } from "@/lib/gemini.functions";
 import { useSubscription } from "@/hooks/useSubscription";
 import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -21,6 +22,7 @@ import type { T } from "@/lib/i18n/translations";
 import { celebrate } from "@/lib/celebration";
 import { useGemBalance } from "@/hooks/useGemBalance";
 import { GEM_COSTS } from "@/lib/gemCosts";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
@@ -339,6 +341,121 @@ function TaskHelpPicker({
   );
 }
 
+/**
+ * CAP-156: lets a user answer a daily ritual task in their own words and get
+ * it reviewed by AURUM -- same grading pattern as roadmap's AnswerTask
+ * (CAP-150), adapted for a plain task title (rituals have no separate detail
+ * field). Submitting also marks the task complete via the caller's toggle()
+ * so the streak/execution-score logic isn't duplicated, then attaches the
+ * graded answer onto today's aurum_tasks row.
+ */
+function AnswerRitualTask({
+  title,
+  industryLabel,
+  lang,
+  t,
+  onGraded,
+}: {
+  title: string;
+  industryLabel: string;
+  lang: "en" | "fr";
+  t: T;
+  onGraded: (title: string, result: { answerText: string; score: number; feedback: string }) => Promise<void>;
+}) {
+  const ask = useServerFn(askGemini);
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [result, setResult] = useState<{ score: number; feedback: string } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const blockPaste = (e: React.ClipboardEvent<HTMLTextAreaElement> | React.DragEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    toast(t.roadmapAnswerNoPaste);
+  };
+
+  const submit = async () => {
+    if (!draft.trim() || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const { text } = await ask({
+        data: {
+          system: `You are AURUM, an expert mentor grading a daily ritual task answer for someone breaking into the ${industryLabel} industry. Return ONLY valid JSON, no markdown: {"score": integer 0-10, "feedback": "1-3 sentence assessment of quality and correctness; if the answer is wrong, incomplete, or could be sharper, give the correction or the better answer directly in this string"}. Be honest and specific -- never inflate the score. ${lang === "fr" ? "Write the feedback in natural, native French." : "Write the feedback in English."}`,
+          messages: [
+            {
+              role: "user" as const,
+              text: `Task: "${title}"\n\nUser's answer: "${draft.trim()}"`,
+            },
+          ],
+        },
+      });
+      const cleaned = text.replace(/```json|```/g, "").trim();
+      const start = cleaned.indexOf("{");
+      const end = cleaned.lastIndexOf("}");
+      if (start === -1 || end === -1) throw new Error("no JSON object found in AI response");
+      const parsed = JSON.parse(cleaned.slice(start, end + 1)) as { score?: number; feedback?: string };
+      const score = Math.max(0, Math.min(10, Math.round(Number(parsed.score) || 0)));
+      const feedback = parsed.feedback?.trim() || "";
+      setResult({ score, feedback });
+      await onGraded(title, { answerText: draft.trim(), score, feedback });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t.roadmapAnswerFailed);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-muted-foreground hover:text-primary transition-colors"
+      >
+        <MessageSquareText className="h-3 w-3" />
+        {open ? t.roadmapHideAnswer : t.roadmapAnswerTask}
+      </button>
+      {open && (
+        <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 p-3.5 animate-fade-up space-y-2.5">
+          {result ? (
+            <>
+              <div className="font-mono text-sm text-primary">{t.roadmapAnswerScoreLabel(result.score)}</div>
+              {result.feedback && (
+                <div>
+                  <div className="text-[9px] tracking-[0.2em] uppercase text-primary/70 mb-1">{t.roadmapAnswerCorrectionLabel}</div>
+                  <p className="text-sm leading-relaxed whitespace-pre-line text-foreground/90">{result.feedback}</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onPaste={blockPaste}
+                onDrop={blockPaste}
+                placeholder={t.roadmapAnswerPlaceholder}
+                rows={3}
+                disabled={submitting}
+                className="w-full rounded-md border border-border/60 bg-background/40 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/40 resize-none"
+              />
+              {error && <div className="text-xs text-destructive">{error}</div>}
+              <button
+                onClick={() => void submit()}
+                disabled={submitting || !draft.trim()}
+                className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-primary/80 hover:text-primary transition-colors disabled:opacity-50"
+              >
+                {submitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                {submitting ? t.roadmapSubmittingAnswer : t.roadmapSubmitAnswer}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { t, lang } = useLanguage();
   const dateLocale = lang === "fr" ? "fr-FR" : "en-US";
@@ -629,6 +746,30 @@ export default function Dashboard() {
     }
   }
 
+  // CAP-156: submitting a graded answer for a daily ritual task also marks it
+  // complete -- reuses toggle()'s streak/execution-score logic instead of
+  // duplicating it, then attaches the answer onto today's aurum_tasks row.
+  async function submitRitualAnswer(i: number, result: { answerText: string; score: number; feedback: string }) {
+    if (!done[i]) await toggle(i);
+    if (!user) return;
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const { error } = await supabase
+      .from("aurum_tasks")
+      .update({
+        answer_text: result.answerText,
+        answer_score: result.score,
+        answer_feedback: result.feedback,
+      })
+      .eq("user_id", user.id)
+      .eq("title", dailyTasks[i])
+      .eq("source", "daily_ritual")
+      .gte("completed_at", startOfToday.toISOString());
+    if (error) console.error("[aurum_tasks] ritual answer update failed:", error.message);
+  }
+
   async function refreshRecommendation(ctx: {
     mode: string;
     level?: string;
@@ -798,6 +939,12 @@ export default function Dashboard() {
               >
                 <Radio className="h-4 w-4 text-primary" /> {t.dashOpenIntelligence}
               </Link>
+              <Link
+                to="/tasks"
+                className="inline-flex items-center gap-2 glass rounded-full px-5 py-2.5 text-sm border border-border/60 hover:border-primary/50 transition-colors"
+              >
+                <ClipboardList className="h-4 w-4 text-primary" /> {t.dashTaskControl}
+              </Link>
             </div>
           </div>
           <aside className="hidden lg:flex flex-col gap-3 items-end">
@@ -831,25 +978,41 @@ export default function Dashboard() {
             </div>
             {allDone && completionMsg && <CompletionBanner message={completionMsg} />}
             <div className="space-y-1.5">
-              {dailyTasks.map((t, i) => {
+              {dailyTasks.map((taskText, i) => {
                 const isDone = !!done[i];
                 return (
-                  <button
+                  <div
                     key={i}
-                    onClick={() => toggle(i)}
-                    className={`group w-full text-left flex items-center gap-4 px-4 py-3.5 rounded-lg transition-all ${isDone ? "bg-secondary/20" : "hover:bg-secondary/40"}`}
+                    className={`group flex items-start gap-4 px-4 py-3.5 rounded-lg transition-all ${isDone ? "bg-secondary/20" : "hover:bg-secondary/40"}`}
                   >
-                    <div
-                      className={`h-5 w-5 rounded-full flex items-center justify-center border transition-colors ${isDone ? "bg-primary border-primary" : "border-border/70 group-hover:border-primary/60"}`}
+                    <button
+                      onClick={() => toggle(i)}
+                      className="mt-0.5 shrink-0"
+                      aria-label={taskText}
                     >
-                      {isDone && <Check className="h-3 w-3 text-primary-foreground" />}
+                      <div
+                        className={`h-5 w-5 rounded-full flex items-center justify-center border transition-colors ${isDone ? "bg-primary border-primary" : "border-border/70 group-hover:border-primary/60"}`}
+                      >
+                        {isDone && <Check className="h-3 w-3 text-primary-foreground" />}
+                      </div>
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className={`text-[15px] leading-snug ${isDone ? "text-muted-foreground/70 line-through" : "text-foreground"}`}
+                      >
+                        {taskText}
+                      </div>
+                      <div className="mt-1.5">
+                        <AnswerRitualTask
+                          title={taskText}
+                          industryLabel={industry.label}
+                          lang={lang}
+                          t={t}
+                          onGraded={(_title, result) => submitRitualAnswer(i, result)}
+                        />
+                      </div>
                     </div>
-                    <div
-                      className={`flex-1 text-[15px] leading-snug ${isDone ? "text-muted-foreground/70 line-through" : "text-foreground"}`}
-                    >
-                      {t}
-                    </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
