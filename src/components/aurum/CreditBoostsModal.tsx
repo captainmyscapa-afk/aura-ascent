@@ -18,10 +18,10 @@ import { useGemBalance } from "@/hooks/useGemBalance";
 import { useSubscription } from "@/hooks/useSubscription";
 
 const BOOST_TIERS: { amount: number; priceLabel: string }[] = [
-  { amount: 50, priceLabel: "9,99€" },
-  { amount: 100, priceLabel: "17,99€" },
-  { amount: 250, priceLabel: "39,99€" },
-  { amount: 500, priceLabel: "69,99€" },
+  { amount: 500, priceLabel: "24,99€" },
+  { amount: 1000, priceLabel: "44,99€" },
+  { amount: 2500, priceLabel: "99,99€" },
+  { amount: 5000, priceLabel: "179,99€" },
 ];
 
 export function CreditBoostsModal({ open, onClose, t }: { open: boolean; onClose: () => void; t: T }) {

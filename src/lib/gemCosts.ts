@@ -2,7 +2,7 @@
 // every call site (Studio, Mentor, Tutor, Roadmap, Dashboard) spends the
 // same amount for the same action.
 export const GEM_COSTS = {
-  imageGeneration: 10,
+  imageGeneration: 100,
   mentorNewConversation: 2,
   tutorNewConversation: 2,
   readArticle: 1,
