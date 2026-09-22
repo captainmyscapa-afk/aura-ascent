@@ -1,13 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, Lock, RefreshCw, MapPin, ChevronLeft, Clock, Flame, MessageCircle, X, ClipboardList, MessageSquareText, Loader2, Send } from "lucide-react";
+import { Sparkles, Check, Calendar, Compass, Radio, ChevronRight, Lock, RefreshCw, MapPin, ChevronLeft, Clock, Flame, MessageCircle, X, ClipboardList, Anchor, MessageSquareText, Loader2, Send } from "lucide-react";
 import React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { LogoPulse } from "@/components/aurum/Logo";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
 import { AnimateIn } from "@/components/aurum/AnimateIn";
 import { GlobalTimeHub } from "@/components/aurum/GlobalTimeHub";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
-import { INDUSTRY_LIST } from "@/lib/industry/config";
+import { INDUSTRY_LIST, isIndustryEnabled } from "@/lib/industry/config";
 import type { IndustryId } from "@/lib/industry/types";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,9 +53,9 @@ type CalendarEvent = {
 
 const CALENDAR_EVENTS: CalendarEvent[] = [
   { id: "boot-dusseldorf-2027", title: "boot Düsseldorf", location: "Düsseldorf, Germany", startDate: "2027-01-23", endDate: "2027-02-01", industry: "yachts", description: "The world's largest indoor boat show. 1,500+ exhibitors, 214,000 visitors across 16 halls. Premier European networking event.", contentPrepWeeks: 4, url: "https://www.boot.de" },
-  { id: "miami-boat-2027", title: "Miami International Boat Show", location: "Miami Beach, USA", startDate: "2027-02-11", endDate: "2027-02-17", industry: "yachts", description: "100,000+ visitors, largest motor yacht showcase in the Americas. Critical for US charter market networking.", contentPrepWeeks: 4, url: "https://www.miamiboatshow.com" },
+  { id: "miami-boat-2027", title: "Miami International Boat Show", location: "Miami Beach, USA", startDate: "2027-02-10", endDate: "2027-02-14", industry: "yachts", description: "100,000+ visitors, largest motor yacht showcase in the Americas. Critical for US charter market networking.", contentPrepWeeks: 4, url: "https://www.miamiboatshow.com" },
   { id: "dubai-boat-2027", title: "Dubai International Boat Show", location: "Dubai Marina, UAE", startDate: "2027-03-04", endDate: "2027-03-08", industry: "yachts", description: "Middle East's premier marine event. 1,000+ brands, 200+ boats. Key for UHNW Middle Eastern buyer relationships.", contentPrepWeeks: 4, url: "https://www.dubaiboatshow.com" },
-  { id: "palm-beach-2027", title: "Palm Beach International Boat Show", location: "Palm Beach, USA", startDate: "2027-03-25", endDate: "2027-03-28", industry: "yachts", description: "Exclusive boutique show attracting the right clientele. Superyachts along Flagler Drive in a curated setting.", contentPrepWeeks: 3, url: "https://www.pbboatshow.com" },
+  { id: "palm-beach-2027", title: "Palm Beach International Boat Show", location: "Palm Beach, USA", startDate: "2027-03-17", endDate: "2027-03-21", industry: "yachts", description: "Exclusive boutique show attracting the right clientele. Superyachts along Flagler Drive in a curated setting.", contentPrepWeeks: 3, url: "https://www.pbboatshow.com" },
   { id: "myba-2026", title: "MYBA Charter Show", location: "Sanremo, Italy", startDate: "2026-04-27", endDate: "2026-04-30", industry: "yachts", description: "Trade-only charter show marking the start of the Mediterranean season. 500+ exhibitors, 80+ yachts from 16-90m.", contentPrepWeeks: 3, url: "https://www.mybashow.com" },
   { id: "palma-boat-2026", title: "Palma International Boat Show", location: "Palma de Mallorca, Spain", startDate: "2026-04-29", endDate: "2026-05-02", industry: "yachts", description: "Strategic pre-season show. Superyacht Village showcases 24m+ vessels. Ideal for charter and brokerage mandates.", contentPrepWeeks: 3, url: "https://www.palmainternationalboatshow.com" },
   { id: "medys-2026", title: "Mediterranean Yacht Show", location: "Nafplio, Greece", startDate: "2026-05-02", endDate: "2026-05-06", industry: "yachts", description: "The world's largest crewed charter show. Focus on fleet quality and crew standards ahead of the Med season.", contentPrepWeeks: 3, url: "https://www.mediterraneanyachtshow.gr" },
@@ -131,6 +132,14 @@ const CALENDAR_EVENTS: CalendarEvent[] = [
   { id: "artcurial-2027", title: "Artcurial Retromobile Auction", location: "Paris, France", startDate: "2027-02-05", endDate: "2027-02-06", industry: "cars", description: "Artcurial flagship Paris sale at Retromobile. French marques and European classics at auction.", contentPrepWeeks: 3, url: "https://www.artcurial.com" },
   { id: "ice-st-moritz-2027", title: "The ICE St Moritz", location: "St. Moritz, Switzerland", startDate: "2027-02-14", endDate: "2027-02-14", industry: "cars", description: "Classic cars glide across the frozen lake of St Moritz. High style, collector networking in a unique winter setting.", contentPrepWeeks: 3, url: "https://www.theice.ch" },
 
+  // ── YACHTS · 2027 extension (confirmed dates only; TBA shows are added once organisers publish dates) ──
+  { id: "bahamas-charter-2027", title: "Bahamas Charter Yacht Show", location: "Nassau, Bahamas", startDate: "2027-01-27", endDate: "2027-01-31", industry: "yachts", description: "Caribbean winter charter show. Brokers and charter agents inspect the Bahamas fleet ahead of peak season.", contentPrepWeeks: 3 },
+  { id: "myba-2027", title: "MYBA Charter Show", location: "Portosole Marina, San Remo, Italy", startDate: "2027-05-03", endDate: "2027-05-06", industry: "yachts", description: "Trade-only charter show marking the start of the Mediterranean season. Central for charter brokers and fleet managers.", contentPrepWeeks: 3, url: "https://www.mybashow.com" },
+  { id: "medys-2027", title: "Mediterranean Yacht Show", location: "Nafplion, Greece", startDate: "2027-05-08", endDate: "2027-05-12", industry: "yachts", description: "The world's largest crewed charter show. Focus on fleet quality and crew standards ahead of the Med season.", contentPrepWeeks: 3, url: "https://www.mediterraneanyachtshow.gr" },
+  { id: "tyba-2027", title: "TYBA Yacht Charter Show", location: "Marmaris, Turkey", startDate: "2027-05-11", endDate: "2027-05-14", industry: "yachts", description: "Leading Eastern Mediterranean charter show. Turkish Riviera fleet showcase for Aegean season mandates.", contentPrepWeeks: 3 },
+  { id: "emmys-2027", title: "East Med Multihull & Yacht Charter Show", location: "Poros, Greece", startDate: "2027-05-13", endDate: "2027-05-16", industry: "yachts", description: "Charter show focused on multihulls and yachts for the Greek islands season.", contentPrepWeeks: 2 },
+  { id: "british-motor-yacht-2027", title: "British Motor Yacht Show", location: "Swanwick Marina, Southampton, UK", startDate: "2027-05-20", endDate: "2027-05-23", industry: "yachts", description: "Motor yacht show on the UK south coast. New-build and brokerage listings for the Northern European market.", contentPrepWeeks: 2 },
+  { id: "cyf-2027", title: "Cannes Yachting Festival", location: "Vieux Port, Cannes, France", startDate: "2027-09-07", endDate: "2027-09-12", industry: "yachts", description: "Europe's largest in-water boat show. Essential for charter and brokerage networking.", contentPrepWeeks: 4, url: "https://www.cannesyachtingfestival.com" },
   // ── YACHTS · 20 additional events ──────────────────────────────────────
   { id: "caribbean-superyacht-2026", title: "Caribbean Superyacht Rendezvous", location: "St Maarten, Caribbean", startDate: "2026-02-25", endDate: "2026-02-28", industry: "yachts", description: "The Caribbean's most important brokerage rendezvous. 40+ superyachts, senior brokers and UHNW buyers in one anchorage.", contentPrepWeeks: 3 },
   { id: "thailand-boat-2026", title: "Thailand International Boat Show", location: "Pattaya, Thailand", startDate: "2026-02-06", endDate: "2026-02-09", industry: "yachts", description: "Asia's fastest-growing boat show. Southeast Asian charter market entry point and regional fleet networking.", contentPrepWeeks: 3, url: "https://www.thailandboatshow.com" },
@@ -397,8 +406,8 @@ function AnswerRitualTask({
       const parsed = JSON.parse(cleaned.slice(start, end + 1)) as { score?: number; feedback?: string };
       const score = Math.max(0, Math.min(10, Math.round(Number(parsed.score) || 0)));
       const feedback = parsed.feedback?.trim() || "";
-      setResult({ score, feedback });
       await onGraded(title, { answerText: draft.trim(), score, feedback });
+      setResult({ score, feedback });
     } catch (e) {
       setError(e instanceof Error ? e.message : t.roadmapAnswerFailed);
     } finally {
@@ -474,8 +483,12 @@ export default function Dashboard() {
 
   const [recommendation, setRecommendation] = useState<string | null>(null);
   const [recLoading, setRecLoading] = useState(false);
-  const [dailyTasks, setDailyTasks] = useState<string[]>(industry.dailyObjectives);
+  // No placeholder tasks: start empty and show the pulsing logo until today's ritual is loaded or generated
+  const [dailyTasks, setDailyTasks] = useState<string[]>([]);
   const [tasksLoading, setTasksLoading] = useState(false);
+  const [tasksError, setTasksError] = useState(false);
+  const [completedNoCache, setCompletedNoCache] = useState(false);
+  const lastTaskCtx = useRef<Parameters<typeof refreshDailyTasks>[0] | null>(null);
   const [done, setDone] = useState<Record<number, boolean>>({});
   const [completionMsg, setCompletionMsg] = useState<string | null>(null);
   const [helpPickerOpen, setHelpPickerOpen] = useState(false);
@@ -484,6 +497,14 @@ export default function Dashboard() {
 
   const [calFilter, setCalFilter] = React.useState<string>("all");
   const [selectedEvent, setSelectedEvent] = React.useState<CalendarEvent | null>(null);
+  const eventDetailRef = React.useRef<HTMLDivElement | null>(null);
+  // Select an event and glide to its detail card (native smooth scroll: quick, ~300ms).
+  const openEvent = React.useCallback((e: CalendarEvent) => {
+    setSelectedEvent(e);
+    window.setTimeout(() => {
+      eventDetailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 40);
+  }, []);
   const calToday = new Date();
   const [viewMonth, setViewMonth] = React.useState(calToday.getMonth());
   const [viewYear, setViewYear] = React.useState(calToday.getFullYear());
@@ -493,6 +514,7 @@ export default function Dashboard() {
 
   const todayStr = isoDay();
 
+  const showRitualLoader = tasksLoading || (dailyTasks.length === 0 && !tasksError && !completedNoCache);
   const completed = dailyTasks.filter((_, i) => done[i]).length;
   const total = dailyTasks.length || 1;
   const allDone = total > 0 && completed === total;
@@ -600,11 +622,16 @@ export default function Dashboard() {
     // CAP-60: once completed, no new tasks generate for that day (per mode)
     const doneKey = `aurum:ritualsDone:${user?.id ?? ""}:${isoDay()}:${industryId}`;
     const alreadyCompletedToday = typeof window !== "undefined" && !!localStorage.getItem(doneKey);
+    setCompletedNoCache(false);
     if (tasksAreForToday) {
       setDailyTasks(cachedForMode!.tasks!);
       setDone({});
     } else if (!alreadyCompletedToday) {
+      lastTaskCtx.current = ctx;
       refreshDailyTasks(ctx);
+    } else {
+      setDailyTasks([]);
+      setCompletedNoCache(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, industryId, core?.id, industry.label]);
@@ -750,13 +777,19 @@ export default function Dashboard() {
   // complete -- reuses toggle()'s streak/execution-score logic instead of
   // duplicating it, then attaches the answer onto today's aurum_tasks row.
   async function submitRitualAnswer(i: number, result: { answerText: string; score: number; feedback: string }) {
+    if (!user) throw new Error("not signed in");
+    const title = dailyTasks[i];
     if (!done[i]) await toggle(i);
-    if (!user) return;
 
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const { error } = await supabase
+    // Attach the graded answer to today's row. Update first — this covers the
+    // row toggle() just inserted above. If nothing matched (e.g. that insert
+    // was dropped by a flaky connection), fall back to inserting a fresh
+    // completed row carrying the answer, so a graded review is never silently
+    // lost even when the checkbox-completion write failed.
+    const { data: updated, error: updateError } = await supabase
       .from("aurum_tasks")
       .update({
         answer_text: result.answerText,
@@ -764,10 +797,30 @@ export default function Dashboard() {
         answer_feedback: result.feedback,
       })
       .eq("user_id", user.id)
-      .eq("title", dailyTasks[i])
+      .eq("title", title)
       .eq("source", "daily_ritual")
-      .gte("completed_at", startOfToday.toISOString());
-    if (error) console.error("[aurum_tasks] ritual answer update failed:", error.message);
+      .gte("completed_at", startOfToday.toISOString())
+      .select("id");
+
+    if (!updateError && updated && updated.length > 0) return;
+
+    const { error: insertError } = await supabase.from("aurum_tasks").insert({
+      user_id: user.id,
+      title,
+      status: "completed",
+      priority: "medium",
+      source: "daily_ritual",
+      industry: industryId,
+      completed_at: new Date().toISOString(),
+      answer_text: result.answerText,
+      answer_score: result.score,
+      answer_feedback: result.feedback,
+    });
+
+    if (insertError) {
+      console.error("[aurum_tasks] ritual answer save failed:", updateError?.message ?? insertError.message);
+      throw new Error("ritual answer save failed");
+    }
   }
 
   async function refreshRecommendation(ctx: {
@@ -805,6 +858,7 @@ export default function Dashboard() {
   }) {
     if (!user) return;
     setTasksLoading(true);
+    setTasksError(false);
     try {
       const { tasks } = await tasksFn({ data: ctx });
       setDailyTasks(tasks);
@@ -825,6 +879,7 @@ export default function Dashboard() {
       });
     } catch (e) {
       console.error(e);
+      setTasksError(true);
     } finally {
       setTasksLoading(false);
     }
@@ -925,14 +980,24 @@ export default function Dashboard() {
             </h1>
             <p className="mt-5 max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed">{welcome}</p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link
-                to="/mentor"
-                search={{ prompt: undefined }}
-                className="inline-flex items-center gap-2 text-primary-foreground rounded-full px-5 py-2.5 text-sm shadow-[var(--shadow-gold)]"
-                style={{ background: "var(--gradient-gold)" }}
-              >
-                <Sparkles className="h-4 w-4 text-primary-foreground" /> {t.dashSpeakWithAurum}
-              </Link>
+              {industryId === "yachts" ? (
+                <Link
+                  to="/portfolio"
+                  className="inline-flex items-center gap-2 text-primary-foreground rounded-full px-5 py-2.5 text-sm shadow-[var(--shadow-gold)]"
+                  style={{ background: "var(--gradient-gold)" }}
+                >
+                  <Anchor className="h-4 w-4 text-primary-foreground" /> {t.dashPortfolio}
+                </Link>
+              ) : (
+                <Link
+                  to="/mentor"
+                  search={{ prompt: undefined }}
+                  className="inline-flex items-center gap-2 text-primary-foreground rounded-full px-5 py-2.5 text-sm shadow-[var(--shadow-gold)]"
+                  style={{ background: "var(--gradient-gold)" }}
+                >
+                  <Sparkles className="h-4 w-4 text-primary-foreground" /> {t.dashSpeakWithAurum}
+                </Link>
+              )}
               <Link
                 to="/intelligence"
                 className="inline-flex items-center gap-2 glass rounded-full px-5 py-2.5 text-sm border border-border/60 hover:border-primary/50 transition-colors"
@@ -977,6 +1042,28 @@ export default function Dashboard() {
               </div>
             </div>
             {allDone && completionMsg && <CompletionBanner message={completionMsg} />}
+            {showRitualLoader ? (
+              <div className="py-14">
+                <LogoPulse label={lang === "fr" ? "Préparation de votre rituel du jour…" : "Preparing today's ritual…"} />
+              </div>
+            ) : tasksError && dailyTasks.length === 0 ? (
+              <div className="py-12 text-center">
+                <p className="text-sm text-muted-foreground mb-4">
+                  {lang === "fr" ? "Impossible de générer votre rituel pour le moment." : "We couldn't generate today's ritual just now."}
+                </p>
+                <button
+                  onClick={() => lastTaskCtx.current && refreshDailyTasks(lastTaskCtx.current)}
+                  className="inline-flex items-center px-5 py-2 rounded-lg border border-border text-sm hover:border-primary/40 transition-colors"
+                >
+                  {lang === "fr" ? "Réessayer" : "Try again"}
+                </button>
+              </div>
+            ) : completedNoCache && dailyTasks.length === 0 ? (
+              <div className="py-12 text-center text-sm text-muted-foreground">
+                {lang === "fr" ? "Votre rituel du jour est terminé. Revenez demain." : "Today's ritual is complete. Come back tomorrow."}
+              </div>
+            ) : (
+              <>
             <div className="space-y-1.5">
               {dailyTasks.map((taskText, i) => {
                 const isDone = !!done[i];
@@ -1037,11 +1124,13 @@ export default function Dashboard() {
                 <MessageCircle className="h-3 w-3" /> {t.dashAskMentorHelp}
               </button>
             </div>
+              </>
+            )}
           </Card>
 
           <div>
             <SubHeading eyebrow={t.dashAcademyEyebrow} title={t.dashYourTracks} />
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className={hubs.length === 1 ? "grid grid-cols-1 gap-3" : "grid grid-cols-2 lg:grid-cols-3 gap-3"}>
               {hubs.map((m) => {
                 const Icon = m.icon;
                 const trackSlug = INDUSTRY_TO_TRACK[m.id];
@@ -1056,7 +1145,7 @@ export default function Dashboard() {
                     key={m.id}
                     to="/academy"
                     search={{ track: trackSlug }}
-                    className={`group relative aspect-[4/5] rounded-xl overflow-hidden border transition-all text-left block ${m.active ? "border-primary/60 ring-1 ring-primary/30" : "border-border/60 hover:border-primary/40"}`}
+                    className={`group relative ${hubs.length === 1 ? "aspect-[21/9] min-h-[190px] hero-sheen" : "aspect-[4/5]"} rounded-xl overflow-hidden border transition-all text-left block ${m.active ? "border-primary/60 ring-1 ring-primary/30" : "border-border/60 hover:border-primary/40"}`}
                   >
                     <img
                       src={m.ambientImage}
@@ -1074,7 +1163,15 @@ export default function Dashboard() {
                         }
                       </div>
                       <div>
-                        <div className="font-serif text-lg leading-tight">{m.label}</div>
+                        <div className={hubs.length === 1 ? "font-serif text-2xl sm:text-3xl leading-tight" : "font-serif text-lg leading-tight"}>{m.label}</div>
+                        {hubs.length === 1 && (
+                          <div className="mt-1 flex items-center justify-between gap-3">
+                            <span className="text-xs text-muted-foreground max-w-md">{m.tagline}</span>
+                            <span className="shrink-0 inline-flex items-center gap-1 text-[10px] tracking-[0.25em] uppercase px-3 py-1.5 rounded-full text-primary-foreground group-hover:gap-2 transition-all" style={{ background: "var(--gradient-gold)" }}>
+                              {trackDone > 0 ? "Continue" : "Start"} <ChevronRight className="h-3 w-3" />
+                            </span>
+                          </div>
+                        )}
                         {trackTotal > 0 ? (
                           <>
                             <div className="mt-2 h-0.5 bg-secondary/60 rounded-full overflow-hidden">
@@ -1100,18 +1197,52 @@ export default function Dashboard() {
         <AnimateIn delay={120}>
         <aside className="space-y-6 lg:space-y-8">
       <div className="space-y-6 lg:-mt-[5.5rem]">
+        {INDUSTRY_LIST.length === 1 && (() => {
+          const todayDate = isoDay();
+          const upcoming = CALENDAR_EVENTS
+            .filter((e) => isIndustryEnabled(e.industry) && e.endDate >= todayDate)
+            .sort((a, b) => a.startDate.localeCompare(b.startDate));
+          const ev = upcoming[0];
+          if (!ev) return null;
+          const dayMs = 86400000;
+          const diff = Math.round((new Date(ev.startDate + "T00:00:00").getTime() - new Date(todayDate + "T00:00:00").getTime()) / dayMs);
+          const live = diff <= 0;
+          const fmt = (d: string) => new Date(d + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
+          return (
+            <div role="button" tabIndex={0} onClick={() => openEvent(ev)} onKeyDown={(k) => { if (k.key === "Enter" || k.key === " ") { k.preventDefault(); openEvent(ev); } }} className="relative overflow-hidden rounded-xl border border-primary/30 p-5 hero-sheen cursor-pointer hover:border-primary/60 transition-colors" style={{ background: "linear-gradient(135deg, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%)" }}>
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="text-[9px] tracking-[0.34em] text-primary/80 mb-1.5">{live ? "HAPPENING NOW" : "NEXT BIG EVENT"}</div>
+                  <div className="font-serif text-lg leading-tight truncate">{ev.title}</div>
+                  <div className="text-[11px] text-muted-foreground mt-1 truncate">{ev.location} · {fmt(ev.startDate)}{ev.endDate !== ev.startDate ? ` – ${fmt(ev.endDate)}` : ""}</div>
+                </div>
+                <div className="shrink-0 text-center rounded-lg px-4 py-2 border border-primary/30 bg-background/40">
+                  <div className="font-serif text-3xl leading-none text-gold-gradient">{live ? "LIVE" : diff}</div>
+                  {!live && <div className="text-[9px] tracking-[0.25em] text-muted-foreground mt-1">{diff === 1 ? "DAY" : "DAYS"}</div>}
+                </div>
+              </div>
+              {upcoming.length > 1 && (
+                <div className="mt-3 pt-3 border-t border-border/40 text-[10px] tracking-wider text-muted-foreground truncate">
+                  Then: {upcoming.slice(1, 3).map((u) => u.title).join(" · ")}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+        {INDUSTRY_LIST.length > 1 && (
         <div className="flex flex-col items-center gap-2">
           <button onClick={() => setCalFilter("all")} className={"px-4 py-1.5 rounded-full border text-xs tracking-[0.2em] uppercase transition-all " + (calFilter === "all" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
             {t.dashAllIndustries}
           </button>
           <div className="flex gap-2">
-            {(["yachts", "villas", "jets", "cars"] as const).map((f) => (
+            {INDUSTRY_LIST.map((i) => i.id).map((f) => (
               <button key={f} onClick={() => setCalFilter(f)} className={"px-4 py-1.5 rounded-full border text-xs tracking-[0.2em] uppercase transition-all " + (calFilter === f ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
                 {f}
               </button>
             ))}
           </div>
         </div>
+        )}
         <div className="grid grid-cols-1 gap-6">
           <div className="glass rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
@@ -1137,6 +1268,7 @@ export default function Dashboard() {
                   const dateStr = viewYear + "-" + String(viewMonth + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0");
                   const isToday = dateStr === todayDate;
                   const dayEvents = CALENDAR_EVENTS.filter((e) => {
+                    if (!isIndustryEnabled(e.industry)) return false; // only launched modes
                     if (calFilter !== "all" && e.industry !== calFilter) return false;
                     return e.startDate <= dateStr && e.endDate >= dateStr;
                   });
@@ -1145,7 +1277,7 @@ export default function Dashboard() {
                       <div className={"text-[10px] text-right mb-0.5 " + (isToday ? "text-primary font-bold" : "text-muted-foreground/60")}>{day}</div>
                       <div className="space-y-0.5">
                         {dayEvents.slice(0, 2).map((e) => (
-                          <div key={e.id} onClick={(ev) => { ev.stopPropagation(); setSelectedEvent(e); }} className={"text-[8px] leading-tight px-0.5 py-0.5 rounded truncate cursor-pointer " + (e.industry === "yachts" ? "bg-blue-400/20 text-blue-300" : e.industry === "villas" ? "bg-emerald-400/20 text-emerald-300" : e.industry === "jets" ? "bg-violet-400/20 text-violet-300" : "bg-orange-400/20 text-orange-300") + (selectedEvent?.id === e.id ? " ring-1 ring-white/20" : "")}>
+                          <div key={e.id} onClick={(ev) => { ev.stopPropagation(); openEvent(e); }} className={"text-[8px] leading-tight px-0.5 py-0.5 rounded truncate cursor-pointer " + (e.industry === "yachts" ? "bg-blue-400/20 text-blue-300" : e.industry === "villas" ? "bg-emerald-400/20 text-emerald-300" : e.industry === "jets" ? "bg-violet-400/20 text-violet-300" : "bg-orange-400/20 text-orange-300") + (selectedEvent?.id === e.id ? " ring-1 ring-white/20" : "")}>
                             {e.title.split(" ").slice(0, 2).join(" ")}
                           </div>
                         ))}
@@ -1162,7 +1294,7 @@ export default function Dashboard() {
               })()}
             </div>
             <div className="mt-3 pt-3 border-t border-border/40 flex items-center gap-3 flex-wrap">
-              {(["yachts","villas","jets","cars"] as const).map((ind) => (
+              {INDUSTRY_LIST.map((i) => i.id).map((ind) => (
                 <div key={ind} className="flex items-center gap-1">
                   <span className={"h-1.5 w-1.5 rounded-full " + (ind === "yachts" ? "bg-blue-400" : ind === "villas" ? "bg-emerald-400" : ind === "jets" ? "bg-violet-400" : "bg-orange-400")} />
                   <span className="text-[10px] text-muted-foreground capitalize">{ind}</span>
@@ -1171,7 +1303,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div>
+          <div ref={eventDetailRef} className="scroll-mt-24">
             {selectedEvent ? (
               <div className="glass rounded-xl p-6 space-y-4">
                 <div className="flex items-center gap-2">

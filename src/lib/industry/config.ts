@@ -338,9 +338,24 @@ export const INDUSTRIES: Record<IndustryId, IndustryConfig> = {
   },
 };
 
-export const INDUSTRY_LIST: IndustryConfig[] = [
+/**
+ * LAUNCH SCOPE — only the modes listed here are exposed in the UI (switcher, onboarding,
+ * academy tracks, calendar, command palette...). All other modes stay fully built in
+ * INDUSTRIES / the DB / translations. To launch a new mode, just add its id here,
+ * e.g. ["yachts", "villas"].
+ */
+export const ENABLED_INDUSTRY_IDS: IndustryId[] = ["yachts"];
+
+export const isIndustryEnabled = (id: string | null | undefined): id is IndustryId =>
+  !!id && (ENABLED_INDUSTRY_IDS as string[]).includes(id);
+
+/** Every mode that exists (including not-yet-launched ones). */
+export const ALL_INDUSTRY_LIST: IndustryConfig[] = [
   INDUSTRIES.yachts,
   INDUSTRIES.villas,
   INDUSTRIES.jets,
   INDUSTRIES.cars,
 ];
+
+/** Modes currently launched. */
+export const INDUSTRY_LIST: IndustryConfig[] = ALL_INDUSTRY_LIST.filter((i) => isIndustryEnabled(i.id));

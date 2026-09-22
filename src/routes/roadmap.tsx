@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/aurum/AppShell";
-import { Sparkles, RefreshCw, CheckCircle2, Circle, Users, BookOpen, Send, Brain, Trophy, Loader2, ArrowUpRight, Map, Flag, ListChecks, MessageSquareText, X, type LucideIcon } from "lucide-react";
+import { Sparkles, RefreshCw, CheckCircle2, Circle, Users, BookOpen, Send, Brain, Trophy, Loader2, ArrowUpRight, Map, Flag, ListChecks, MessageSquareText, X, Clock, Calendar, type LucideIcon } from "lucide-react";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -30,6 +30,26 @@ const TYPE_CONFIG: Record<RoadmapTask["type"], { icon: typeof Users; color: stri
   outreach:   { icon: Send,     color: "text-amber-400",   bg: "bg-amber-400/10 border-amber-400/20" },
   mindset:    { icon: Brain,    color: "text-rose-400",    bg: "bg-rose-400/10 border-rose-400/20" },
 };
+
+// Solid dots for the My Roadmap timeline's per-day task-type indicators — same
+// hue family as TYPE_CONFIG's icon colors, just filled instead of tinted.
+const TYPE_DOT: Record<RoadmapTask["type"], string> = {
+  networking: "bg-blue-400",
+  content: "bg-violet-400",
+  learning: "bg-emerald-400",
+  outreach: "bg-amber-400",
+  mindset: "bg-rose-400",
+};
+
+function typeLabelsFor(t: T): Record<RoadmapTask["type"], string> {
+  return {
+    networking: t.typeNetworking,
+    content: t.typeContent,
+    learning: t.typeLearning,
+    outreach: t.typeOutreach,
+    mindset: t.typeMindset,
+  };
+}
 
 const WEEK_BORDER = ["border-blue-400/30", "border-violet-400/30", "border-emerald-400/30", "border-amber-400/30"];
 const WEEK_BG     = ["bg-blue-400/5",      "bg-violet-400/5",      "bg-emerald-400/5",      "bg-amber-400/5"];
@@ -188,8 +208,8 @@ function AnswerTask({
       const parsed = JSON.parse(cleaned.slice(start, end + 1)) as { score?: number; feedback?: string };
       const score = Math.max(0, Math.min(10, Math.round(Number(parsed.score) || 0)));
       const feedback = parsed.feedback?.trim() || "";
-      setResult({ score, feedback });
       await onGraded(task, { answerText: draft.trim(), score, feedback });
+      setResult({ score, feedback });
     } catch (e) {
       setError(e instanceof Error ? e.message : t.roadmapAnswerFailed);
     } finally {
@@ -267,6 +287,7 @@ function MyRoadmapPath({
   userId,
   lang,
   t,
+  onJumpToWeek,
 }: {
   roadmap: Roadmap;
   completed: Record<string, boolean>;
@@ -275,8 +296,15 @@ function MyRoadmapPath({
   userId: string | null;
   lang: "en" | "fr";
   t: T;
+  onJumpToWeek: (weekIndex: number) => void;
 }) {
-  const [selectedDay, setSelectedDay] = useState<{ globalDay: number; weekTheme: string; tasks: RoadmapTask[] } | null>(null);
+  const [selectedDay, setSelectedDay] = useState<{
+    globalDay: number;
+    weekIndex: number;
+    weekTheme: string;
+    tasks: RoadmapTask[];
+    status: "done" | "today" | "pending";
+  } | null>(null);
 
   // Distance "sailed" = days actually completed, not the calendar date — so the
   // vehicle reflects real progress rather than just showing where "today" is.
@@ -311,14 +339,26 @@ function MyRoadmapPath({
             const isLastWeek = wi === roadmap.weeks.length - 1;
             const showVehicle = wi === vehicleWeekIndex;
             const wakePct = wi < vehicleWeekIndex ? 100 : wi === vehicleWeekIndex ? vehicleWeekPct : 0;
+            const weekDoneCount = week.days.filter((d) => d.tasks.length > 0 && d.tasks.every((tk) => completed[tk.id])).length;
+            const weekComplete = weekDoneCount === week.days.length;
             return (
               <div key={week.week}>
-                <div
-                  className={`text-[10px] tracking-[0.3em] uppercase mb-6 ${
-                    WEEK_BORDER[wi]?.replace("border-", "text-").replace("/30", "") ?? "text-muted-foreground/70"
-                  }`}
-                >
-                  {t.roadmapWeekHeader(week.week)} · {week.theme}
+                <div className="flex items-center gap-2.5 mb-6">
+                  <div
+                    className={`text-[10px] tracking-[0.3em] uppercase ${
+                      WEEK_BORDER[wi]?.replace("border-", "text-").replace("/30", "") ?? "text-muted-foreground/70"
+                    }`}
+                  >
+                    {t.roadmapWeekHeader(week.week)} · {week.theme}
+                  </div>
+                  <span
+                    className={`inline-flex items-center gap-1 text-[9px] font-mono px-2 py-0.5 rounded-full border transition-colors ${
+                      weekComplete ? "border-primary/40 text-primary bg-primary/10" : "border-border/60 text-muted-foreground"
+                    }`}
+                  >
+                    {weekComplete && <CheckCircle2 className="h-2.5 w-2.5" />}
+                    {weekDoneCount}/{week.days.length}
+                  </span>
                 </div>
                 <div className="relative flex items-start justify-between pt-7">
                   <div className="absolute left-6 right-6 top-7 h-0.5 bg-border/50" />
@@ -343,40 +383,80 @@ function MyRoadmapPath({
                     </div>
                   )}
                   {week.days.map((day, di) => {
-                    const globalDay = wi * 7 + day.day;
+                    // day.day is already normalized to the global 1-28 day number (see
+                    // parseWeekJson's "Normalize day numbers to global" step) -- adding the week
+                    // offset again here double-counted it, e.g. showing week 2 as D15-D21.
+                    const globalDay = day.day;
                     const dayDone = day.tasks.length > 0 && day.tasks.every((tk) => completed[tk.id]);
                     const isToday = globalDay === currentDay;
                     const isLastDay = isLastWeek && di === week.days.length - 1;
+                    const isMissed = !dayDone && !isToday && !isLastDay && globalDay < currentDay;
+                    const status: "done" | "today" | "pending" = dayDone ? "done" : isToday ? "today" : "pending";
                     return (
-                      <div key={day.day} className="relative z-10 flex flex-1 flex-col items-center gap-2 px-1">
+                      <div
+                        key={day.day}
+                        className="relative z-10 flex flex-1 flex-col items-center gap-1.5 px-1 animate-fade-up"
+                        style={{ animationDelay: `${(wi * 7 + di) * 35}ms` }}
+                      >
                         <button
                           type="button"
-                          disabled={!dayDone}
-                          onClick={() => setSelectedDay({ globalDay, weekTheme: week.theme, tasks: day.tasks })}
-                          title={dayDone ? t.roadmapDayDetailHint : undefined}
-                          className={`h-12 w-12 rounded-full border flex items-center justify-center shrink-0 transition-all focus:outline-none ${
+                          onClick={() =>
+                            setSelectedDay({ globalDay, weekIndex: wi, weekTheme: week.theme, tasks: day.tasks, status })
+                          }
+                          title={t.roadmapDayDetailHint}
+                          className={`relative h-12 w-12 rounded-full border flex items-center justify-center shrink-0 transition-all hover:scale-110 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
                             dayDone
-                              ? "border-primary bg-primary/15 cursor-pointer hover:scale-110 hover:shadow-[0_0_20px_rgba(201,168,76,0.4)]"
+                              ? "border-primary bg-primary/15 hover:shadow-[0_0_20px_rgba(201,168,76,0.4)]"
                               : isToday
-                                ? "border-primary/60 ring-4 ring-primary/15 bg-secondary/40"
+                                ? "border-primary/60 ring-4 ring-primary/15 bg-secondary/40 hover:shadow-[0_0_16px_rgba(201,168,76,0.3)]"
                                 : isLastDay
-                                  ? "border-primary/40 bg-secondary/20"
-                                  : "border-border/60 bg-secondary/10"
+                                  ? "border-primary/40 bg-secondary/20 hover:border-primary/60"
+                                  : isMissed
+                                    ? "border-amber-400/40 bg-amber-400/5 hover:border-amber-400/60"
+                                    : "border-border/60 bg-secondary/10 hover:border-primary/40"
                           }`}
                         >
+                          {isToday && !dayDone && (
+                            <>
+                              <span
+                                className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-primary animate-sparkle"
+                                style={{ animationDelay: "0.3s" }}
+                              />
+                              <span
+                                className="absolute -bottom-0.5 -left-1 h-1 w-1 rounded-full bg-primary animate-sparkle"
+                                style={{ animationDelay: "1.2s" }}
+                              />
+                            </>
+                          )}
                           {dayDone ? (
                             <Flag className="h-5 w-5 text-primary" />
                           ) : isLastDay ? (
                             <Trophy className="h-5 w-5 text-primary/60" />
                           ) : (
-                            <span className={`font-mono text-xs ${isToday ? "text-primary" : "text-muted-foreground"}`}>
+                            <span
+                              className={`font-mono text-xs ${
+                                isToday ? "text-primary" : isMissed ? "text-amber-400/80" : "text-muted-foreground"
+                              }`}
+                            >
                               {globalDay}
                             </span>
                           )}
                         </button>
+                        {day.tasks.length > 0 && (
+                          <div className="flex items-center gap-1 h-1.5">
+                            {day.tasks.slice(0, 3).map((tk) => (
+                              <span
+                                key={tk.id}
+                                className={`h-1.5 w-1.5 rounded-full ${TYPE_DOT[tk.type] ?? TYPE_DOT.learning} ${
+                                  dayDone ? "" : "opacity-50"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        )}
                         <span
                           className={`text-[9px] tracking-[0.1em] uppercase text-center ${
-                            dayDone ? "text-primary" : "text-muted-foreground/60"
+                            dayDone ? "text-primary" : isMissed ? "text-amber-400/70" : "text-muted-foreground/60"
                           }`}
                         >
                           {isLastDay ? t.roadmapFinishLine : `D${globalDay}`}
@@ -390,30 +470,49 @@ function MyRoadmapPath({
           })}
         </div>
       </div>
-      <DayDetailModal day={selectedDay} userId={userId} lang={lang} t={t} onClose={() => setSelectedDay(null)} />
+      <DayDetailModal
+        day={selectedDay}
+        userId={userId}
+        lang={lang}
+        t={t}
+        onClose={() => setSelectedDay(null)}
+        onJumpToWeek={onJumpToWeek}
+      />
     </>
   );
 }
 
-/** Shown when a flag on My Roadmap is clicked — the date each of that day's tasks was actually completed. */
+/** Shown when a day on My Roadmap is clicked. A completed day shows when each
+ * task was actually finished; a "today" or "pending" day shows the tasks
+ * themselves (type-coded, same as the weekly task list) with a shortcut into
+ * the task list to go work on them. */
 function DayDetailModal({
   day,
   userId,
   lang,
   t,
   onClose,
+  onJumpToWeek,
 }: {
-  day: { globalDay: number; weekTheme: string; tasks: RoadmapTask[] } | null;
+  day: {
+    globalDay: number;
+    weekIndex: number;
+    weekTheme: string;
+    tasks: RoadmapTask[];
+    status: "done" | "today" | "pending";
+  } | null;
   userId: string | null;
   lang: "en" | "fr";
   t: T;
   onClose: () => void;
+  onJumpToWeek: (weekIndex: number) => void;
 }) {
   const [dates, setDates] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(false);
+  const typeLabels = typeLabelsFor(t);
 
   useEffect(() => {
-    if (!day) return;
+    if (!day || day.status !== "done") return;
     setDates({});
     if (!userId) return;
     setLoading(true);
@@ -442,10 +541,12 @@ function DayDetailModal({
       ? new Date(iso).toLocaleDateString(dateLocale, { weekday: "short", month: "short", day: "numeric" })
       : t.roadmapDayDetailNoDate;
 
+  const HeaderIcon = day.status === "done" ? Flag : day.status === "today" ? Clock : Calendar;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative glass rounded-2xl max-w-md w-full p-6 border border-primary/20 shadow-[0_0_60px_rgba(201,168,76,0.1)]">
+      <div className="relative glass rounded-2xl max-w-md w-full p-6 border border-primary/20 shadow-[0_0_60px_rgba(201,168,76,0.1)] animate-pop">
         <button
           onClick={onClose}
           className="absolute top-5 right-5 text-muted-foreground hover:text-foreground transition-colors"
@@ -457,33 +558,81 @@ function DayDetailModal({
             className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: "var(--gradient-gold)" }}
           >
-            <Flag className="h-4 w-4 text-primary-foreground" />
+            <HeaderIcon className="h-4 w-4 text-primary-foreground" />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="text-[10px] tracking-[0.25em] text-primary/80 uppercase">{day.weekTheme}</div>
-            <div className="font-serif text-lg">{t.roadmapDayDetailTitle(day.globalDay)}</div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="font-serif text-lg">{t.roadmapDayDetailTitle(day.globalDay)}</div>
+              {day.status === "today" && (
+                <span className="text-[9px] tracking-[0.25em] text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                  {t.today}
+                </span>
+              )}
+              {day.status === "pending" && (
+                <span className="text-[9px] tracking-[0.2em] text-muted-foreground bg-secondary/40 px-2 py-0.5 rounded-full uppercase">
+                  {t.roadmapDayNotDoneYet}
+                </span>
+              )}
+            </div>
           </div>
         </div>
-        <div className="space-y-2">
-          {loading ? (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground py-4">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-              {t.roadmapDayDetailLoading}
-            </div>
-          ) : (
-            day.tasks.map((task) => (
-              <div key={task.id} className="flex items-start gap-3 px-3 py-2.5 rounded-lg bg-secondary/20">
-                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm text-foreground/90">{task.title}</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5 font-mono">
-                    {formatDate(dates[task.title] ?? null)}
+
+        {day.status === "done" ? (
+          <div className="space-y-2">
+            {loading ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-4">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                {t.roadmapDayDetailLoading}
+              </div>
+            ) : (
+              day.tasks.map((task) => (
+                <div key={task.id} className="flex items-start gap-3 px-3 py-2.5 rounded-lg bg-secondary/20">
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-foreground/90">{task.title}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5 font-mono">
+                      {formatDate(dates[task.title] ?? null)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              ))
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2">
+              {day.tasks.map((task) => {
+                const cfg = TYPE_CONFIG[task.type] ?? TYPE_CONFIG.learning;
+                const Icon = cfg.icon;
+                return (
+                  <div key={task.id} className={`flex items-start gap-3 px-3 py-2.5 rounded-lg border ${cfg.bg}`}>
+                    <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${cfg.color}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm text-foreground/90">{task.title}</span>
+                        <span className={`text-[9px] tracking-[0.15em] uppercase ${cfg.color}`}>
+                          {typeLabels[task.type] ?? typeLabels.learning}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{task.detail}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => {
+                onJumpToWeek(day.weekIndex);
+                onClose();
+              }}
+              className="mt-4 w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              style={{ background: "var(--gradient-gold)" }}
+            >
+              {t.roadmapOpenTaskList} <ArrowUpRight className="h-3.5 w-3.5" />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -571,13 +720,7 @@ function RoadmapPage() {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const genRoadmap = useServerFn(generateRoadmap);
 
-  const typeLabels: Record<RoadmapTask["type"], string> = {
-    networking: t.typeNetworking,
-    content: t.typeContent,
-    learning: t.typeLearning,
-    outreach: t.typeOutreach,
-    mindset: t.typeMindset,
-  };
+  const typeLabels = typeLabelsFor(t);
 
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
   const [loading, setLoading] = useState(false);
@@ -678,16 +821,10 @@ function RoadmapPage() {
   // mirror-to-aurum_tasks pattern as toggleTask (CAP-85), now carrying the
   // answer text, score, and AI feedback along so they surface on the Calendar.
   const submitAnswer = useCallback(async (task: RoadmapTask, result: { answerText: string; score: number; feedback: string }) => {
-    setCompleted((prev) => {
-      const next = { ...prev, [task.id]: true };
-      const progressMap = getProgressMap();
-      updateCore({ roadmap_progress: { ...progressMap, [industryId]: next } as unknown as null });
-      return next;
-    });
+    if (!user) throw new Error("not signed in");
 
-    if (!user) return;
     await supabase.from("aurum_tasks").delete().eq("user_id", user.id).eq("source", "roadmap").eq("title", task.title);
-    await supabase.from("aurum_tasks").insert({
+    const { error } = await supabase.from("aurum_tasks").insert({
       user_id: user.id,
       title: task.title,
       description: task.detail,
@@ -699,6 +836,17 @@ function RoadmapPage() {
       answer_text: result.answerText,
       answer_score: result.score,
       answer_feedback: result.feedback,
+    });
+    if (error) {
+      console.error("[aurum_tasks] roadmap answer save failed:", error.message);
+      throw new Error("roadmap answer save failed");
+    }
+
+    setCompleted((prev) => {
+      const next = { ...prev, [task.id]: true };
+      const progressMap = getProgressMap();
+      updateCore({ roadmap_progress: { ...progressMap, [industryId]: next } as unknown as null });
+      return next;
     });
   }, [updateCore, core?.roadmap_progress, industryId, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -931,6 +1079,10 @@ function RoadmapPage() {
           userId={user?.id ?? null}
           lang={lang}
           t={t}
+          onJumpToWeek={(weekIndex) => {
+            setActiveWeek(weekIndex);
+            setViewMode("tasks");
+          }}
         />
       )}
 
@@ -967,7 +1119,9 @@ function RoadmapPage() {
               {/* Days */}
               <div className="space-y-1">
                 {roadmap.weeks[activeWeek].days.map((day, dayIdx) => {
-                  const globalDay = activeWeek * 7 + day.day;
+                  // day.day is already the global day number -- see the timeline view's
+                  // identical fix above.
+                  const globalDay = day.day;
                   const isMilestone = !!day.milestone;
                   const isToday = globalDay === currentDay;
                   const isPast = globalDay < currentDay;

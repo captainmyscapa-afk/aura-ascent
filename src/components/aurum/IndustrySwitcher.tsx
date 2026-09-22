@@ -18,11 +18,17 @@ export function IndustrySwitcher({ compact = false }: { compact?: boolean }) {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
+  // Only one mode launched: show a static "you are in <mode>" pill, no dropdown.
+  const single = INDUSTRY_LIST.length <= 1;
+
   return (
     <div ref={ref} className="relative">
       <button
-        onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center gap-2 glass rounded-full pl-2.5 pr-3 py-1.5 text-xs text-foreground hover:ring-gold transition-all"
+        onClick={() => { if (!single) setOpen((o) => !o); }}
+        type="button"
+        aria-disabled={single}
+        tabIndex={single ? -1 : 0}
+        className={`inline-flex items-center gap-2 glass rounded-full pl-2.5 pr-3 py-1.5 text-xs text-foreground transition-all ${single ? "cursor-default mode-pill-glow" : "hover:ring-gold"}`}
       >
         <span
           className="h-6 w-6 rounded-full flex items-center justify-center"
@@ -33,13 +39,20 @@ export function IndustrySwitcher({ compact = false }: { compact?: boolean }) {
         {!compact && (
           <>
             <span className="font-mono tracking-[0.2em] uppercase">{industry.modeLabel}</span>
-            <ChevronDown className="h-3 w-3 text-muted-foreground" />
+            {single ? (
+              <span className="relative ml-0.5 flex h-1.5 w-1.5 text-emerald-400" title="Live">
+                <span className="live-dot absolute inset-0 rounded-full" />
+                <span className="relative h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              </span>
+            ) : (
+              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+            )}
           </>
         )}
-        {compact && <ChevronDown className="h-3 w-3 text-muted-foreground" />}
+        {compact && !single && <ChevronDown className="h-3 w-3 text-muted-foreground" />}
       </button>
 
-      {open && (
+      {open && !single && (
         <div className="absolute right-0 mt-2 w-72 glass-strong rounded-xl p-2 z-50 animate-fade-up shadow-[var(--shadow-elegant)]">
           <div className="px-3 py-2 text-[10px] tracking-[0.32em] text-muted-foreground">INDUSTRY ECOSYSTEM</div>
           {INDUSTRY_LIST.map((opt) => {

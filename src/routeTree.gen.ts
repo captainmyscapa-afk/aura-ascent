@@ -19,6 +19,7 @@ import { Route as RoadmapRouteImport } from './routes/roadmap'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NetworkRouteImport } from './routes/network'
 import { Route as MentorRouteImport } from './routes/mentor'
@@ -79,6 +80,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortfolioRoute = PortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -149,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/mentor': typeof MentorRoute
   '/network': typeof NetworkRoute
   '/onboarding': typeof OnboardingRoute
+  '/portfolio': typeof PortfolioRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -172,6 +179,7 @@ export interface FileRoutesByTo {
   '/mentor': typeof MentorRoute
   '/network': typeof NetworkRoute
   '/onboarding': typeof OnboardingRoute
+  '/portfolio': typeof PortfolioRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -196,6 +204,7 @@ export interface FileRoutesById {
   '/mentor': typeof MentorRoute
   '/network': typeof NetworkRoute
   '/onboarding': typeof OnboardingRoute
+  '/portfolio': typeof PortfolioRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -221,6 +230,7 @@ export interface FileRouteTypes {
     | '/mentor'
     | '/network'
     | '/onboarding'
+    | '/portfolio'
     | '/privacy'
     | '/profile'
     | '/reset-password'
@@ -244,6 +254,7 @@ export interface FileRouteTypes {
     | '/mentor'
     | '/network'
     | '/onboarding'
+    | '/portfolio'
     | '/privacy'
     | '/profile'
     | '/reset-password'
@@ -267,6 +278,7 @@ export interface FileRouteTypes {
     | '/mentor'
     | '/network'
     | '/onboarding'
+    | '/portfolio'
     | '/privacy'
     | '/profile'
     | '/reset-password'
@@ -291,6 +303,7 @@ export interface RootRouteChildren {
   MentorRoute: typeof MentorRoute
   NetworkRoute: typeof NetworkRoute
   OnboardingRoute: typeof OnboardingRoute
+  PortfolioRoute: typeof PortfolioRoute
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -373,6 +386,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portfolio': {
+      id: '/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof PortfolioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -467,6 +487,7 @@ const rootRouteChildren: RootRouteChildren = {
   MentorRoute: MentorRoute,
   NetworkRoute: NetworkRoute,
   OnboardingRoute: OnboardingRoute,
+  PortfolioRoute: PortfolioRoute,
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   ResetPasswordRoute: ResetPasswordRoute,

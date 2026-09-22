@@ -51,6 +51,7 @@ export type T = {
   dashSpeakWithAurum: string;
   dashOpenIntelligence: string;
   dashTaskControl: string;
+  dashPortfolio: string;
   taskCtrlEyebrow: string;
   taskCtrlTitle: string;
   taskCtrlDesc: string;
@@ -65,6 +66,8 @@ export type T = {
   taskCtrlGenerateFailed: string;
   taskCtrlNotEnoughTasks: string;
   taskCtrlQuestionOf: (current: number, total: number) => string;
+  taskCtrlPrevious: string;
+  taskCtrlNext: string;
   taskCtrlSubmitQuiz: string;
   taskCtrlSubmitting: string;
   taskCtrlAnswerAllHint: string;
@@ -85,6 +88,21 @@ export type T = {
   taskCtrlHideAnswer: string;
   taskCtrlAnswerScoreLabel: (score: number) => string;
   taskCtrlCompletedAt: (date: string) => string;
+  taskCtrlScoreEyebrow: string;
+  taskCtrlScoreOverall: string;
+  taskCtrlScoreRitual: string;
+  taskCtrlScoreRoadmap: string;
+  taskCtrlScoreQuiz7: string;
+  taskCtrlScoreQuiz30: string;
+  taskCtrlScoreNotStarted: string;
+  taskCtrlScoreTierUnranked: string;
+  taskCtrlScoreTierBronze: string;
+  taskCtrlScoreTierSilver: string;
+  taskCtrlScoreTierGold: string;
+  taskCtrlScoreTierPlatinum: string;
+  taskCtrlScoreStartPrompt: string;
+  taskCtrlScoreToNext: (points: number, tier: string) => string;
+  taskCtrlScoreMaxed: string;
 
   dashTodayEyebrow: (mode: string) => string;
   dashDailyRitual: string;
@@ -253,6 +271,8 @@ export type T = {
   roadmapDayDetailTitle: (day: number) => string;
   roadmapDayDetailLoading: string;
   roadmapDayDetailNoDate: string;
+  roadmapDayNotDoneYet: string;
+  roadmapOpenTaskList: string;
   roadmapCelebrationTitle: (industryLabel: string) => string;
   roadmapCelebrationSubtitle: string;
   roadmapCelebrationCta: string;
@@ -900,6 +920,7 @@ export const translations: Record<Lang, T> = {
     dashSpeakWithAurum: "Speak with AURUM",
     dashOpenIntelligence: "Open Intelligence",
     dashTaskControl: "Task Control",
+    dashPortfolio: "Yacht Broker Portfolio",
     taskCtrlEyebrow: "Your Work, Reviewed",
     taskCtrlTitle: "Task Control",
     taskCtrlDesc: "Every daily ritual and roadmap task you've completed, your own answers, and periodic quizzes to test what's actually sticking.",
@@ -914,6 +935,8 @@ export const translations: Record<Lang, T> = {
     taskCtrlGenerateFailed: "Couldn't generate the quiz — try again.",
     taskCtrlNotEnoughTasks: "Not enough completed tasks yet to build this quiz.",
     taskCtrlQuestionOf: (current, total) => `Question ${current} of ${total}`,
+    taskCtrlPrevious: "Previous",
+    taskCtrlNext: "Next",
     taskCtrlSubmitQuiz: "Submit Quiz",
     taskCtrlSubmitting: "Grading...",
     taskCtrlAnswerAllHint: "Answer every question to submit.",
@@ -934,6 +957,21 @@ export const translations: Record<Lang, T> = {
     taskCtrlHideAnswer: "Hide answer",
     taskCtrlAnswerScoreLabel: (score) => `Score: ${score}/10`,
     taskCtrlCompletedAt: (date) => `Completed ${date}`,
+    taskCtrlScoreEyebrow: "Mastery Score",
+    taskCtrlScoreOverall: "Overall",
+    taskCtrlScoreRitual: "Daily Rituals",
+    taskCtrlScoreRoadmap: "Roadmap Tasks",
+    taskCtrlScoreQuiz7: "7-Day Quiz",
+    taskCtrlScoreQuiz30: "30-Day Quiz",
+    taskCtrlScoreNotStarted: "—",
+    taskCtrlScoreTierUnranked: "Unranked",
+    taskCtrlScoreTierBronze: "Bronze",
+    taskCtrlScoreTierSilver: "Silver",
+    taskCtrlScoreTierGold: "Gold",
+    taskCtrlScoreTierPlatinum: "Platinum",
+    taskCtrlScoreStartPrompt: "Complete a ritual, roadmap task, or quiz to unlock your Mastery Score.",
+    taskCtrlScoreToNext: (points, tier) => `${points} pt${points === 1 ? "" : "s"} to ${tier}`,
+    taskCtrlScoreMaxed: "Platinum reached — you're performing at the highest level.",
     dashTodayEyebrow: (mode) => `TODAY · ${mode.toUpperCase()}`,
     dashDailyRitual: "Daily ritual",
     dashOfCount: (completed, total) => `${completed} of ${total}`,
@@ -1170,6 +1208,8 @@ export const translations: Record<Lang, T> = {
     roadmapDayDetailTitle: (day: number) => `Day ${day}`,
     roadmapDayDetailLoading: "Loading completion dates…",
     roadmapDayDetailNoDate: "Date not recorded",
+    roadmapDayNotDoneYet: "Not completed yet",
+    roadmapOpenTaskList: "Open in task list",
     roadmapCelebrationTitle: (industryLabel: string) =>
       `Ready to enter the world of ${industryLabel}`,
     roadmapCelebrationSubtitle:
@@ -2043,6 +2083,7 @@ export const translations: Record<Lang, T> = {
     dashSpeakWithAurum: "Parler à AURUM",
     dashOpenIntelligence: "Ouvrir Intelligence",
     dashTaskControl: "Contrôle des tâches",
+    dashPortfolio: "Portfolio de courtier yacht",
     taskCtrlEyebrow: "Votre travail, passé en revue",
     taskCtrlTitle: "Contrôle des tâches",
     taskCtrlDesc: "Chaque tâche de rituel quotidien et de roadmap terminée, vos propres réponses, et des quiz périodiques pour tester ce qui reste vraiment.",
@@ -2057,6 +2098,8 @@ export const translations: Record<Lang, T> = {
     taskCtrlGenerateFailed: "Impossible de générer le quiz — réessayez.",
     taskCtrlNotEnoughTasks: "Pas encore assez de tâches terminées pour créer ce quiz.",
     taskCtrlQuestionOf: (current, total) => `Question ${current} sur ${total}`,
+    taskCtrlPrevious: "Précédent",
+    taskCtrlNext: "Suivant",
     taskCtrlSubmitQuiz: "Valider le quiz",
     taskCtrlSubmitting: "Correction...",
     taskCtrlAnswerAllHint: "Répondez à toutes les questions pour valider.",
@@ -2077,6 +2120,21 @@ export const translations: Record<Lang, T> = {
     taskCtrlHideAnswer: "Masquer la réponse",
     taskCtrlAnswerScoreLabel: (score) => `Score : ${score}/10`,
     taskCtrlCompletedAt: (date) => `Terminé ${date}`,
+    taskCtrlScoreEyebrow: "Score de maîtrise",
+    taskCtrlScoreOverall: "Global",
+    taskCtrlScoreRitual: "Rituels quotidiens",
+    taskCtrlScoreRoadmap: "Tâches roadmap",
+    taskCtrlScoreQuiz7: "Quiz 7 jours",
+    taskCtrlScoreQuiz30: "Quiz 30 jours",
+    taskCtrlScoreNotStarted: "—",
+    taskCtrlScoreTierUnranked: "Non classé",
+    taskCtrlScoreTierBronze: "Bronze",
+    taskCtrlScoreTierSilver: "Argent",
+    taskCtrlScoreTierGold: "Or",
+    taskCtrlScoreTierPlatinum: "Platine",
+    taskCtrlScoreStartPrompt: "Terminez un rituel, une tâche roadmap ou un quiz pour débloquer votre score de maîtrise.",
+    taskCtrlScoreToNext: (points, tier) => `${points} pt${points === 1 ? "" : "s"} avant ${tier}`,
+    taskCtrlScoreMaxed: "Platine atteint — vous êtes au plus haut niveau.",
     dashTodayEyebrow: (mode) => `AUJOURD'HUI · ${mode.toUpperCase()}`,
     dashDailyRitual: "Rituel quotidien",
     dashOfCount: (completed, total) => `${completed} sur ${total}`,
@@ -2319,6 +2377,8 @@ export const translations: Record<Lang, T> = {
     roadmapDayDetailTitle: (day: number) => `Jour ${day}`,
     roadmapDayDetailLoading: "Chargement des dates de complétion…",
     roadmapDayDetailNoDate: "Date non enregistrée",
+    roadmapDayNotDoneYet: "Pas encore terminé",
+    roadmapOpenTaskList: "Ouvrir la liste des tâches",
     roadmapCelebrationTitle: (industryLabel: string) =>
       `Prêt à entrer dans le monde de ${industryLabel}`,
     roadmapCelebrationSubtitle:

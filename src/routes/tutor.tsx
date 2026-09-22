@@ -11,6 +11,7 @@ import { useMentorConversations } from "@/hooks/useMentorConversations";
 import type { ConversationMessage } from "@/hooks/useMentorConversations";
 import { useProGate, PageLock } from "@/components/aurum/ProGate";
 import { useAcademyProgress } from "@/hooks/useAcademyProgress";
+import { useAcademyTutorContext } from "@/hooks/useAcademyTutorContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { UpgradeModal } from "@/components/aurum/UpgradeModal";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -51,6 +52,7 @@ function Tutor() {
   const dateLocale = lang === "fr" ? "fr-FR" : "en-GB";
   const { industry, industryId } = useIndustry();
   const academyProgress = useAcademyProgress(industryId);
+  const academyCtx = useAcademyTutorContext(industryId, industry.trackName);
   const ask = useServerFn(askGemini);
   const genTitle = useServerFn(generateConversationTitle);
   const genLessonStarters = useServerFn(generateTutorLessonStarters);
@@ -74,7 +76,7 @@ function Tutor() {
 2) Break the concept into 3-5 numbered steps or key points.
 3) Give a concrete example from ${industry.label.toLowerCase()}.
 4) End with a short check-for-understanding question.
-Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep tone calm, precise, and encouraging. Reference industry terminology: client="${industry.terms.client}", asset="${industry.terms.asset}", market="${industry.terms.market}".`;
+Use clear markdown formatting (headings, bullet lists, bold for key terms). Keep tone calm, precise, and encouraging. Reference industry terminology: client="${industry.terms.client}", asset="${industry.terms.asset}", market="${industry.terms.market}".${academyCtx.context}`;
 
   const opener = t.tutOpener(industry.trackName);
   const seed: ConversationMessage[] = [{ r: "ai", t: opener }];

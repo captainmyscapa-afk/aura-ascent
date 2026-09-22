@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { INDUSTRIES } from "./config";
+import { INDUSTRIES, isIndustryEnabled } from "./config";
 import type { IndustryConfig, IndustryId } from "./types";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 
@@ -15,7 +15,7 @@ type Ctx = {
 const IndustryContext = createContext<Ctx | null>(null);
 
 function isIndustry(v: string | null): v is IndustryId {
-  return v === "yachts" || v === "villas" || v === "jets" || v === "cars";
+  return isIndustryEnabled(v);
 }
 
 export function IndustryProvider({ children }: { children: ReactNode }) {
@@ -27,6 +27,7 @@ export function IndustryProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (isIndustry(stored)) setIndustryId(stored);
+    else if (stored) window.localStorage.setItem(STORAGE_KEY, DEFAULT); // mode not launched yet
   }, []);
 
   // reflect to <html data-industry="...">

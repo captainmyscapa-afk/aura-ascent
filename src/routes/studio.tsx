@@ -1,3 +1,4 @@
+import { LogoPulse } from "@/components/aurum/Logo";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -1764,17 +1765,7 @@ function Studio() {
                     style={{ background: "var(--gradient-gold)" }}
                   />
                   <div className="relative">
-                    <div className="relative h-16 w-16 mx-auto mb-6">
-                      <div className="absolute inset-0 rounded-full border border-primary/20 animate-ping" />
-                      <div className="absolute inset-0 rounded-full border border-primary/10" />
-                      <div className="absolute -inset-2 rounded-full border border-primary/10 [animation:spin_12s_linear_infinite]" />
-                      <div
-                        className="absolute inset-3 rounded-full flex items-center justify-center"
-                        style={{ background: "var(--gradient-gold)" }}
-                      >
-                        <Sparkles className="h-5 w-5 text-primary-foreground" />
-                      </div>
-                    </div>
+                    <LogoPulse decorative className="mb-6" />
                     <div className="font-serif text-2xl mb-2">{t.stuReadyTitle}</div>
                     <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
                       {t.stuReadyDesc(industry.label.toLowerCase())}
@@ -1815,19 +1806,7 @@ function Studio() {
                     ))}
                   </div>
                   <div className="relative p-10 text-center">
-                    <div className="relative h-14 w-14 mx-auto mb-6">
-                      <div
-                        className="absolute inset-0 rounded-full border border-primary/30 animate-spin"
-                        style={{ borderTopColor: "transparent" }}
-                      />
-                      <div className="absolute inset-0 rounded-full border border-primary/10 [animation:spin_10s_linear_infinite]" />
-                      <div
-                        className="absolute inset-3 rounded-full flex items-center justify-center"
-                        style={{ background: "var(--gradient-gold)" }}
-                      >
-                        <Sparkles className="h-4 w-4 text-primary-foreground" />
-                      </div>
-                    </div>
+                    <LogoPulse decorative className="mb-6" />
                     <div className="font-serif text-xl mb-3">{t.stuComposing}</div>
                     <div className="space-y-2 max-w-xs mx-auto">
                       {LOAD_STEPS.map((step, i) => (

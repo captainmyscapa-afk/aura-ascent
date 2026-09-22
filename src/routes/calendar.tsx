@@ -35,6 +35,7 @@ import { UserCardDialog } from "@/components/aurum/UserCardDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useAurumCoreState } from "@/hooks/useAurumCoreState";
 import { useIndustry } from "@/lib/industry/IndustryProvider";
+import { ENABLED_INDUSTRY_IDS } from "@/lib/industry/config";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { Tables } from "@/integrations/supabase/types";
@@ -288,6 +289,7 @@ function CalendarPage() {
       .from("community_events" as any)
       .select("*")
       .gte("start_at", new Date().toISOString())
+      .in("industry", ENABLED_INDUSTRY_IDS) // only launched modes
       .order("start_at", { ascending: true })
       .limit(20);
     const rows = (data as unknown as CommunityEvent[]) ?? [];
