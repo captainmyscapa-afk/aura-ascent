@@ -7,12 +7,12 @@ export const Route = createFileRoute("/privacy")({
 
 function PrivacyPage() {
   return (
-    <LegalLayout title="Privacy Policy" updated="[date of publication]">
+    <LegalLayout title="Privacy Policy" updated="September 22, 2026">
       <LegalNote>
-        This is a working draft prepared to match Aurum OS's actual data practices. It has not been
-        reviewed by a lawyer. Have qualified counsel review this before it governs real user data —
-        especially the GDPR sections, since Aurum OS serves EU/UK users and fines for non-compliance
-        are real.
+        This draft matches Aurum OS's actual data practices. One item remains open: confirming the
+        hosting regions used by Stripe, Resend, and our AI providers (Section 10). We'd also
+        recommend a lawyer review this in full before it governs real EU/UK user data at scale —
+        fines for GDPR non-compliance are real.
       </LegalNote>
 
       <LegalSection id="overview" title="1. Overview">
@@ -142,9 +142,9 @@ function PrivacyPage() {
       <LegalSection id="retention" title="7. How long we keep your data">
         <p>
           We keep your account and product data for as long as your account is active. If you delete
-          your account, we delete or anonymize your personal data within{" "}
-          <strong>[retention period, e.g. 30 days]</strong>, except where we're required to keep
-          certain records for longer (for example, billing records for tax purposes).
+          your account, we delete or anonymize your personal data within <strong>30 days</strong>,
+          except where we're required to keep certain records for longer (for example, billing
+          records for tax purposes).
         </p>
       </LegalSection>
 
@@ -181,10 +181,11 @@ function PrivacyPage() {
         <p>
           Our service providers may process data outside your home country. Where that involves a
           transfer out of the EU/UK, we rely on appropriate safeguards (such as Standard Contractual
-          Clauses) as required by GDPR.{" "}
+          Clauses) as required by GDPR. Our database (Supabase) is hosted in the{" "}
+          <strong>eu-west-2 (London)</strong> region.{" "}
           <strong>
-            [Confirm the actual hosting regions used by Supabase/Stripe/Resend/AI providers for your
-            account and state them here.]
+            [Confirm the hosting regions used by Stripe, Resend, and our AI providers (Google
+            Gemini, Groq) for your account and state them here.]
           </strong>
         </p>
       </LegalSection>
@@ -218,10 +219,10 @@ function PrivacyPage() {
           <a href="mailto:hello@aurumos.com" className="text-primary hover:underline">
             hello@aurumos.com
           </a>
-          .{" "}
-          <strong>
-            [Add a dedicated Data Protection Officer contact here if one is appointed.]
-          </strong>
+          . We haven't appointed a dedicated Data Protection Officer — under GDPR (Article 37), one
+          is only required for large-scale systematic monitoring or large-scale processing of
+          special-category data, which doesn't currently apply at our scale. We'll revisit this as
+          the company grows.
         </p>
       </LegalSection>
     </LegalLayout>

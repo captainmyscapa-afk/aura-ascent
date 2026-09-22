@@ -7,20 +7,23 @@ export const Route = createFileRoute("/terms")({
 
 function TermsPage() {
   return (
-    <LegalLayout title="Terms of Service" updated="[date of publication]">
+    <LegalLayout title="Terms of Service" updated="September 22, 2026">
       <LegalNote>
-        This is a working draft prepared to cover Aurum OS's actual functionality. It has not been
-        reviewed by a lawyer. Have qualified counsel review this before it governs real signups or
-        payments — particularly the billing, liability, and governing-law sections.
+        This draft is complete except for one item: the legal entity operating Aurum OS, which is
+        pending business registration (see Section 1). Once registered, insert the entity name,
+        jurisdiction, and registration number there. We'd also recommend a lawyer confirm the
+        liability limitation in Section 11 is enforceable under applicable consumer-protection law
+        before this governs real payments at scale.
       </LegalNote>
 
       <LegalSection id="acceptance" title="1. Acceptance of these terms">
         <p>
           These Terms of Service ("Terms") govern your access to and use of Aurum OS, including our
           website, dashboard, and related AI-powered tools (together, the "Service"), operated by{" "}
-          <strong>[Legal entity name]</strong>, a company registered in{" "}
-          <strong>[jurisdiction, registration number]</strong> ("Aurum OS", "we", "us"). By creating
-          an account or otherwise using the Service, you agree to be bound by these Terms and by our{" "}
+          <strong>[Legal entity name — pending business registration]</strong>, based in{" "}
+          <strong>[jurisdiction, registration number — pending business registration]</strong>{" "}
+          ("Aurum OS", "we", "us"). By creating an account or otherwise using the Service, you agree
+          to be bound by these Terms and by our{" "}
           <a href="/privacy" className="text-primary hover:underline">
             Privacy Policy
           </a>
@@ -82,8 +85,7 @@ function TermsPage() {
             the paid period.
           </li>
           <li>
-            <strong>[Refund policy]</strong> — e.g. fees are non-refundable except where required by
-            law. Confirm and state your actual policy here.
+            All fees are non-refundable, except where required by applicable law.
           </li>
           <li>
             Free-plan usage limits (message counts, generation credits, etc.) are described
@@ -204,10 +206,10 @@ function TermsPage() {
 
       <LegalSection id="law" title="14. Governing law">
         <p>
-          These Terms are governed by the laws of <strong>[governing jurisdiction]</strong>, without
-          regard to conflict-of-law principles. Disputes will be resolved in the courts of{" "}
-          <strong>[jurisdiction]</strong>, except where local consumer-protection law gives you the
-          right to bring a claim in your own country of residence.
+          These Terms are governed by the laws of France, without regard to conflict-of-law
+          principles. Disputes will be resolved in the courts of France, except where local
+          consumer-protection law gives you the right to bring a claim in your own country of
+          residence.
         </p>
       </LegalSection>
 
