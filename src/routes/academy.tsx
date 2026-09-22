@@ -150,6 +150,8 @@ function Academy() {
   // Real DB counts for all tracks (for the track selector cards)
   const [allTracksStats, setAllTracksStats] = useState<Record<string, { total: number; completed: number }>>({});
   const [loading, setLoading] = useState(true);
+  // Guards "Continue learning" from picking the wrong module before real progress has loaded
+  const [progressLoaded, setProgressLoaded] = useState(false);
 
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "module" | "reader" | "quiz">("list");
@@ -231,13 +233,14 @@ function Academy() {
   useEffect(() => { loadAll(); }, [loadAll]);
 
   useEffect(() => {
-    if (!user || modules.length === 0) return;
+    if (!user || modules.length === 0) { setProgressLoaded(true); return; }
     (async () => {
       const { data } = await (supabase.from("user_module_progress") as any)
         .select("*").eq("user_id", user.id);
       const map: Record<string, ModuleProgress> = {};
       for (const p of (data || []) as ModuleProgress[]) map[p.module_id] = p;
       setProgress(map);
+      setProgressLoaded(true);
     })();
   }, [user, modules]);
 
@@ -337,11 +340,22 @@ function Academy() {
 
   // "Continue learning": jump to the module (and page, via last_page) the learner left off at.
   const continueLearning = () => {
+    // Guard: picking a target before real progress has loaded would default to
+    // the first module (since every module looks "untouched" with an empty
+    // progress map), silently opening the wrong module at page one instead of
+    // resuming the one actually in progress.
+    if (!progressLoaded) return;
     const open = modules
       .filter((m) => getState(m) !== "locked" && !progress[m.id]?.quiz_passed)
       .sort((x, y) => x.module_number - y.module_number);
-    const started = open.filter((m) => (progress[m.id]?.last_page ?? 0) > 0);
-    const target = started.length > 0 ? started[started.length - 1] : open[0];
+    // Look for saved reading progress across ALL not-yet-passed modules, not just
+    // ones currently unlocked in sequence -- an admin previewing a later module
+    // ahead of the normal order still has real last_page progress on it, and
+    // Continue Learning should resume there instead of ignoring it as "locked".
+    const startedAnywhere = modules
+      .filter((m) => !progress[m.id]?.quiz_passed && (progress[m.id]?.last_page ?? 0) > 0)
+      .sort((x, y) => x.module_number - y.module_number);
+    const target = startedAnywhere.length > 0 ? startedAnywhere[startedAnywhere.length - 1] : open[0];
     if (target) openModule(target);
     else goBack(); // everything finished: stay on the module list
   };
@@ -542,7 +556,11 @@ function Academy() {
           return (
             <button
               key={ind.id}
-              onClick={() => { setIndustry(ind.id); continueLearning(); }}
+              // Removed the setIndustry() call here: with only one industry currently
+              // active, it was a no-op that appeared to still trigger a reset of loaded
+              // progress data before the reader mounted, causing "Continue Learning" to
+              // open the correct module but at page one instead of the real resume point.
+              onClick={() => continueLearning()}
               className="relative text-left rounded-2xl overflow-hidden group cursor-pointer ring-gold hero-sheen min-h-[260px]"
             >
               <img src={ind.ambientImage} alt={ind.trackName} className="absolute inset-0 h-full w-full object-cover opacity-70 group-hover:opacity-90 group-hover:scale-105 transition-all duration-[1200ms]" loading="lazy" />
