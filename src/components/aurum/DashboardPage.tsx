@@ -1203,7 +1203,7 @@ export function DashboardPage() {
           const dayMs = 86400000;
           const diff = Math.round((new Date(ev.startDate + "T00:00:00").getTime() - new Date(todayDate + "T00:00:00").getTime()) / dayMs);
           const live = diff <= 0;
-          const fmt = (d: string) => new Date(d + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
+          const fmt = (d: string) => new Date(d + "T00:00:00").toLocaleDateString(dateLocale, { month: "short", day: "numeric" });
           return (
             <div role="button" tabIndex={0} onClick={() => openEvent(ev)} onKeyDown={(k) => { if (k.key === "Enter" || k.key === " ") { k.preventDefault(); openEvent(ev); } }} className="relative overflow-hidden rounded-xl border border-primary/30 p-5 hero-sheen cursor-pointer hover:border-primary/60 transition-colors" style={{ background: "linear-gradient(135deg, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%)" }}>
               <div className="flex items-center justify-between gap-4">
