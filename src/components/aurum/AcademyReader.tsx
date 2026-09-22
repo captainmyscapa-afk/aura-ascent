@@ -67,6 +67,7 @@ export function AcademyReader({
   reviewMode,
   initialPage,
   onPageChange,
+  progressReady,
   adminSkip,
 }: {
   pages: ReaderPage[];
@@ -83,6 +84,11 @@ export function AcademyReader({
   // Resume support: page index to open on (once), and a callback fired whenever the learner moves to another page.
   initialPage?: number;
   onPageChange?: (index: number) => void;
+  // Whether the caller's progress data has actually finished loading. initialPage
+  // is indistinguishable between "really page 0" and "not loaded yet" -- this
+  // flag disambiguates that, so restoration doesn't lock in a premature 0.
+  // Omit (undefined) to behave as if always ready, for callers that don't track this.
+  progressReady?: boolean;
   // Admin: quick checks and exercises can be skipped (a Skip label replaces the locked button).
   adminSkip?: boolean;
 }) {
@@ -90,24 +96,34 @@ export function AcademyReader({
   // Each page is two steps: read the page, then answer its quick check on its own screen
   const [phase, setPhase] = useState<"read" | "check" | "recap">("read");
   const [streak, setStreak] = useState(0);
-  const restoredRef = useRef(false);
-  const skipSaveRef = useRef(true);
+  // Whether we've resolved what page to open on (restored a saved position, or
+  // determined there's nothing to restore). This is real state, not a one-shot
+  // ref flag -- React Strict Mode's dev-only effect replay ("reconnectPassiveEffects")
+  // was firing the save-effect below once with the still-unrestored pageIndex (0)
+  // before the restore effect got a chance to apply, silently overwriting real
+  // saved progress with 0. A ref-based guard can't protect against that replay;
+  // gating both effects on shared state can.
+  const [restored, setRestored] = useState(false);
 
   // Resume where the learner left off (progress may load a moment after the reader mounts)
   useEffect(() => {
-    if (restoredRef.current || reviewMode || adminEdit || !initialPage || pages.length === 0) return;
-    restoredRef.current = true;
-    if (pageIndex === 0 && phase === "read") setPageIndex(Math.min(initialPage, pages.length - 1));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialPage, pages.length]);
+    if (restored) return;
+    if (reviewMode || adminEdit) { setRestored(true); return; }
+    if (pages.length === 0) return; // wait for pages to load before deciding anything
+    if (progressReady === false) return; // real progress data hasn't arrived yet -- initialPage isn't trustworthy
+    if (initialPage) setPageIndex(Math.min(initialPage, pages.length - 1));
+    setRestored(true);
+  }, [restored, initialPage, pages.length, reviewMode, adminEdit, progressReady]);
 
-  // Persist the current page whenever it changes (not on first mount)
+  // Persist the current page whenever it changes -- but never before restoration
+  // has been resolved, so a stale pre-restore pageIndex can never overwrite a
+  // real saved position.
   useEffect(() => {
-    if (skipSaveRef.current) { skipSaveRef.current = false; return; }
+    if (!restored) return;
     if (adminEdit || reviewMode) return;
     onPageChange?.(pageIndex);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageIndex]);
+  }, [pageIndex, restored]);
   const [bestStreak, setBestStreak] = useState(0);
   const [selectedByPage, setSelectedByPage] = useState<Record<string, string>>({});
   const [feedbackByPage, setFeedbackByPage] = useState<Record<string, CheckpointFeedback>>({});

@@ -720,6 +720,7 @@ function Academy() {
           questions={activeQuestions}
           pages={activePages}
           progress={activeProgress}
+          progressLoaded={progressLoaded}
           isAdmin={isAdmin}
           adminMode={adminMode}
           editingModule={editingModule}
@@ -1013,7 +1014,7 @@ function AddModuleForm({
 // ─── Module Detail ────────────────────────────────────────────────────────────
 
 function ModuleDetail({
-  t, module, pdfs, questions, pages, progress, isAdmin, adminMode, editingModule,
+  t, module, pdfs, questions, pages, progress, progressLoaded, isAdmin, adminMode, editingModule,
   onSetEditing, onBack, onStartQuiz, onPageChange, checkpointQuestionsById, answeredPageIds, exerciseState, onExerciseSaved, onCheckpointAnswered, onMarkWatched, onReloadAll, onDeleteModule,
 }: {
   t: T;
@@ -1022,6 +1023,7 @@ function ModuleDetail({
   questions: DbQuestion[];
   pages: DbPage[];
   progress: ModuleProgress | null;
+  progressLoaded: boolean;
   isAdmin: boolean;
   adminMode: boolean;
   editingModule: string | null;
@@ -1112,6 +1114,7 @@ function ModuleDetail({
             onExit={onBack}
             reviewMode={quizPassed}
             initialPage={progress?.last_page ?? 0}
+            progressReady={progressLoaded}
             onPageChange={onPageChange}
             onCheckpointAnswered={onCheckpointAnswered}
             exerciseState={exerciseState}
