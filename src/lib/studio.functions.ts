@@ -48,7 +48,7 @@ function getPlatformGuidance(): string {
 }
 
 export const generateStudioContent = createServerFn({ method: "POST" })
-  .inputValidator((d: Input) => d)
+  .validator((d: Input) => d)
   .handler(async ({ data }) => {
     await requireServerAuth();
     const platformKeys = ALL_PLATFORM_KEYS;
@@ -185,7 +185,7 @@ type RegenerateVisualPromptInput = {
 // generator: never invent the subject's own identity, since real reference
 // photos supply that separately at image-generation time.
 export const regenerateVisualPrompt = createServerFn({ method: "POST" })
-  .inputValidator((d: RegenerateVisualPromptInput) => d)
+  .validator((d: RegenerateVisualPromptInput) => d)
   .handler(async ({ data }) => {
     await requireServerAuth();
     const isFrench = data.language === "fr";

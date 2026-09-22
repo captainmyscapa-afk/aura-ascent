@@ -3,7 +3,7 @@ import { ai, type AiTool } from "@/lib/ai";
 import { requireServerAuth } from "@/lib/serverAuth";
 
 export const generateConversationTitle = createServerFn({ method: "POST" })
-  .inputValidator((d: { firstMessage: string; industry: string }) => d)
+  .validator((d: { firstMessage: string; industry: string }) => d)
   .handler(async ({ data }) => {
     await requireServerAuth();
     const { text } = await ai.chat([
@@ -60,7 +60,7 @@ export type MentorQuickInvocationsInput = {
 // streak, execution score, time since signup, recent rituals — so day one
 // looks different from day ninety.
 export const generateMentorQuickInvocations = createServerFn({ method: "POST" })
-  .inputValidator((d: MentorQuickInvocationsInput) => d)
+  .validator((d: MentorQuickInvocationsInput) => d)
   .handler(async ({ data }) => {
     await requireServerAuth();
     const signupContext =
@@ -142,7 +142,7 @@ export type TutorLessonStartersInput = {
 // grounded in the user's REAL academy progress, so a beginner and someone
 // who's 90% through the track see different suggestions.
 export const generateTutorLessonStarters = createServerFn({ method: "POST" })
-  .inputValidator((d: TutorLessonStartersInput) => d)
+  .validator((d: TutorLessonStartersInput) => d)
   .handler(async ({ data }) => {
     await requireServerAuth();
     const progressContext =

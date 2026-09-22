@@ -5,7 +5,7 @@ import { requireServerAuth } from "@/lib/serverAuth";
 type AiMessage = { role: "user" | "assistant"; text: string };
 
 export const askGemini = createServerFn({ method: "POST" })
-  .inputValidator((input: { messages: AiMessage[]; system?: string }) => input)
+  .validator((input: { messages: AiMessage[]; system?: string }) => input)
   .handler(async ({ data }) => {
     await requireServerAuth();
     const messages = [

@@ -15,7 +15,7 @@ type IntroInput = {
 };
 
 export const generateIntroMessage = createServerFn({ method: "POST" })
-  .inputValidator((d: IntroInput) => d)
+  .validator((d: IntroInput) => d)
   .handler(async ({ data }) => {
     await requireServerAuth();
     const isFrench = data.language === "fr";

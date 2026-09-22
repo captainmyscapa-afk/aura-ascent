@@ -215,7 +215,7 @@ const PREFERRED_TIME_LABEL: Record<string, string> = {
 // ─── Server functions ─────────────────────────────────────────────────────────
 
 export const generateIdentityAudit = createServerFn({ method: "POST" })
-  .inputValidator((d: AuditInput) => d)
+  .validator((d: AuditInput) => d)
   .handler(async ({ data }) => {
     await requireServerAuth();
     const result = await ai.complete(
@@ -249,7 +249,7 @@ export const generateIdentityAudit = createServerFn({ method: "POST" })
   });
 
 export const generateTodayBrief = createServerFn({ method: "POST" })
-  .inputValidator((d: AuditInput) => d)
+  .validator((d: AuditInput) => d)
   .handler(async ({ data }) => {
     await requireServerAuth();
     const result = await ai.complete(
@@ -280,7 +280,7 @@ export const generateTodayBrief = createServerFn({ method: "POST" })
   });
 
 export const generateRecommendation = createServerFn({ method: "POST" })
-  .inputValidator((d: DashInput) => d)
+  .validator((d: DashInput) => d)
   .handler(async ({ data }) => {
     await requireServerAuth();
     const { text } = await ai.chat([
@@ -307,7 +307,7 @@ export const generateRecommendation = createServerFn({ method: "POST" })
   });
 
 export const generateDailyTasks = createServerFn({ method: "POST" })
-  .inputValidator((d: DashInput) => d)
+  .validator((d: DashInput) => d)
   .handler(async ({ data }) => {
     await requireServerAuth();
     const ritual = data.ritualProfile;
@@ -368,7 +368,7 @@ Every task must read in this research/study register.`,
   });
 
 export const generateUpcomingEvents = createServerFn({ method: "POST" })
-  .inputValidator((d: { mode: string }) => d)
+  .validator((d: { mode: string }) => d)
   .handler(async ({ data }) => {
     await requireServerAuth();
     const result = await ai.complete(
@@ -538,7 +538,7 @@ function parseWeekJson(text: string, weekNum: number, baseDay: number, themes: s
 }
 
 export const generateRoadmap = createServerFn({ method: "POST" })
-  .inputValidator((d: RoadmapInput) => d)
+  .validator((d: RoadmapInput) => d)
   .handler(async ({ data }) => {
     await requireServerAuth();
     const ritual = data.ritualProfile;
@@ -654,7 +654,7 @@ Types: networking, content, learning, outreach, mindset (keep these "type" value
 // from a sample of the user's own completed tasks (and, where graded, their
 // own free-text answers) — never invented facts, only recall of what's given.
 export const generateTaskReviewQuiz = createServerFn({ method: "POST" })
-  .inputValidator((d: { milestone: "day7" | "day30"; questionCount: number; language?: "en" | "fr"; tasks: TaskQuizSourceTask[] }) => d)
+  .validator((d: { milestone: "day7" | "day30"; questionCount: number; language?: "en" | "fr"; tasks: TaskQuizSourceTask[] }) => d)
   .handler(async ({ data }) => {
     await requireServerAuth();
     const isFrench = data.language === "fr";
